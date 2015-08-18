@@ -90,6 +90,11 @@
 	relativewall_neighbours()
 	..()
 
+	for(var/turf/simulated/floor/plating/snow/snowTile in range(src,1))
+		var/snowDirection = get_dir(src,snowTile)
+		var/icon/frost = new('icons/turf/overlays.dmi',"snowwall",snowDirection)
+		overlays += frost
+
 /*/turf/simulated/shuttle/wall/New()
 
 	spawn(20) //testing if this will make /obj/machinery/shuttle and /door count - It does, it stays.

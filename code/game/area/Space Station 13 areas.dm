@@ -45,7 +45,7 @@ NOTE: there are two lists of areas in the end of this file: centcom and station 
 	var/static_light = 0
 	var/static_environ
 
-	var/has_gravity = 0
+	var/has_gravity = 1			//All areas by default will now have gravity since Arctic Station is obviously taking place on a planet.
 	var/safe = 0 				//Is the area teleport-safe: no space / radiation / aggresive mobs / other dangers
 
 	var/no_air = null
@@ -153,7 +153,6 @@ proc/process_ghost_teleport_locs()
 
 /area/shuttle/arrival
 	name = "\improper Arrival Shuttle"
-	has_gravity = 1
 
 /area/shuttle/arrival/pre_game
 	icon_state = "shuttle2"
@@ -310,7 +309,6 @@ proc/process_ghost_teleport_locs()
 	requires_power = 0
 	luminosity = 1
 	lighting_use_dynamic = 0
-	has_gravity = 1
 
 // === end remove
 
@@ -320,7 +318,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Centcom"
 	icon_state = "centcom"
 	requires_power = 0
-	has_gravity = 1
 
 /area/centcom/control
 	name = "\improper Centcom Docks"
@@ -346,7 +343,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Syndicate Mothership"
 	icon_state = "syndie-ship"
 	requires_power = 0
-	has_gravity = 1
 	ambloop = 'sound/ambience/loop/windwinterinside.ogg'
 	ambientsounds = list('sound/ambience/ambicreek1.ogg', 'sound/ambience/ambicreek2.ogg', 'sound/ambience/johncena.ogg')
 
@@ -364,7 +360,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Asteroid"
 	icon_state = "asteroid"
 	requires_power = 0
-	has_gravity = 1
 
 /area/asteroid/cave
 	name = "\improper Asteroid - Underground"
@@ -396,7 +391,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Thunderdome"
 	icon_state = "yellow"
 	requires_power = 0
-	has_gravity = 1
 
 /area/tdome/arena
 	name = "\improper Thunderdome Arena"
@@ -434,7 +428,6 @@ proc/process_ghost_teleport_locs()
 /area/syndicate_station/start
 	name = "\improper Syndicate Forward Operating Base"
 	icon_state = "yellow"
-	has_gravity = 1
 	// ambloop = 'sound/ambience/loop/windwinterinside.ogg'
 
 /area/syndicate_station/southwest
@@ -477,7 +470,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Wizard's Den"
 	icon_state = "yellow"
 	requires_power = 0
-	has_gravity = 1
 
 
 
@@ -1314,12 +1306,10 @@ proc/process_ghost_teleport_locs()
 /area/djstation
 	name = "\improper Ruskie DJ Station"
 	icon_state = "DJ"
-	has_gravity = 1
 
 /area/djstation/solars
 	name = "\improper DJ Station Solars"
 	icon_state = "DJ"
-	has_gravity = 1
 	requires_power = 0
 	luminosity = 1
 	lighting_use_dynamic = 0
@@ -1597,7 +1587,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Russianstation"
 	icon_state = "engine"
 	requires_power = 0
-	has_gravity = 1
 	ambloop = 'sound/ambience/loop/opressivehum.ogg'
 	ambientsounds = list('sound/ambience/johncena.ogg')
 
@@ -1619,7 +1608,6 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Abductor Ship"
 	icon_state = "yellow"
 	requires_power = 0
-	has_gravity = 1
 
 
 // Telecommunications Satellite
@@ -1692,7 +1680,6 @@ proc/process_ghost_teleport_locs()
 	luminosity = 1
 	lighting_use_dynamic = 0
 	requires_power = 0
-	has_gravity = 1
 	ambientsounds = list('sound/ambience/shore.ogg', 'sound/ambience/seag1.ogg','sound/ambience/seag2.ogg','sound/ambience/seag2.ogg')
 
 /area/spacecontent
@@ -1704,7 +1691,6 @@ proc/process_ghost_teleport_locs()
 
 /area/spacecontent/IPC
 	name = "space"
-	has_gravity = 1
 
 /area/spacecontent/IPC/IPCResearch
 	name = "\improper IPC ship Research"
@@ -1899,6 +1885,25 @@ proc/process_ghost_teleport_locs()
 
 /area/awaycontent/a30
 	icon_state = "awaycontent30"
+
+//Outdoor Arctic Areas
+
+/area/arctic
+	name = "Arctic"
+	icon_state = "blue" //placeholder icons for now
+
+/area/arctic/north
+	name = "Northern Arctic"
+
+/area/arctic/south
+	name = "Southern Arctic"
+
+/area/arctic/west
+	name = "Western Arctic"
+
+/area/arctic/east
+	name = "Eastern Arctic"
+
 
 
 /////////////////////////////////////////////////////////////////////

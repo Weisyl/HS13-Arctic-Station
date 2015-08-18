@@ -39,3 +39,29 @@
 	name = "Coconuts"
 	icon = 'icons/misc/beach.dmi'
 	icon_state = "coconuts"
+/*
+/obj/effect/snow_covering
+	icon = 'icons/turf/overlays.dmi'
+	icon_state = "snowwall"
+	layer = TURF_LAYER + 0.1
+
+		for(var/turf/simulated/floor/plating/snow in range(src,1))
+		var/snowDirection = get_dir(src,snowTile)
+		if(snowDirection in cardinal)
+			new /obj/effect/snow_covering(snowTile,snowDirection)
+
+	New(turf/location, direction)
+		..()
+
+		dir = direction
+
+		switch(dir)
+			if(NORTH)
+				pixel_y -= 5
+			if(SOUTH)
+				pixel_y += 5
+			if(EAST)
+				pixel_x -= 6
+			if(WEST)
+				pixel_x += 5
+*/
