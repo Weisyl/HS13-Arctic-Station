@@ -1,0 +1,129 @@
+
+
+Starting up. 00:14.15
+---------------------
+Adding game mode blob (blob) to configuration.
+Adding game mode changeling (changeling) to configuration.
+Adding game mode shadowling (shadowling) to configuration.
+Adding game mode traitor+changeling (traitorchan) to configuration.
+Adding game mode double agents (double_agents) to configuration.
+Adding game mode traitor (traitor) to configuration.
+Adding game mode cult (cult) to configuration.
+Adding game mode extended (extended) to configuration.
+Adding game mode gang war (gang) to configuration.
+Adding game mode AI malfunction (malfunction) to configuration.
+Adding game mode meteor (meteor) to configuration.
+Adding game mode monkey (monkey) to configuration.
+Adding game mode nuclear emergency (nuclear) to configuration.
+Adding game mode revolution (revolution) to configuration.
+Adding game mode sandbox (sandbox) to configuration.
+Adding game mode Ragin' Mages (raginmages) to configuration.
+Adding game mode wizard (wizard) to configuration.
+Unknown setting in configuration: 'use_recursive_explosions'
+Saved mode is 'secret'
+Failed to connect to database in load_admin_ranks(). Reverting to legacy system.
+[00:14:19]ADMIN: Loading Banlistjob
+Database connection failed. Reverting to the legacy ban system.
+[00:14:20]ACCESS: Login: DerptheStewpidGoat/(DerptheStewpidGoat) from localhost-2638935576 || BYOND v506
+[00:14:21]ADMIN: Loading jobban_rank
+[00:14:21]ADMIN: jobban_keylist was empty
+[00:14:22]ADMIN: Loading appearance_rank
+[00:14:22]ADMIN: appearance_keylist was empty
+[00:14:22]ADMIN: Updating jobbanfile!
+[00:14:22]ADMIN: Loading Banlist
+[00:15:05]ADMIN: DerptheStewpidGoat has started the game.
+[00:15:05]ADMIN: The gamemode setup for traitor+changeling errored out.
+[00:15:09]ADMIN: DerptheStewpidGoat has started the game.
+[00:15:09]GAME: DerptheStewpidGoat (ckey) has been selected as a traitor
+[00:15:09]ACCESS: Logout: *no key*/(DerptheStewpidGoat)
+[00:15:09]ACCESS: Login: DerptheStewpidGoat/(Miranda Semenov) from localhost-2638935576 || BYOND v506
+[00:15:16]EMOTE: mouse/ : <B>The mouse</B> squeeks
+[00:15:23]ADMIN: DerptheStewpidGoat/(Miranda Semenov) changed the equipment of DerptheStewpidGoat/(Miranda Semenov) to new-russian soldier.
+[00:15:43]SAY: mouse/ : SQUEEK!
+[00:15:45]EMOTE: mouse/ : <B>The mouse</B> shakes
+[00:15:56]SAY: mouse/ : Squeek!
+[00:15:58]EMOTE: mouse/ : <B>The mouse</B> shakes
+[00:16:04]EMOTE: Poly/ : <B>Poly</B> turns and flies towards the folder.
+[00:16:11]EMOTE: monkey (955)/ : <B>The monkey (955)</B> jumps!
+[00:16:25]EMOTE: Tom/ : <B>Tom</B> runs in a circle
+[00:16:44]SAY: mouse/ : Squeek?
+[00:16:53]SAY: mouse/ : SQUEEK!
+[00:16:56]ACCESS: Logout: DerptheStewpidGoat[DC]/(Miranda Semenov)
+
+
+Starting up. 00:54.06
+---------------------
+
+
+Starting up. 00:59.53
+---------------------
+Adding game mode blob (blob) to configuration.
+Adding game mode changeling (changeling) to configuration.
+Adding game mode shadowling (shadowling) to configuration.
+Adding game mode traitor+changeling (traitorchan) to configuration.
+Adding game mode double agents (double_agents) to configuration.
+Adding game mode traitor (traitor) to configuration.
+Adding game mode cult (cult) to configuration.
+Adding game mode extended (extended) to configuration.
+Adding game mode gang war (gang) to configuration.
+Adding game mode AI malfunction (malfunction) to configuration.
+Adding game mode meteor (meteor) to configuration.
+Adding game mode monkey (monkey) to configuration.
+Adding game mode nuclear emergency (nuclear) to configuration.
+Adding game mode revolution (revolution) to configuration.
+Adding game mode sandbox (sandbox) to configuration.
+Adding game mode Ragin' Mages (raginmages) to configuration.
+Adding game mode wizard (wizard) to configuration.
+Unknown setting in configuration: 'use_recursive_explosions'
+Saved mode is 'secret'
+Failed to connect to database in load_admin_ranks(). Reverting to legacy system.
+[00:59:57]ADMIN: Loading Banlistjob
+Database connection failed. Reverting to the legacy ban system.
+[00:59:57]ADMIN: Loading jobban_rank
+[00:59:57]ADMIN: jobban_keylist was empty
+[00:59:58]ADMIN: Loading appearance_rank
+[00:59:58]ADMIN: appearance_keylist was empty
+[00:59:58]ADMIN: Updating jobbanfile!
+[00:59:58]ADMIN: Loading Banlist
+[01:00:00]ACCESS: Login: DerptheStewpidGoat/(DerptheStewpidGoat) from localhost-2638935576 || BYOND v506
+[01:00:32]ADMIN: DerptheStewpidGoat has started the game.
+[01:00:32]GAME: DerptheStewpidGoat (ckey) has been selected as a traitor
+[01:00:32]ACCESS: Logout: *no key*/(DerptheStewpidGoat)
+[01:00:32]ACCESS: Login: DerptheStewpidGoat/(Miranda Semenov) from localhost-2638935576 || BYOND v506
+[01:00:46]EMOTE: monkey (653)/ : <B>The monkey (653)</B> jumps!
+[01:00:59]EMOTE: Ian/ : <B>Ian</B> chases its tail!
+[01:01:03]ADMIN: DerptheStewpidGoat/(Miranda Semenov) created a /mob/living/simple_animal/hostile/russian/ranged/spetsnaz
+[01:01:18]EMOTE: monkey (443)/ : <B>The monkey (443)</B> jumps!
+[01:01:22]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> screams!
+[01:01:23]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> screams!
+[01:01:25]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> screams!
+[01:01:31]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> screams!
+[01:01:32]SAY: mouse/ : SQUEEK!
+[01:01:33]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> screams!
+[01:01:34]EMOTE: Poly/ : <B>Poly</B> looks in the pen's direction and takes flight.
+[01:01:39]EMOTE: Miranda Semenov/DerptheStewpidGoat : <B>Miranda Semenov</B> moans!
+[01:01:47]ADMIN: DerptheStewpidGoat/(Miranda Semenov) healed / Revived DerptheStewpidGoat/(Miranda Semenov)
+[01:01:58]ADMIN: DerptheStewpidGoat/(Miranda Semenov) changed the equipment of DerptheStewpidGoat/(Miranda Semenov) to new-russian soldier.
+[01:02:14]EMOTE: mouse/ : <B>The mouse</B> squeeks
+[01:02:33]EMOTE: Poly/ : <B>Poly</B> looks in the Space Cigarettes packet's direction and takes flight.
+[01:02:44]EMOTE: Tom/ : <B>Tom</B> runs in a circle
+[01:02:54]SAY: Tom/ : Squeek?
+[01:03:15]EMOTE: monkey (748)/ : <B>The monkey (748)</B> jumps!
+[01:03:24]EMOTE: Runtime/ : <B>Runtime</B> shivers
+[01:03:38]EMOTE: Poly/ : <B>Poly</B> looks in the Space Cigarettes packet's direction and takes flight.
+[01:03:42]EMOTE: mouse/ : <B>The mouse</B> runs in a circle
+[01:03:57]EMOTE: monkey (653)/ : <B>The monkey (653)</B> jumps!
+[01:04:03]EMOTE: Pete/ : <B>Pete</B> brays
+[01:04:08]SAY: space bear/ : Growl!
+[01:04:22]ADMIN: DerptheStewpidGoat/(Miranda Semenov) healed / Revived DerptheStewpidGoat/(Miranda Semenov)
+[01:04:33]EMOTE: Ian/ : <B>Ian</B> dances around.
+[01:04:35]EMOTE: monkey (576)/ : <B>The monkey (576)</B> jumps!
+[01:04:44]EMOTE: Poly/ : <B>Poly</B> looks in the monitor decryption key's direction and takes flight.
+[01:05:12]EMOTE: monkey (443)/ : <B>The monkey (443)</B> jumps!
+[01:05:18]SAY: mouse/ : Squeek?
+[01:05:39]ADMIN: DerptheStewpidGoat/(Miranda Semenov) created a /obj/structure/stool/bed/chair/janicart/secway
+[01:05:46]ADMIN: DerptheStewpidGoat/(Miranda Semenov) created a /obj/item/key/security
+[01:05:49]EMOTE: Poly/ : <B>Poly</B> looks in the Zippo lighter's direction and takes flight.
+[01:06:12]EMOTE: monkey (576)/ : <B>The monkey (576)</B> jumps!
+[01:06:52]EMOTE: Poly/ : <B>Poly</B> looks in the Zippo lighter's direction and takes flight.
+[01:07:04]ACCESS: Logout: DerptheStewpidGoat[DC]/(Miranda Semenov)
