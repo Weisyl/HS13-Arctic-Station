@@ -1,6 +1,6 @@
 /world
 	mob = /mob/new_player
-	turf = /turf/simulated/floor/plating/snow
+	turf = /turf/unsimulated/floor/snow
 	area = /area/arctic
 	view = "15x15"
 	cache_lifespan = 1

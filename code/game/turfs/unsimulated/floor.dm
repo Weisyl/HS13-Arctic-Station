@@ -25,3 +25,39 @@
 /turf/unsimulated/floor/abductor/New()
 	..()
 	icon_state = "alienpod[rand(1,9)]"
+
+/turf/unsimulated/floor/snow
+	name = "snow"
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "snow"
+	temperature = T0C
+	thermal_conductivity = OPEN_HEAT_TRANSFER_COEFFICIENT
+	heat_capacity = 700000
+
+/turf/unsimulated/floor/snow/attackby(obj/item/C, mob/user)
+	if(istype(C, /obj/item/stack/rods))
+		var/obj/item/stack/rods/R = C
+		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
+		if(L)
+			user << "<span class='warning'>There is already a lattice.</span>"
+			return
+		if(R.use(1))
+			user << "<span class='notice'>Constructing support lattice...</span>"
+			playsound(src, 'sound/weapons/Genhit.ogg', 50, 1)
+			ReplaceWithLattice()
+		else
+			user << "<span class='warning'>You need one rod to build lattice.</span>"
+		return
+	if(istype(C, /obj/item/stack/tile/plasteel))
+		var/obj/structure/lattice/L = locate(/obj/structure/lattice, src)
+		if(L)
+			var/obj/item/stack/tile/plasteel/S = C
+			if(S.use(1))
+				qdel(L)
+				playsound(src, 'sound/weapons/Genhit.ogg', 50, 1)
+				user << "<span class='notice'>You build a floor.</span>"
+				ChangeTurf(/turf/simulated/floor/plating)
+			else
+				user << "<span class='warning'>You need one floor tile to build a floor.</span>"
+		else
+			user << "<span class='danger'>The plating is going to need some support. Place metal rods first.</span>"

@@ -152,7 +152,7 @@ RCD
 
 	switch(mode)
 		if(1)
-			if(istype(A, /turf/space))
+			if(istype(A, /turf/unsimulated/floor/snow))
 				if(useResource(1, user))
 					user << "Building Floor..."
 					activate()
@@ -214,7 +214,7 @@ RCD
 					if(do_after(user, 50))
 						if(!useResource(5, user)) return 0
 						activate()
-						A:ChangeTurf(/turf/space)
+						A:ChangeTurf(/turf/unsimulated/floor/snow)
 						return 1
 				return 0
 

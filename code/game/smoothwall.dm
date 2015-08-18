@@ -90,7 +90,7 @@
 	relativewall_neighbours()
 	..()
 
-	for(var/turf/simulated/floor/plating/snow/snowTile in range(src,1))
+	for(var/turf/unsimulated/floor/snow/snowTile in range(src,1))
 		var/snowDirection = get_dir(src,snowTile)
 		var/icon/frost = new('icons/turf/overlays.dmi',"snowwall",snowDirection)
 		overlays += frost
