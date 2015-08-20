@@ -6,22 +6,22 @@ Names of z-level do not matter, but order does greatly, for instances such as ch
 current as of 2014/11/24
 z1 = station
 z2 = centcomm
-z3 = derelict telecomms satellite
-z4 = derelict station
-z5 = mining
-z6 = empty space
-z7 = empty space
+z3 =
+z4 =
+z5 =
+z6 =
+z7 =
 */
 
 #if !defined(MAP_FILE)
 
         #include "map_files\ArcticStation/arcticstation.dmm"
-        #include "map_files\generic\z2.dmm"
-        #include "map_files\generic\z3.dmm"
-        #include "map_files\generic\z4.dmm"
-        #include "map_files\generic\z5.dmm"
-        #include "map_files\generic\z6.dmm"
-        #include "map_files\generic\z7.dmm"
+        #include "map_files\ArcticStation/generic\z2.dmm"		/*
+        #include "map_files\ArcticStation/generic\z3.dmm"
+        #include "map_files\ArcticStation/generic\z4.dmm"
+        #include "map_files\ArcticStation/generic\z5.dmm"
+        #include "map_files\ArcticStation/generic\z6.dmm"
+        #include "map_files\ArcticStation/generic\z7.dmm"		*/
 
         #define MAP_FILE "arcticstation.dmm"
         #define MAP_NAME "Arctic Station V1"

@@ -91,6 +91,10 @@
 	icon = 'icons/turf/snow.dmi'
 	icon_state = "snow"
 
+/turf/simulated/floor/plating/snow/New()
+	icon_state = "snow[rand(1, 18)]"
+	..()
+
 /turf/simulated/floor/plating/snow/ex_act(severity, target)
 	contents_explosion(severity, target)
 
