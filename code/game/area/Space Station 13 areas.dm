@@ -1891,6 +1891,7 @@ proc/process_ghost_teleport_locs()
 /area/arctic
 	name = "Arctic"
 	icon_state = "blue" //placeholder icons for now
+	ambientsounds = list('sound/ambience/arctic_suspense_1.ogg', 'sound/ambience/arctic_ambience_1.ogg', 'sound/ambience/arctic_ambience_2.ogg')
 
 /area/arctic/north
 	name = "Northern Arctic"
@@ -1903,6 +1904,37 @@ proc/process_ghost_teleport_locs()
 
 /area/arctic/east
 	name = "Eastern Arctic"
+
+/area/arctic/forest
+	name = "Arctic Forest"
+
+/area/arctic/forest/forest1
+	name = "Arctic Forest"
+
+/area/arctic/forest/forest2
+	name = "Arctic Forest"
+
+/area/arctic/tundra
+	name = "Arctic Tundra"
+
+/area/arctic/cave
+	name = "Arctic Cave"
+
+/area/arctic/lake
+	name = "Lake"
+
+/area/arctic/river
+	name = "River"
+
+/area/arctic/wasteland
+	name = "Arctic Wasteland"
+
+/area/arctic/aband_outpost
+	name = "Abandoned Outpost"
+
+/area/arctic/cabin
+	name = "Log Cabin"
+	icon_state = "yellow" //also placeholder
 
 
 

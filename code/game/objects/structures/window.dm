@@ -407,6 +407,7 @@
 				if(W.anchored && W.density	&& W.fulltile) //Only counts anchored, not-destroyed fill-tile windows.
 					if(abs(x-W.x)-abs(y-W.y) ) 		//doesn't count windows, placed diagonally to src
 						junction |= get_dir(src,W)
+
 		if(opacity)
 			icon_state = "twindow[junction]"
 		else

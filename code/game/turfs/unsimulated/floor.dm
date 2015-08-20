@@ -34,6 +34,29 @@
 	thermal_conductivity = OPEN_HEAT_TRANSFER_COEFFICIENT
 	heat_capacity = 700000
 
+/turf/unsimulated/floor/snow/New()
+	icon_state = "snow[rand(1, 18)]"
+	..()
+
+turf/unsimulated/floor/snow/attackby(obj/item/weapon/W as obj, mob/user as mob)
+	if (istype(W, /obj/item/weapon/shovel))
+		if(!user.IsAdvancedToolUser())
+			user << "\red you don't know how to use this [W.name]"
+			return
+		var/footprints = 0
+		usr << "\blue you start shoveling"
+		if(do_after(user,20))
+			for(var/obj/effect/footprint/footprint in src)
+				del(footprint)
+				footprints = 1
+			if(isturf(user.loc))
+				for(var/obj/effect/footprint/footprint in user.loc)
+					del(footprint)
+					footprints = 1
+			if(footprints)
+				usr << "\blue You cover up the footprints"
+
+
 /turf/unsimulated/floor/snow/attackby(obj/item/C, mob/user)
 	if(istype(C, /obj/item/stack/rods))
 		var/obj/item/stack/rods/R = C

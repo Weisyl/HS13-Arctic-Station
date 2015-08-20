@@ -238,6 +238,7 @@
 	hardness = 10
 
 /obj/structure/mineral_door/wood
+	name = "wooden door"
 	mineralType = "wood"
 	hardness = 1
 	openSound = 'sound/effects/doorcreaky.ogg'

@@ -32,3 +32,16 @@
 	icon_state = "rrust"
 	walltype = "rrust"
 	hardness = 15
+
+/turf/simulated/wall/wooden
+	name = "wooden wall"
+	desc = "A wooden wall."
+	icon_state = "wooden"
+	mineral = "wood"
+	walltype = "wooden"
+	hardness = 80
+//	sheet_type = /obj/item/stack/sheet/metal/mineral/wood
+	slicing_duration = -1		//Not sure if there's a different way to make it invincible to welders.
+
+/turf/simulated/wall/wooden/break_wall()
+//	new /obj/structure/woodframe(src)		Future addition of this planned
