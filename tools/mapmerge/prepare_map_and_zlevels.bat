@@ -6,7 +6,7 @@ set MAPFILEz5=z5.dmm
 set MAPFILEz6=z6.dmm
 set MAPFILEz7=z7.dmm
 
-cd ../../_maps/map_files/TgStation/
+cd ../../_maps/map_files/ArcticStation/
 copy %MAPFILE% %MAPFILE%.backup
 
 cd ../generic/
