@@ -1,0 +1,17 @@
+atmos functional requirements
+\1a. distribution loop
+\1b.scrubbing loop
+\1c. scrubbing loop gas return
+\1d. o2+n2 mix to air tank
+\2a. canister refill ports
+\2b. canister refill gas return
+\3a. gas mix tank
+\3b. gas mix tank gas return
+\3c. gas mix tank inlet loop
+\3d. gas mix tank distribution control
+\3e. gas mix tank loop heating
+\3f. gas mix tank loop cooling
+\4. distribution to scrubber loop
+\5. canister ratio control stations
+\6a. front desk distribution refill station
+\6b. front desk scrubber emptying station
