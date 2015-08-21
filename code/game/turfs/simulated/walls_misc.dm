@@ -43,5 +43,8 @@
 //	sheet_type = /obj/item/stack/sheet/metal/mineral/wood
 	slicing_duration = -1		//Not sure if there's a different way to make it invincible to welders.
 
+/turf/simulated/wall/wooden/attackby(obj/item/weapon/weldingtool)
+	return
+
 /turf/simulated/wall/wooden/break_wall()
 //	new /obj/structure/woodframe(src)		Future addition of this planned

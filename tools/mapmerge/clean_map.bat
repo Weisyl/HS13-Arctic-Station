@@ -1,5 +1,5 @@
-set MAPFILE=tgstation.2.1.3.dmm
+set MAPFILE=arcticstation.dmm
 
-java -jar MapPatcher.jar -clean ../../_maps/map_files/TgStation/%MAPFILE%.backup ../../_maps/map_files/TgStation/%MAPFILE% ../../_maps/map_files/TgStation/%MAPFILE%
+java -jar MapPatcher.jar -clean ../../_maps/map_files/ArcticStation/%MAPFILE%.backup ../../_maps/map_files/ArcticStation/%MAPFILE% ../../_maps/map_files/ArcticStation/%MAPFILE%
 
 pause
