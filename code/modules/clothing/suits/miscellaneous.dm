@@ -267,7 +267,7 @@
 
 /obj/item/clothing/suit/hooded/wintercoat
 	name = "coat"
-	desc = "A heavy jacket made from 'synthetic' animal furs."
+	desc = "A cheap coat made from 'synthetic' animal furs."
 	icon_state = "coatwinter"
 	item_state = "labcoat"
 	body_parts_covered = CHEST|GROIN|ARMS
@@ -281,7 +281,7 @@
 
 /obj/item/clothing/head/winterhood
 	name = "winter hood"
-	desc = "A hood attached to a heavy winter jacket."
+	desc = "A hood attached to a winter coat."
 	icon_state = "generic_hood"
 	body_parts_covered = HEAD
 	cold_protection = HEAD
@@ -290,14 +290,17 @@
 
 /obj/item/clothing/suit/hooded/wintercoat/captain
 	name = "captain's coat"
+	desc = "A finely made and moderately armored heavy-duty winter coat."
 	icon_state = "coatcaptain"
+	min_cold_protection_temperature = SPACE_SUIT_MIN_TEMP_PROTECT
 	armor = list(melee = 50, bullet = 30, laser = 50, energy = 10, bomb = 25, bio = 0, rad = 0)
 	allowed = list(/obj/item/weapon/gun/energy,/obj/item/weapon/reagent_containers/spray/pepper,/obj/item/weapon/gun/projectile,/obj/item/ammo_box,/obj/item/ammo_casing,/obj/item/weapon/melee/baton,/obj/item/weapon/handcuffs,/obj/item/device/flashlight/seclite,/obj/item/weapon/melee/truncheon/telebaton)
 
 /obj/item/clothing/suit/hooded/wintercoat/security
 	name = "security coat"
+	desc = "A decently made and moderately armored winter coat."
 	icon_state = "coatsecurity"
-	armor = list(melee = 50, bullet = 15, laser = 50, energy = 10, bomb = 25, bio = 0, rad = 0)
+	armor = list(melee = 30, bullet = 15, laser = 20, energy = 10, bomb = 25, bio = 0, rad = 0)
 	allowed = list(/obj/item/weapon/gun/energy,/obj/item/weapon/reagent_containers/spray/pepper,/obj/item/weapon/gun/projectile,/obj/item/ammo_box,/obj/item/ammo_casing,/obj/item/weapon/melee/baton,/obj/item/weapon/handcuffs,/obj/item/device/flashlight/seclite,/obj/item/weapon/melee/truncheon/telebaton)
 
 /obj/item/clothing/suit/hooded/wintercoat/medical
@@ -358,3 +361,25 @@
 	item_state = "beebox"
 	armor = list(melee = 10, bullet = 1, laser = 1, energy = 1, bomb = 0, bio = 0, rad = 0)
 
+//ARCTIC STATION SUITS
+
+/obj/item/clothing/suit/hooded/wintercoat/armored/explorer
+	name = "armorered expedition suit"
+	desc = "A lightly armored, lightweight suit intended for heavy-duty exploration of the Arctic."
+	icon_state = "coatexplorer"
+	hoodtype = /obj/item/clothing/head/winterhood/armoredhood
+	body_parts_covered = CHEST|GROIN|ARMS|LEGS
+	cold_protection = CHEST|GROIN|ARMS|LEGS
+	min_cold_protection_temperature = SPACE_SUIT_MIN_TEMP_PROTECT
+	allowed = list(/obj/item/weapon/gun/energy,/obj/item/weapon/reagent_containers/spray/pepper,/obj/item/weapon/gun/projectile,/obj/item/ammo_box,/obj/item/ammo_casing,/obj/item/weapon/melee/baton,/obj/item/weapon/handcuffs,/obj/item/device/flashlight/seclite,/obj/item/weapon/melee/truncheon/telebaton)
+	armor = list(melee = 30, bullet = 15, laser = 15, energy = 10, bomb = 15, bio = 0, rad = 0)
+
+/obj/item/clothing/head/winterhood/armoredhood
+	name = "armored hood"
+	desc = "A lightly armored hood attached to a heavy-duty winter coat."
+	icon_state = "explorer_hood"
+	body_parts_covered = HEAD
+	cold_protection = HEAD
+	min_cold_protection_temperature = SPACE_SUIT_MIN_TEMP_PROTECT
+	armor = list(melee = 30, bullet = 15, laser = 15, energy = 10, bomb = 15, bio = 0, rad = 0)
+	flags = NODROP
