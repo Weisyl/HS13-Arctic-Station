@@ -1,23 +1,45 @@
 /turf/space
-	icon = 'icons/turf/space.dmi'
-	name = "\proper space"
-	icon_state = "0"
+	icon = 'icons/turf/snow.dmi'
+	name = "\proper snow"
+	icon_state = "snow"
 	intact = 0
+	blocks_air = 1
 
 	temperature = TCMB
 	thermal_conductivity = OPEN_HEAT_TRANSFER_COEFFICIENT
 	heat_capacity = 700000
+	oxygen = 3100
+	nitrogen = 5000
 
 	var/transition //These is used in transistions as a way to tell where on the "cube" of space you're transitioning from/to
 	var/destination_x
 	var/destination_y
 
 /turf/space/New()
-	if(!istype(src, /turf/space/transit))
-		icon_state = "[((x + y) ^ ~(x * y) + z) % 25]"
+	icon_state = "snow[rand(1, 18)]"
+	..()
+
 
 /turf/space/attack_paw(mob/user as mob)
 	return src.attack_hand(user)
+
+turf/space/attackby(obj/item/weapon/W as obj, mob/user as mob)
+	if (istype(W, /obj/item/weapon/shovel))
+		if(!user.IsAdvancedToolUser())
+			user << "\red you don't know how to use this [W.name]"
+			return
+		var/footprints = 0
+		usr << "\blue you start shoveling"
+		if(do_after(user,20))
+			for(var/obj/effect/footprint/footprint in src)
+				del(footprint)
+				footprints = 1
+			if(isturf(user.loc))
+				for(var/obj/effect/footprint/footprint in user.loc)
+					del(footprint)
+					footprints = 1
+			if(footprints)
+				usr << "\blue You cover up the footprints"
 
 /turf/space/attackby(obj/item/C, mob/user)
 	if(istype(C, /obj/item/stack/rods))
@@ -49,8 +71,8 @@
 
 /turf/space/Entered(atom/movable/A)
 	..()
-	if ((!(A) || src != A.loc))
-		return
+	//if ((!(A) || src != A.loc))
+	//	return
 
 	if(transition)
 
