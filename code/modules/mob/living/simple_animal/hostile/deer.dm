@@ -27,17 +27,16 @@
 	attack_sound = 'sound/weapons/punch1.ogg'
 	environment_smash = 0
 	retreat_distance = 12
+	faction = list("deer")
 
-	min_oxy = 5
+	//Immune to the cold.
+	min_oxy = 0
 	max_oxy = 0
 	min_tox = 0
-	max_tox = 1
+	max_tox = 0
 	min_co2 = 0
-	max_co2 = 5
+	max_co2 = 0
 	min_n2 = 0
 	max_n2 = 0
-	minbodytemp = 270
-	maxbodytemp = 370
-	heat_damage_per_tick = 15	//amount of damage applied if animal's body temperature is higher than maxbodytemp
-	cold_damage_per_tick = 0	//Only if the bodytemperature is lower than minbodytemp
-	unsuitable_atmos_damage = 10
+	minbodytemp = 0
+	maxbodytemp = 1500
