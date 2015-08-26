@@ -185,10 +185,7 @@
 
 		for(var/direction in cardinal)//Only use cardinals to cut down on lag
 			var/turf/T = get_step(src,direction)
-			if(istype(T,/turf/space))//Counted as no air
-				turf_count++//Considered a valid turf for air calcs
-				continue
-			else if(istype(T,/turf/simulated/floor))
+			if(istype(T,/turf/simulated/floor))
 				var/turf/simulated/S = T
 				if(S.air)//Add the air's contents to the holders
 					aoxy += S.air.oxygen
@@ -206,7 +203,7 @@
 			air_master.add_to_active(src)
 
 /turf/proc/ReplaceWithLattice()
-	src.ChangeTurf(/turf/unsimulated/floor/snow)
+	src.ChangeTurf(/turf/space)
 	new /obj/structure/lattice( locate(src.x, src.y, src.z) )
 
 /turf/proc/phase_damage_creatures(damage,mob/U = null)//>Ninja Code. Hurts and knocks out creatures on this turf
