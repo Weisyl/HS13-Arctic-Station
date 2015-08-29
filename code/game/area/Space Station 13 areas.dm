@@ -1890,7 +1890,7 @@ proc/process_ghost_teleport_locs()
 
 /area/arctic
 	name = "Arctic"
-	icon_state = "blue" //placeholder icons for now
+	icon_state = "arcticspace" //placeholder icons for now
 	ambientsounds = list('sound/ambience/arctic_suspense_1.ogg', 'sound/ambience/arctic_ambience_1.ogg', 'sound/ambience/arctic_ambience_2.ogg')
 
 /area/arctic/north
