@@ -35,7 +35,7 @@
 	heat_capacity = 700000
 
 /turf/unsimulated/floor/snow/New()
-	icon_state = "snow[rand(1, 18)]"
+	icon_state = "snow[rand(1, 7)]"
 	..()
 
 turf/unsimulated/floor/snow/attackby(obj/item/weapon/W as obj, mob/user as mob)
