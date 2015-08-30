@@ -88,6 +88,7 @@
 
 // BEGIN_INCLUDE
 #include "_maps\arcticstationv1.dm"
+#include "_maps\map_files\ArcticStation\arcticstation.dmm"
 #include "_maps\map_files\ArcticStation\generic\z2.dmm"
 #include "_maps\map_files\ArcticStation\generic\z3.dmm"
 #include "_maps\map_files\ArcticStation\generic\z4.dmm"
@@ -1559,6 +1560,7 @@
 #include "code\modules\vehicles\keys.dm"
 #include "code\modules\vehicles\lawnmower.dm"
 #include "code\modules\vehicles\segway.dm"
+#include "code\modules\vehicles\snowmobile.dm"
 #include "code\WorkInProgress\atlantique\screambot.dm"
 #include "code\WorkInProgress\nexendia\tanks.dm"
 #include "code\WorkInProgress\redswandir\buttes_and_bots.dm"

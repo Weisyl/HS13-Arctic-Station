@@ -36,9 +36,9 @@
 /turf/simulated/wall/wooden
 	name = "wooden wall"
 	desc = "A wooden wall."
-	icon_state = "wooden"
+	icon_state = "wood"
 	mineral = "wood"
-	walltype = "wooden"
+	walltype = "wood"
 	hardness = 80
 //	sheet_type = /obj/item/stack/sheet/metal/mineral/wood
 	slicing_duration = -1		//Not sure if there's a different way to make it invincible to welders.

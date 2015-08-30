@@ -16,7 +16,7 @@
 	var/destination_y
 
 /turf/space/New()
-	icon_state = "snow[rand(1, 18)]"
+	icon_state = "snow[rand(1, 7)]"
 	..()
 
 

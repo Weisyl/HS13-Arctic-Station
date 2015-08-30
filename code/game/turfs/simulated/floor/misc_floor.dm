@@ -92,7 +92,7 @@
 	icon_state = "snow"
 
 /turf/simulated/floor/plating/snow/New()
-	icon_state = "snow[rand(1, 18)]"
+	icon_state = "snow[rand(1, 7)]"
 	..()
 
 /turf/simulated/floor/plating/snow/ex_act(severity, target)

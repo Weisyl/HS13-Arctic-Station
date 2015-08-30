@@ -13,6 +13,10 @@
 	desc = "A keyring with a small steel key, and a rubber stun baton accessory."
 	icon_state = "keysec"
 
+/obj/item/key/snowmobile
+	desc = "A keyring with a small steel key. It has a tag attached reading \"Snowmobiles\"."
+	icon_state = "keysnowmobile"
+
 /obj/item/janiupgrade
 	name = "floor buffer upgrade"
 	desc = "An upgrade for mobile janicarts."
