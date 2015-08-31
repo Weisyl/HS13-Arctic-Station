@@ -9,7 +9,7 @@
 /obj/structure/stool/bed/chair/janicart/snowmobile/relaymove(mob/user as mob, direction)
 	if(user.stat || user.stunned || user.weakened || user.paralysis)
 		unbuckle_mob()
-	if(istype(user.l_hand, /obj/item/key/security) || istype(user.r_hand, /obj/item/key/security))
+	if(istype(user.l_hand, /obj/item/key/snowmobile) || istype(user.r_hand, /obj/item/key/snowmobile))
 		if(!Process_Spacemove(direction))
 			return
 		step(src, direction)
