@@ -18,10 +18,19 @@
 	else
 		user << "<span class='notice'>You'll need the keys in one of your hands to drive this [callme].</span>"
 
-obj/structure/stool/bed/chair/janicart/snowmobile/relaymove(mob/user as mob, direction)
-	if(user.stat || user.stunned || user.weakened || user.paralysis)
-		unbuckle_mob()
-	else
-		step(src, direction)
-		update_mob()
-		handle_rotation()
+/obj/structure/stool/bed/chair/janicart/snowmobile/update_mob()
+	if(buckled_mob)
+		buckled_mob.dir = dir
+		switch(dir)
+			if(SOUTH)
+				buckled_mob.pixel_x = 0
+				buckled_mob.pixel_y = 7
+			if(WEST)
+				buckled_mob.pixel_x = 6
+				buckled_mob.pixel_y = 2
+			if(NORTH)
+				buckled_mob.pixel_x = 0
+				buckled_mob.pixel_y = 10
+			if(EAST)
+				buckled_mob.pixel_x = -6
+				buckled_mob.pixel_y = 2
