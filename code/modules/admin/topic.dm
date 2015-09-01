@@ -2245,6 +2245,20 @@ var/global/list/achievements = list("Goodcurity")
 					newname = "Admin"
 				D.name = newname
 				D.real_name = newname
+			if("spawnselfbluespacetech")
+				feedback_inc("admin_secrets_fun_used","TD") //No idea what this is
+				message_admins("[key_name_admin(usr)] spawned himself as a Bluespace Technician.")
+				var/turf/T = get_turf(usr)
+				var/mob/living/carbon/human/dummy/D = new /mob/living/carbon/human/dummy(T)
+				usr.client.cmd_assume_direct_control(D)
+				D.equip_to_slot_or_del(new /obj/item/clothing/under/bstech(D), slot_w_uniform) //example of adding equpitment to a slot
+				T.turf_animation('icons/effects/96x96.dmi',"explosion2",-32,0,MOB_LAYER+1,'sound/effects/supermatter.ogg',5) // HALLELUJAH. Just the special effect
+				D.name = "Bluespace Technician" //sets temp name
+				D.real_name = "Bluespace Technician" // sets temp real name.
+				var/newname = "" //used in setting the new name
+				newname = "Bluespace Technician" //defaults to admin if nothing inputted.
+				D.name = newname // setting new name
+				D.real_name = newname //setting new real name
 			if("spawn_objects")
 				var/dat = "<B>Admin Log<HR></B>"
 				for(var/l in admin_log)

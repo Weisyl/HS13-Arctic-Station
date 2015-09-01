@@ -47,6 +47,14 @@
 	has_sensor = 2
 	sensor_mode = 3
 
+/obj/item/clothing/under/bstech
+	name = "Bluespace Technician's Jumpsuit"
+	desc = "<i>Fixing your mistakes and transgressions since 1996</i>"
+	icon_state = "waiter"
+	item_state = "b_suit"
+	item_color = "bstech"
+	can_adjust = 0
+
 /obj/item/clothing/under/rank/mailman
 	name = "mailman's jumpsuit"
 	desc = "<i>'Special delivery!'</i>"
