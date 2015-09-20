@@ -365,3 +365,33 @@
 	icon_state = "cigarcase"
 	item_state = "cigarcase"
 	cigar_type = /obj/item/clothing/mask/cigarette/cigar/havana
+
+
+////////////////
+//Survival Can//
+////////////////
+
+/obj/item/weapon/storage/fancy/can
+	name = "survival can"
+	desc = "A can with the word Survival printed on."
+	icon = 'icons/obj/storage.dmi'
+	icon_state = "can"
+	item_state = "can"
+	w_class = 2
+	throwforce = 0
+	slot_flags = SLOT_BELT
+	storage_slots = 5
+	can_hold = list(/obj/item/stack/ducttape,/obj/item/device/flashlight/flare,/obj/item/weapon/match)
+
+/obj/item/weapon/storage/fancy/can/New()
+	..()
+	new /obj/item/stack/ducttape(src)
+	new /obj/item/device/flashlight/flare(src)
+	new /obj/item/device/flashlight/flare(src)
+	new /obj/item/weapon/match(src)
+	new /obj/item/weapon/match(src)
+	update_icon()
+
+/obj/item/weapon/storage/fancy/can/update_icon()
+	icon_state = "[initial(icon_state)][contents.len]"
+	return
