@@ -324,7 +324,7 @@ var/list/name_to_material
 	integrity = 150
 	icon_base = "solid"
 	icon_reinf = "reinf_over"
-	icon_colour = "#666666"
+	icon_colour = "#393e53"
 
 /material/steel/holographic
 	name = "holo" + DEFAULT_WALL_MATERIAL
@@ -440,7 +440,7 @@ var/list/name_to_material
 	display_name = "reinforced glass"
 	stack_type = /obj/item/stack/material/glass/reinforced
 	flags = MATERIAL_BRITTLE
-	icon_colour = "#00E1FF"
+	icon_colour = "#5C5454"
 	opacity = 0.3
 	integrity = 100
 	shard_type = SHARD_SHARD
