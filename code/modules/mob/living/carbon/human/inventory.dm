@@ -1,158 +1,7 @@
-/mob/living/carbon/human/can_equip(obj/item/I, slot, disable_warning = 0)
-	if(dna)
-		return dna.species.can_equip(I, slot, disable_warning, src)
-	else
-		switch(slot)
-			if(slot_l_hand)
-				if(l_hand)
-					return 0
-				return 1
-			if(slot_r_hand)
-				if(r_hand)
-					return 0
-				return 1
-			if(slot_wear_mask)
-				if(wear_mask)
-					return 0
-				if( !(I.slot_flags & SLOT_MASK) )
-					return 0
-				return 1
-			if(slot_back)
-				if(back)
-					return 0
-				if( !(I.slot_flags & SLOT_BACK) )
-					return 0
-				return 1
-			if(slot_wear_suit)
-				if(wear_suit)
-					return 0
-				if( !(I.slot_flags & SLOT_OCLOTHING) )
-					return 0
-				return 1
-			if(slot_gloves)
-				if(gloves)
-					return 0
-				if( !(I.slot_flags & SLOT_GLOVES) )
-					return 0
-				return 1
-			if(slot_shoes)
-				if(shoes)
-					return 0
-				if( !(I.slot_flags & SLOT_FEET) )
-					return 0
-				return 1
-			if(slot_belt)
-				if(belt)
-					return 0
-				// if(!w_uniform)
-				// 	if(!disable_warning)
-				// 		src << "<span class='danger'>You need a jumpsuit before you can attach this [I.name].</span>"
-				// 	return 0
-				if( !(I.slot_flags & SLOT_BELT) )
-					return
-				return 1
-			if(slot_glasses)
-				if(glasses)
-					return 0
-				if( !(I.slot_flags & SLOT_EYES) )
-					return 0
-				return 1
-			if(slot_head)
-				if(head)
-					return 0
-				if( !(I.slot_flags & SLOT_HEAD) )
-					return 0
-				return 1
-			if(slot_ears)
-				if(ears)
-					return 0
-				if( !(I.slot_flags & SLOT_EARS) )
-					return 0
-				return 1
-			if(slot_w_uniform)
-				if(w_uniform)
-					return 0
-				if( !(I.slot_flags & SLOT_ICLOTHING) )
-					return 0
-				return 1
-			if(slot_wear_id)
-				if(wear_id)
-					return 0
-				if(!w_uniform)
-					if(!disable_warning)
-						src << "<span class='danger'>You need a jumpsuit before you can attach this [I.name].</span>"
-					return 0
-				if( !(I.slot_flags & SLOT_ID) )
-					return 0
-				return 1
-			if(slot_l_store)
-				if(I.flags & NODROP) //Pockets aren't visible, so you can't move NODROP items into them.
-					return 0
-				if(l_store)
-					return 0
-				if(!w_uniform)
-					if(!disable_warning)
-						src << "<span class='danger'>You need a jumpsuit before you can attach this [I.name].</span>"
-					return 0
-				if(I.slot_flags & SLOT_DENYPOCKET)
-					return
-				if( I.w_class <= 2 || (I.slot_flags & SLOT_POCKET) )
-					return 1
-			if(slot_r_store)
-				if(I.flags & NODROP)
-					return 0
-				if(r_store)
-					return 0
-				if(!w_uniform)
-					if(!disable_warning)
-						src << "<span class='danger'>You need a jumpsuit before you can attach this [I.name].</span>"
-					return 0
-				if(I.slot_flags & SLOT_DENYPOCKET)
-					return 0
-				if( I.w_class <= 2 || (I.slot_flags & SLOT_POCKET) )
-					return 1
-				return 0
-			if(slot_s_store)
-				if(I.flags & NODROP) //Suit storage NODROP items drop if you take a suit off, this is to prevent people exploiting this.
-					return 0
-				if(s_store)
-					return 0
-				if(!wear_suit)
-					if(!disable_warning)
-						src << "<span class='danger'>You need a suit before you can attach this [I.name].</span>"
-					return 0
-				if(!wear_suit.allowed)
-					if(!disable_warning)
-						usr << "You somehow have a suit with no defined allowed items for suit storage, stop that."  //should be src?
-					return 0
-				if(I.w_class > 4)
-					if(!disable_warning)
-						usr << "The [I.name] is too big to attach."  //should be src?
-					return 0
-				if( istype(I, /obj/item/device/pda) || istype(I, /obj/item/weapon/pen) || is_type_in_list(I, wear_suit.allowed) )  //ugly and un-polymorphic.
-					return 1
-				return 0
-			if(slot_handcuffed)
-				if(handcuffed)
-					return 0
-				if(!istype(I, /obj/item/weapon/handcuffs))
-					return 0
-				return 1
-			if(slot_legcuffed)
-				if(legcuffed)
-					return 0
-				if(!istype(I, /obj/item/weapon/legcuffs))
-					return 0
-				return 1
-			if(slot_in_backpack)
-				if (back && istype(back, /obj/item/weapon/storage/backpack))
-					var/obj/item/weapon/storage/backpack/B = back
-					if(B.contents.len < B.storage_slots && I.w_class <= B.max_w_class)
-						return 1
-				return 0
-		return 0 //Unsupported slot
-
-
+/*
+Add fingerprints to items when we put them in our hands.
+This saves us from having to call add_fingerprint() any time something is put in a human's hands programmatically.
+*/
 
 /mob/living/carbon/human/verb/quick_equip()
 	set name = "quick-equip"
@@ -161,7 +10,6 @@
 	if(ishuman(src))
 		var/mob/living/carbon/human/H = src
 		var/obj/item/I = H.get_active_hand()
-		var/obj/item/weapon/storage/S = H.get_inactive_hand()
 		if(!I)
 			H << "<span class='notice'>You are not holding anything to equip.</span>"
 			return
@@ -170,228 +18,337 @@
 				update_inv_l_hand(0)
 			else
 				update_inv_r_hand(0)
-		else if(s_active && s_active.can_be_inserted(I,1))	//if storage active insert there
-			s_active.handle_item_insertion(I)
-		else if(istype(S, /obj/item/weapon/storage) && S.can_be_inserted(I,1))	//see if we have box in other hand
-			S.handle_item_insertion(I)
 		else
-			S = H.get_item_by_slot(slot_belt)
-			if(istype(S, /obj/item/weapon/storage) && S.can_be_inserted(I,1))		//else we put in belt
-				S.handle_item_insertion(I)
-			else
-				S = H.get_item_by_slot(slot_back)	//else we put in backpack
-				if(istype(S, /obj/item/weapon/storage) && S.can_be_inserted(I,1))
-					S.handle_item_insertion(I)
-				else
-					H << "<span class='danger'>You are unable to equip that.</span>"
+			H << "\red You are unable to equip that."
 
-
-/mob/living/carbon/human/proc/equip_in_one_of_slots(obj/item/I, list/slots, qdel_on_fail = 1)
-	for(var/slot in slots)
-		if(equip_to_slot_if_possible(I, slots[slot], qdel_on_fail = 0))
+/mob/living/carbon/human/proc/equip_in_one_of_slots(obj/item/W, list/slots, del_on_fail = 1)
+	for (var/slot in slots)
+		if (equip_to_slot_if_possible(W, slots[slot], del_on_fail = 0))
 			return slot
-	if(qdel_on_fail)
-		qdel(I)
+	if (del_on_fail)
+		qdel(W)
 	return null
 
 
-// Return the item currently in the slot ID
-/mob/living/carbon/human/get_item_by_slot(slot_id)
-	switch(slot_id)
+/mob/living/carbon/human/proc/has_organ(name)
+	var/obj/item/organ/external/O = organs_by_name[name]
+
+	return (O && !O.is_stump())
+
+/mob/living/carbon/human/proc/has_organ_for_slot(slot)
+	switch(slot)
 		if(slot_back)
-			return back
+			return has_organ("chest")
 		if(slot_wear_mask)
-			return wear_mask
+			return has_organ("head")
 		if(slot_handcuffed)
-			return handcuffed
+			return has_organ("l_hand") && has_organ("r_hand")
 		if(slot_legcuffed)
-			return legcuffed
+			return has_organ("l_leg") && has_organ("r_leg")
 		if(slot_l_hand)
-			return l_hand
+			return has_organ("l_hand")
 		if(slot_r_hand)
-			return r_hand
+			return has_organ("r_hand")
 		if(slot_belt)
-			return belt
+			return has_organ("chest")
 		if(slot_wear_id)
-			return wear_id
-		if(slot_ears)
-			return ears
+			// the only relevant check for this is the uniform check
+			return 1
+		if(slot_l_ear)
+			return has_organ("head")
+		if(slot_r_ear)
+			return has_organ("head")
 		if(slot_glasses)
-			return glasses
+			return has_organ("head")
 		if(slot_gloves)
-			return gloves
+			return has_organ("l_hand") || has_organ("r_hand")
 		if(slot_head)
-			return head
+			return has_organ("head")
 		if(slot_shoes)
-			return shoes
+			return has_organ("r_foot") || has_organ("l_foot")
 		if(slot_wear_suit)
-			return wear_suit
+			return has_organ("chest")
 		if(slot_w_uniform)
-			return w_uniform
+			return has_organ("chest")
 		if(slot_l_store)
-			return l_store
+			return has_organ("chest")
 		if(slot_r_store)
-			return r_store
+			return has_organ("chest")
 		if(slot_s_store)
-			return s_store
-	return null
+			return has_organ("chest")
+		if(slot_in_backpack)
+			return 1
+		if(slot_tie)
+			return 1
 
+/mob/living/carbon/human/u_equip(obj/W as obj)
+	if(!W)	return 0
 
-/mob/living/carbon/human/unEquip(obj/item/I)
-	. = ..() //See mob.dm for an explanation on this and some rage about people copypasting instead of calling ..() like they should.
-	if(!. || !I)
-		return
-
-
-	if(I == wear_suit)
+	if (W == wear_suit)
 		if(s_store)
-			unEquip(s_store, 1) //It makes no sense for your suit storage to stay on you if you drop your suit.
+			drop_from_inventory(s_store)
 		wear_suit = null
-		if(I.flags_inv & HIDEJUMPSUIT)
-			update_inv_w_uniform()
-		update_inv_wear_suit(0)
-	else if(I == w_uniform)
-		if(r_store)
-			unEquip(r_store, 1) //Again, makes sense for pockets to drop.
-		if(l_store)
-			unEquip(l_store, 1)
-		if(wear_id)
-			unEquip(wear_id)
-		if(belt)
-			unEquip(belt)
+		update_inv_wear_suit()
+	else if (W == w_uniform)
+		if (r_store)
+			drop_from_inventory(r_store)
+		if (l_store)
+			drop_from_inventory(l_store)
+		if (wear_id)
+			drop_from_inventory(wear_id)
+		if (belt)
+			drop_from_inventory(belt)
 		w_uniform = null
-		update_suit_sensors()
-		update_inv_w_uniform(0)
-	else if(I == gloves)
+		update_inv_w_uniform()
+	else if (W == gloves)
 		gloves = null
-		update_inv_gloves(0)
-	else if(I == glasses)
+		update_inv_gloves()
+	else if (W == glasses)
 		glasses = null
-		update_inv_glasses(0)
-	else if(I == head)
+		update_inv_glasses()
+	else if (W == head)
 		head = null
-		if(I.flags & BLOCKHAIR)
+
+		var/update_hair = 0
+		if((W.flags & BLOCKHAIR) || (W.flags & BLOCKHEADHAIR))
+			update_hair = 1
+		else if(istype(W, /obj/item))
+			var/obj/item/I = W
+			if(I.flags_inv & HIDEMASK)
+				update_hair = 1
+		if(update_hair)
 			update_hair(0)	//rebuild hair
-		update_inv_head(0)
-	else if(I == ears)
-		ears = null
-		update_inv_ears(0)
-	else if(I == shoes)
+			update_inv_ears(0)
+			update_inv_wear_mask(0)
+
+		update_inv_head()
+	else if (W == l_ear)
+		l_ear = null
+		update_inv_ears()
+	else if (W == r_ear)
+		r_ear = null
+		update_inv_ears()
+	else if (W == shoes)
 		shoes = null
-		update_inv_shoes(0)
-	else if(I == belt)
+		update_inv_shoes()
+	else if (W == belt)
 		belt = null
-		update_inv_belt(0)
-	else if(I == wear_mask)
+		update_inv_belt()
+	else if (W == wear_mask)
 		wear_mask = null
-		if(I.flags & BLOCKHAIR)
+		if((W.flags & BLOCKHAIR) || (W.flags & BLOCKHEADHAIR))
 			update_hair(0)	//rebuild hair
+			update_inv_ears(0)
 		if(internal)
 			if(internals)
 				internals.icon_state = "internal0"
 			internal = null
-		sec_hud_set_ID()
-		update_inv_wear_mask(0)
-	else if(I == wear_id)
+		update_inv_wear_mask()
+	else if (W == wear_id)
 		wear_id = null
-		sec_hud_set_ID()
-		update_inv_wear_id(0)
-	else if(I == r_store)
+		update_inv_wear_id()
+	else if (W == r_store)
 		r_store = null
-		update_inv_pockets(0)
-	else if(I == l_store)
+		update_inv_pockets()
+	else if (W == l_store)
 		l_store = null
-		update_inv_pockets(0)
-	else if(I == s_store)
+		update_inv_pockets()
+	else if (W == s_store)
 		s_store = null
-		update_inv_s_store(0)
+		update_inv_s_store()
+	else if (W == back)
+		back = null
+		update_inv_back()
+	else if (W == handcuffed)
+		handcuffed = null
+		if(buckled && buckled.buckle_require_restraints)
+			buckled.unbuckle_mob()
+		update_inv_handcuffed()
+	else if (W == legcuffed)
+		legcuffed = null
+		update_inv_legcuffed()
+	else if (W == r_hand)
+		r_hand = null
+		update_inv_r_hand()
+	else if (W == l_hand)
+		l_hand = null
+		update_inv_l_hand()
+	else
+		return 0
+
+	update_action_buttons()
+	return 1
 
 
 
 //This is an UNSAFE proc. Use mob_can_equip() before calling this one! Or rather use equip_to_slot_if_possible() or advanced_equip_to_slot_if_possible()
 //set redraw_mob to 0 if you don't wish the hud to be updated - if you're doing it manually in your own proc.
-/mob/living/carbon/human/equip_to_slot(obj/item/I, slot, redraw_mob = 1)
-	if(!slot)	return
-	if(!istype(I))	return
+/mob/living/carbon/human/equip_to_slot(obj/item/W as obj, slot, redraw_mob = 1)
 
-	if(I == l_hand)
-		l_hand = null
-	else if(I == r_hand)
-		r_hand = null
-
-	I.screen_loc = null // will get moved if inventory is visible
-	I.loc = src
-	I.equipped(src, slot)
-	I.layer = 20
-
+	if(!slot) return
+	if(!istype(W)) return
+	if(!has_organ_for_slot(slot)) return
+	if(!species || !species.hud || !(slot in species.hud.equip_slots)) return
+	W.loc = src
 	switch(slot)
 		if(slot_back)
-			back = I
+			src.back = W
+			W.equipped(src, slot)
 			update_inv_back(redraw_mob)
 		if(slot_wear_mask)
-			wear_mask = I
-			if(wear_mask.flags & BLOCKHAIR)
+			src.wear_mask = W
+			if((wear_mask.flags & BLOCKHAIR) || (wear_mask.flags & BLOCKHEADHAIR))
 				update_hair(redraw_mob)	//rebuild hair
-			sec_hud_set_ID()
+				update_inv_ears(0)
+			W.equipped(src, slot)
 			update_inv_wear_mask(redraw_mob)
 		if(slot_handcuffed)
-			handcuffed = I
+			src.handcuffed = W
 			update_inv_handcuffed(redraw_mob)
 		if(slot_legcuffed)
-			legcuffed = I
+			src.legcuffed = W
+			W.equipped(src, slot)
 			update_inv_legcuffed(redraw_mob)
 		if(slot_l_hand)
-			l_hand = I
+			src.l_hand = W
+			W.equipped(src, slot)
 			update_inv_l_hand(redraw_mob)
 		if(slot_r_hand)
-			r_hand = I
+			src.r_hand = W
+			W.equipped(src, slot)
 			update_inv_r_hand(redraw_mob)
 		if(slot_belt)
-			belt = I
+			src.belt = W
+			W.equipped(src, slot)
 			update_inv_belt(redraw_mob)
 		if(slot_wear_id)
-			wear_id = I
-			sec_hud_set_ID()
+			src.wear_id = W
+			W.equipped(src, slot)
 			update_inv_wear_id(redraw_mob)
-		if(slot_ears)
-			ears = I
+		if(slot_l_ear)
+			src.l_ear = W
+			if(l_ear.slot_flags & SLOT_TWOEARS)
+				var/obj/item/clothing/ears/offear/O = new(W)
+				O.loc = src
+				src.r_ear = O
+				O.layer = 20
+			W.equipped(src, slot)
+			update_inv_ears(redraw_mob)
+		if(slot_r_ear)
+			src.r_ear = W
+			if(r_ear.slot_flags & SLOT_TWOEARS)
+				var/obj/item/clothing/ears/offear/O = new(W)
+				O.loc = src
+				src.l_ear = O
+				O.layer = 20
+			W.equipped(src, slot)
 			update_inv_ears(redraw_mob)
 		if(slot_glasses)
-			glasses = I
+			src.glasses = W
+			W.equipped(src, slot)
 			update_inv_glasses(redraw_mob)
 		if(slot_gloves)
-			gloves = I
+			src.gloves = W
+			W.equipped(src, slot)
 			update_inv_gloves(redraw_mob)
 		if(slot_head)
-			head = I
-			if(head.flags & BLOCKHAIR)
+			src.head = W
+			if((head.flags & BLOCKHAIR) || (head.flags & BLOCKHEADHAIR) || (head.flags_inv & HIDEMASK))
 				update_hair(redraw_mob)	//rebuild hair
+				update_inv_ears(0)
+				update_inv_wear_mask(0)
+			if(istype(W,/obj/item/clothing/head/kitty))
+				W.update_icon(src)
+			W.equipped(src, slot)
 			update_inv_head(redraw_mob)
 		if(slot_shoes)
-			shoes = I
+			src.shoes = W
+			W.equipped(src, slot)
 			update_inv_shoes(redraw_mob)
 		if(slot_wear_suit)
-			wear_suit = I
-			if(I.flags_inv & HIDEJUMPSUIT)
-				update_inv_w_uniform()
+			src.wear_suit = W
+			if(wear_suit.flags_inv & HIDESHOES)
+				update_inv_shoes(0)
+			W.equipped(src, slot)
 			update_inv_wear_suit(redraw_mob)
 		if(slot_w_uniform)
-			w_uniform = I
-			update_suit_sensors()
+			src.w_uniform = W
+			W.equipped(src, slot)
 			update_inv_w_uniform(redraw_mob)
 		if(slot_l_store)
-			l_store = I
+			src.l_store = W
+			W.equipped(src, slot)
 			update_inv_pockets(redraw_mob)
 		if(slot_r_store)
-			r_store = I
+			src.r_store = W
+			W.equipped(src, slot)
 			update_inv_pockets(redraw_mob)
 		if(slot_s_store)
-			s_store = I
+			src.s_store = W
+			W.equipped(src, slot)
 			update_inv_s_store(redraw_mob)
 		if(slot_in_backpack)
-			if(get_active_hand() == I)
-				unEquip(I)
-			I.loc = back
+			if(src.get_active_hand() == W)
+				src.remove_from_mob(W)
+			W.loc = src.back
+		if(slot_tie)
+			var/obj/item/clothing/under/uniform = src.w_uniform
+			uniform.attackby(W,src)
 		else
-			src << "<span class='danger'>You are trying to equip this item to an unsupported inventory slot. Report this to a coder!</span>"
+			src << "\red You are trying to eqip this item to an unsupported inventory slot. How the heck did you manage that? Stop it..."
 			return
+
+	if((W == src.l_hand) && (slot != slot_l_hand))
+		src.l_hand = null
+		update_inv_l_hand() //So items actually disappear from hands.
+	else if((W == src.r_hand) && (slot != slot_r_hand))
+		src.r_hand = null
+		update_inv_r_hand()
+
+	W.layer = 20
+
+	return 1
+
+//Checks if a given slot can be accessed at this time, either to equip or unequip I
+/mob/living/carbon/human/slot_is_accessible(var/slot, var/obj/item/I, mob/user=null)
+	var/obj/item/covering = null
+	var/check_flags = 0
+
+	switch(slot)
+		if(slot_wear_mask)
+			covering = src.head
+			check_flags = HEADCOVERSMOUTH
+		if(slot_glasses)
+			covering = src.head
+			check_flags = HEADCOVERSEYES
+		if(slot_gloves, slot_w_uniform)
+			covering = src.wear_suit
+
+	if(covering)
+		if((covering.body_parts_covered & I.body_parts_covered) || (covering.flags & check_flags))
+			user << "<span class='warning'>\The [covering] is in the way.</span>"
+			return 0
+	return 1
+
+/mob/living/carbon/human/get_equipped_item(var/slot)
+	switch(slot)
+		if(slot_back)       return back
+		if(slot_legcuffed)  return legcuffed
+		if(slot_handcuffed) return handcuffed
+		if(slot_l_store)    return l_store
+		if(slot_r_store)    return r_store
+		if(slot_wear_mask)  return wear_mask
+		if(slot_l_hand)     return l_hand
+		if(slot_r_hand)     return r_hand
+		if(slot_wear_id)    return wear_id
+		if(slot_glasses)    return glasses
+		if(slot_gloves)     return gloves
+		if(slot_head)       return head
+		if(slot_shoes)      return shoes
+		if(slot_belt)       return belt
+		if(slot_wear_suit)  return wear_suit
+		if(slot_w_uniform)  return w_uniform
+		if(slot_s_store)    return s_store
+		if(slot_l_ear)      return l_ear
+		if(slot_r_ear)      return r_ear
+	return ..()

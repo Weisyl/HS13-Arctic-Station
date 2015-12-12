@@ -12,12 +12,14 @@
 
 	response_help  = "touches"
 	response_disarm = "flails at"
-	response_harm   = "punches"
+	response_harm   = "punches the"
 
 	harm_intent_damage = 2
 
 	maxHealth = 30
 	health = 30
+
+	universal_speak =1
 
 	stop_automated_movement = 1
 	animate_movement = SYNC_STEPS
@@ -28,9 +30,9 @@
 	max_co2 = 0
 	max_tox = 0
 
-	a_intent = "harm" //so they don't get pushed around
+	a_intent = I_HURT //so they don't get pushed around
 
-	wall_smash = 1
+	environment_smash = 2
 
 	speed = -1
 
@@ -55,7 +57,7 @@
 
 		melee_damage_lower = 10
 		melee_damage_upper = 15
-		attacktext = "bites"
+		attacktext = "bitten"
 
 		animate_movement = SLIDE_STEPS
 
@@ -73,7 +75,7 @@
 			if(stat == CONSCIOUS || stat == UNCONSCIOUS)
 				icon_state = "spacewormhead[previous?1:0]"
 				if(previous)
-					dir = get_dir(previous,src)
+					set_dir(get_dir(previous,src))
 			else
 				icon_state = "spacewormheaddead"
 
@@ -96,7 +98,7 @@
 
 		return
 
-	Delete() //if a chunk a destroyed, make a new worm out of the split halves
+	Destroy() //if a chunk a destroyed, make a new worm out of the split halves
 		if(previous)
 			previous.Detach()
 		..()
@@ -127,7 +129,7 @@
 				icon_state = "spaceworm[get_dir(src,previous) | get_dir(src,next)]" //see 3 lines below
 			else //tail
 				icon_state = "spacewormtail"
-				dir = get_dir(src,next) //next will always be present since it's not a head and if it's dead, it goes in the other if branch
+				set_dir(get_dir(src,next)) //next will always be present since it's not a head and if it's dead, it goes in the other if branch
 		else
 			icon_state = "spacewormdead"
 
@@ -135,10 +137,9 @@
 
 	proc/AttemptToEat(var/atom/target)
 		if(istype(target,/turf/simulated/wall))
-			if((!istype(target,/turf/simulated/wall/r_wall) && eatingDuration >= 100) || eatingDuration >= 200) //need 20 ticks to eat an rwall, 10 for a regular one
-				var/turf/simulated/wall/wall = target
-				wall.ChangeTurf(/turf/simulated/floor/plasteel)
-				new /obj/item/stack/sheet/metal(src, flatPlasmaValue)
+			var/turf/simulated/wall/W = target
+			if((!W.reinf_material && eatingDuration >= 100) || eatingDuration >= 200) //need 20 ticks to eat an rwall, 10 for a regular one
+				W.dismantle_wall()
 				return 1
 		else if(istype(target,/atom/movable))
 			if(istype(target,/mob) || eatingDuration >= 50) //5 ticks to eat stuff like airlocks
@@ -166,27 +167,27 @@
 		newHead.Attach(newHeadPrevious)
 
 		if(die)
-			newHead.Die()
+			newHead.death()
 
-		del(src)
+		qdel(src)
 
 	proc/ProcessStomach()
 		for(var/atom/movable/stomachContent in contents)
 			if(prob(digestionProbability))
 				if(istype(stomachContent,/obj/item/stack)) //converts to plasma, keeping the stack value
-					if(!istype(stomachContent,/obj/item/stack/sheet/mineral/plasma))
+					if(!istype(stomachContent,/obj/item/stack/material/phoron))
 						var/obj/item/stack/oldStack = stomachContent
-						new /obj/item/stack/sheet/mineral/plasma(src, oldStack.amount)
-						del(oldStack)
+						new /obj/item/stack/material/phoron(src, oldStack.get_amount())
+						qdel(oldStack)
 						continue
 				else if(istype(stomachContent,/obj/item)) //converts to plasma, keeping the w_class
 					var/obj/item/oldItem = stomachContent
-					new /obj/item/stack/sheet/mineral/plasma(src, oldItem.w_class)
-					del(oldItem)
+					new /obj/item/stack/material/phoron(src, oldItem.w_class)
+					qdel(oldItem)
 					continue
 				else
-					new /obj/item/stack/sheet/mineral/plasma(src, flatPlasmaValue) //just flat amount
-					del(stomachContent)
+					new /obj/item/stack/material/phoron(src, flatPlasmaValue) //just flat amount
+					qdel(stomachContent)
 					continue
 
 		if(previous)

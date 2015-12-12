@@ -26,9 +26,11 @@
 /client/proc/massmodify_variables(var/atom/O, var/var_name = "", var/method = 0)
 	if(!check_rights(R_VAREDIT))	return
 
+	var/list/locked = list("vars", "key", "ckey", "client")
+
 	for(var/p in forbidden_varedit_object_types)
 		if( istype(O,p) )
-			usr << "<span class='danger'>It is forbidden to edit this object's variables.</span>"
+			usr << "\red It is forbidden to edit this object's variables."
 			return
 
 	var/list/names = list()
@@ -49,13 +51,8 @@
 	var/var_value = O.vars[variable]
 	var/dir
 
-	if(variable in VVckey_edit)
-		usr << "It's forbidden to mass-modify ckeys. I'll crash everyone's client you dummy."
-		return
-	if(variable in VVlocked)
+	if(variable == "holder" || (variable in locked))
 		if(!check_rights(R_DEBUG))	return
-	if(variable in VVicon_edit_lock)
-		if(!check_rights(R_FUN|R_DEBUG)) return
 
 	if(isnull(var_value))
 		usr << "Unable to determine variable type."
@@ -171,7 +168,7 @@
 			return .(O.vars[variable])
 
 		if("text")
-			var/new_value = input("Enter new text:","Text",O.vars[variable]) as text|null
+			var/new_value = input("Enter new text:","Text",O.vars[variable]) as text|null//todo: sanitize ???
 			if(new_value == null) return
 			O.vars[variable] = new_value
 
@@ -211,8 +208,8 @@
 					O.vars[variable]) as num|null
 			if(new_value == null) return
 
-			if(variable=="luminosity")
-				O.SetLuminosity(new_value)
+			if(variable=="light_range")
+				O.set_light(new_value)
 			else
 				O.vars[variable] = new_value
 
@@ -220,24 +217,24 @@
 				if(istype(O, /mob))
 					for(var/mob/M in mob_list)
 						if ( istype(M , O.type) )
-							if(variable=="luminosity")
-								M.SetLuminosity(new_value)
+							if(variable=="light_range")
+								M.set_light(new_value)
 							else
 								M.vars[variable] = O.vars[variable]
 
 				else if(istype(O, /obj))
 					for(var/obj/A in world)
 						if ( istype(A , O.type) )
-							if(variable=="luminosity")
-								A.SetLuminosity(new_value)
+							if(variable=="light_range")
+								A.set_light(new_value)
 							else
 								A.vars[variable] = O.vars[variable]
 
 				else if(istype(O, /turf))
 					for(var/turf/A in world)
 						if ( istype(A , O.type) )
-							if(variable=="luminosity")
-								A.SetLuminosity(new_value)
+							if(variable=="light_range")
+								A.set_light(new_value)
 							else
 								A.vars[variable] = O.vars[variable]
 
@@ -245,24 +242,24 @@
 				if(istype(O, /mob))
 					for(var/mob/M in mob_list)
 						if (M.type == O.type)
-							if(variable=="luminosity")
-								M.SetLuminosity(new_value)
+							if(variable=="light_range")
+								M.set_light(new_value)
 							else
 								M.vars[variable] = O.vars[variable]
 
 				else if(istype(O, /obj))
 					for(var/obj/A in world)
 						if (A.type == O.type)
-							if(variable=="luminosity")
-								A.SetLuminosity(new_value)
+							if(variable=="light_range")
+								A.set_light(new_value)
 							else
 								A.vars[variable] = O.vars[variable]
 
 				else if(istype(O, /turf))
 					for(var/turf/A in world)
 						if (A.type == O.type)
-							if(variable=="luminosity")
-								A.SetLuminosity(new_value)
+							if(variable=="light_range")
+								A.set_light(new_value)
 							else
 								A.vars[variable] = O.vars[variable]
 
@@ -374,6 +371,5 @@
 						if (A.type == O.type)
 							A.vars[variable] = O.vars[variable]
 
-	world.log << "### MassVarEdit by [src]: [O.type] [variable]=[html_encode("[O.vars[variable]]")]"
 	log_admin("[key_name(src)] mass modified [original_name]'s [variable] to [O.vars[variable]]")
-	message_admins("[key_name_admin(src)] mass modified [original_name]'s [variable] to [O.vars[variable]]")
+	message_admins("[key_name_admin(src)] mass modified [original_name]'s [variable] to [O.vars[variable]]", 1)

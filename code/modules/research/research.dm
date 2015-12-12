@@ -59,6 +59,12 @@ research holder datum.
 		possible_designs += new D(src)
 	RefreshResearch()
 
+/datum/research/techonly
+
+/datum/research/techonly/New()
+	for(var/T in typesof(/datum/tech) - /datum/tech)
+		possible_tech += new T(src)
+	RefreshResearch()
 
 
 //Checks to see if tech has all the required pre-reqs.
@@ -79,14 +85,20 @@ research holder datum.
 
 //Checks to see if design has all the required pre-reqs.
 //Input: datum/design; Output: 0/1 (false/true)
-/datum/research/proc/DesignHasReqs(var/datum/design/D)//Heavily optimized -Sieve
+/datum/research/proc/DesignHasReqs(var/datum/design/D)
 	if(D.req_tech.len == 0)
 		return 1
-	for(var/datum/tech/T in known_tech)
-		if((D.req_tech[T.id]) && (T.level < D.req_tech[T.id]))
-			return 0
-	return 1
-
+	var/matches = 0
+	var/list/k_tech = list()
+	for(var/datum/tech/known in known_tech)
+		k_tech[known.id] = known.level
+	for(var/req in D.req_tech)
+		if(!isnull(k_tech[req]) && k_tech[req] >= D.req_tech[req])
+			matches++
+	if(matches == D.req_tech.len)
+		return 1
+	else
+		return 0
 /*
 //Checks to see if design has all the required pre-reqs.
 //Input: datum/design; Output: 0/1 (false/true)
@@ -118,8 +130,8 @@ research holder datum.
 /datum/research/proc/AddDesign2Known(var/datum/design/D)
 	for(var/datum/design/known in known_designs)
 		if(D.id == known.id)
-			if(D.reliability > known.reliability)
-				known.reliability = D.reliability
+			if(D.reliability_mod > known.reliability_mod)
+				known.reliability_mod = D.reliability_mod
 			return
 	known_designs += D
 	return
@@ -134,7 +146,7 @@ research holder datum.
 		if(DesignHasReqs(PD))
 			AddDesign2Known(PD)
 	for(var/datum/tech/T in known_tech)
-		T = Clamp(T.level, 1, 20)
+		T = between(1,T.level,20)
 	for(var/datum/design/D in known_designs)
 		D.CalcReliability(known_tech)
 	return
@@ -144,41 +156,18 @@ research holder datum.
 /datum/research/proc/UpdateTech(var/ID, var/level)
 	for(var/datum/tech/KT in known_tech)
 		if(KT.id == ID)
-			if(KT.level <= level)
-				KT.level = max((KT.level + 1), (level - 1))
+			if(KT.level <= level) KT.level = max((KT.level + 1), (level - 1))
 	return
 
-/datum/research/proc/UpdateDesigns(var/obj/item/I, var/list/temp_tech)
-	for(var/T in temp_tech)
-		if(temp_tech[T] - 1 >= known_tech[T])
-			for(var/datum/design/D in known_designs)
-				if(D.req_tech[T])
-					D.reliability = min(100, D.reliability + 1)
-					if(D.build_path == I.type)
-						D.reliability = min(100, D.reliability + rand(1,3))
-						if(I.crit_fail)
-							D.reliability = min(100, D.reliability + rand(3, 5))
-
-/datum/research/proc/FindDesignByID(var/id)
-	for(var/datum/design/D in known_designs)
-		if(D.id == id)
-			return D
+/datum/research/proc/UpdateDesign(var/path)
+	for(var/datum/design/KD in known_designs)
+		if(KD.build_path == path)
+			KD.reliability_mod += rand(1,2)
+			break
+	return
 
 
-//Autolathe files
-/datum/research/autolathe/New()
-	for(var/T in (typesof(/datum/tech) - /datum/tech))
-		possible_tech += new T(src)
-	for(var/path in typesof(/datum/design) - /datum/design)
-		var/datum/design/D = new path(src)
-		possible_designs += D
-		if((D.build_type & AUTOLATHE) && ("initial" in D.category))  //autolathe starts without hacked designs
-			AddDesign2Known(D)
 
-/datum/research/autolathe/AddDesign2Known(var/datum/design/D)
-	if(!(D.build_type & AUTOLATHE))
-		return
-	..()
 
 /***************************************************************
 **						Technology Datums					  **
@@ -202,13 +191,13 @@ datum/tech/materials
 
 datum/tech/engineering
 	name = "Engineering Research"
-	desc = "Development of new and improved engineering parts and."
+	desc = "Development of new and improved engineering parts."
 	id = "engineering"
 
-datum/tech/plasmatech
-	name = "Plasma Research"
-	desc = "Research into the mysterious substance colloqually known as 'plasma'."
-	id = "plasmatech"
+datum/tech/phorontech
+	name = "Phoron Research"
+	desc = "Research into the mysterious substance colloqually known as 'phoron'."
+	id = "phorontech"
 
 datum/tech/powerstorage
 	name = "Power Manipulation Technology"
@@ -242,7 +231,7 @@ datum/tech/programming
 
 datum/tech/syndicate
 	name = "Illegal Technologies Research"
-	desc = "The study of technologies that violate Nanotrassen regulations."
+	desc = "The study of technologies that violate standard Nanotrasen regulations."
 	id = "syndicate"
 
 /*
@@ -274,16 +263,29 @@ datum/tech/robotics
 
 
 /obj/item/weapon/disk/tech_disk
-	name = "Technology Disk"
+	name = "technology disk"
 	desc = "A disk for storing technology data for further research."
 	icon = 'icons/obj/cloning.dmi'
 	icon_state = "datadisk2"
 	item_state = "card-id"
-	w_class = 1.0
-	m_amt = 30
-	g_amt = 10
+	w_class = 2.0
+	matter = list(DEFAULT_WALL_MATERIAL = 30, "glass" = 10)
 	var/datum/tech/stored
 
 /obj/item/weapon/disk/tech_disk/New()
+	src.pixel_x = rand(-5.0, 5)
+	src.pixel_y = rand(-5.0, 5)
+
+/obj/item/weapon/disk/design_disk
+	name = "component design disk"
+	desc = "A disk for storing device design data for construction in lathes."
+	icon = 'icons/obj/cloning.dmi'
+	icon_state = "datadisk2"
+	item_state = "card-id"
+	w_class = 2.0
+	matter = list(DEFAULT_WALL_MATERIAL = 30,"glass" = 10)
+	var/datum/design/blueprint
+
+/obj/item/weapon/disk/design_disk/New()
 	src.pixel_x = rand(-5.0, 5)
 	src.pixel_y = rand(-5.0, 5)

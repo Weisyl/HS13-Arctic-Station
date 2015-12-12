@@ -1,11 +1,11 @@
 /obj/item/device/chameleon
-	name = "chameleon-projector"
+	name = "chameleon projector"
 	icon_state = "shield0"
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
 	item_state = "electronic"
 	throwforce = 5.0
-	throw_speed = 3
+	throw_speed = 1
 	throw_range = 5
 	w_class = 2.0
 	origin_tech = "syndicate=4;magnets=4"
@@ -14,14 +14,15 @@
 	var/saved_item = /obj/item/weapon/cigbutt
 	var/saved_icon = 'icons/obj/clothing/masks.dmi'
 	var/saved_icon_state = "cigbutt"
-	var/saved_overlays = null
-	var/saved_underlays = null
+	var/saved_overlays
 
 /obj/item/device/chameleon/dropped()
 	disrupt()
+	..()
 
 /obj/item/device/chameleon/equipped()
 	disrupt()
+	..()
 
 /obj/item/device/chameleon/attack_self()
 	toggle()
@@ -31,12 +32,11 @@
 	if(!active_dummy)
 		if(istype(target,/obj/item) && !istype(target, /obj/item/weapon/disk/nuclear))
 			playsound(get_turf(src), 'sound/weapons/flash.ogg', 100, 1, -6)
-			user << "<span class='notice'>Scanned [target].</span>"
+			user << "\blue Scanned [target]."
 			saved_item = target.type
 			saved_icon = target.icon
 			saved_icon_state = target.icon_state
 			saved_overlays = target.overlays
-			saved_underlays = target.underlays
 
 /obj/item/device/chameleon/proc/toggle()
 	if(!can_use || !saved_item) return
@@ -45,23 +45,23 @@
 		playsound(get_turf(src), 'sound/effects/pop.ogg', 100, 1, -6)
 		qdel(active_dummy)
 		active_dummy = null
-		usr << "<span class='notice'>You deactivate \the [src].</span>"
-		var/obj/effect/overlay/T = new/obj/effect/overlay(get_turf(src))
+		usr << "\blue You deactivate the [src]."
+		var/obj/effect/overlay/T = PoolOrNew(/obj/effect/overlay, get_turf(src))
 		T.icon = 'icons/effects/effects.dmi'
 		flick("emppulse",T)
-		spawn(8) T.delete()
+		spawn(8) qdel(T)
 	else
 		playsound(get_turf(src), 'sound/effects/pop.ogg', 100, 1, -6)
 		var/obj/O = new saved_item(src)
 		if(!O) return
-		var/obj/effect/dummy/chameleon/C = new/obj/effect/dummy/chameleon(usr.loc)
-		C.activate(O, usr, saved_icon, saved_icon_state, saved_overlays, saved_underlays, src)
+		var/obj/effect/dummy/chameleon/C = PoolOrNew(/obj/effect/dummy/chameleon, usr.loc)
+		C.activate(O, usr, saved_icon, saved_icon_state, saved_overlays, src)
 		qdel(O)
-		usr << "<span class='notice'>You activate \the [src].</span>"
+		usr << "\blue You activate the [src]."
 		var/obj/effect/overlay/T = new/obj/effect/overlay(get_turf(src))
 		T.icon = 'icons/effects/effects.dmi'
 		flick("emppulse",T)
-		spawn(8) T.delete()
+		spawn(8) qdel(T)
 
 /obj/item/device/chameleon/proc/disrupt(var/delete_dummy = 1)
 	if(active_dummy)
@@ -91,36 +91,35 @@
 	var/can_move = 1
 	var/obj/item/device/chameleon/master = null
 
-/obj/effect/dummy/chameleon/proc/activate(var/obj/O, var/mob/M, new_icon, new_iconstate, new_overlays, new_underlays, var/obj/item/device/chameleon/C)
+/obj/effect/dummy/chameleon/proc/activate(var/obj/O, var/mob/M, new_icon, new_iconstate, new_overlays, var/obj/item/device/chameleon/C)
 	name = O.name
 	desc = O.desc
 	icon = new_icon
 	icon_state = new_iconstate
 	overlays = new_overlays
-	underlays = new_underlays
-	dir = O.dir
+	set_dir(O.dir)
 	M.loc = src
 	master = C
 	master.active_dummy = src
 
 /obj/effect/dummy/chameleon/attackby()
 	for(var/mob/M in src)
-		M << "<span class='danger'>Your chameleon-projector deactivates.</span>"
+		M << "\red Your chameleon-projector deactivates."
 	master.disrupt()
 
 /obj/effect/dummy/chameleon/attack_hand()
 	for(var/mob/M in src)
-		M << "<span class='danger'>Your chameleon-projector deactivates.</span>"
+		M << "\red Your chameleon-projector deactivates."
 	master.disrupt()
 
-/obj/effect/dummy/chameleon/ex_act() //ok now THATS some serious protection against explosions right here
+/obj/effect/dummy/chameleon/ex_act()
 	for(var/mob/M in src)
-		M << "<span class='danger'>Your chameleon-projector deactivates.</span>"
+		M << "\red Your chameleon-projector deactivates."
 	master.disrupt()
 
 /obj/effect/dummy/chameleon/bullet_act()
 	for(var/mob/M in src)
-		M << "<span class='danger'>Your chameleon-projector deactivates.</span>"
+		M << "\red Your chameleon-projector deactivates."
 	..()
 	master.disrupt()
 

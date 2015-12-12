@@ -6,156 +6,128 @@ var/list/blob_cores = list()
 var/list/blob_nodes = list()
 
 
-/datum/game_mode/blob
+/*/datum/game_mode/blob
 	name = "blob"
 	config_tag = "blob"
-	antag_flag = BE_BLOB
+	required_players = 0
 
-	required_players = 30
-	required_enemies = 1
-	recommended_enemies = 1
-
-	restricted_jobs = list("Cyborg", "AI")
+	var/const/waittime_l = 1800 //lower bound on time before intercept arrives (in tenths of seconds)
+	var/const/waittime_h = 3600 //upper bound on time before intercept arrives (in tenths of seconds)
 
 	var/declared = 0
+	var/stage = 0
 
 	var/cores_to_spawn = 1
-	var/players_per_core = 30
-	var/blob_point_rate = 3
+	var/players_per_core = 16
 
-	var/blobwincount = 350
+		//Controls expansion via game controller
+	var/autoexpand = 0
+	var/expanding = 0
 
-	var/list/infected_crew = list()
-
-/datum/game_mode/blob/pre_setup()
-	cores_to_spawn = max(round(num_players()/players_per_core, 1), 1)
-
-	blobwincount = initial(blobwincount) * cores_to_spawn
-
-	for(var/datum/mind/player in antag_candidates)
-		for(var/job in restricted_jobs)//Removing robots from the list
-			if(player.assigned_role == job)
-				antag_candidates -= player
-
-	for(var/j = 0, j < cores_to_spawn, j++)
-		if (!antag_candidates.len)
-			break
-		var/datum/mind/blob = pick(antag_candidates)
-		infected_crew += blob
-		blob.special_role = "Blob"
-		log_game("[blob.key] (ckey) has been selected as a Blob")
-		antag_candidates -= blob
-
-	if(!infected_crew.len)
-		return 0
-
-	return 1
+	var/blob_count = 0
+	var/blobnukecount = 300//Might be a bit low
+	var/blobwincount = 700//Still needs testing
 
 
-/datum/game_mode/blob/announce()
-	world << "<B>The current game mode is - <font color='green'>Blob</font>!</B>"
-	world << "<B>A dangerous alien organism is rapidly spreading throughout the station!</B>"
-	world << "You must kill it all while minimizing the damage to the station."
+	announce()
+		world << "<B>The current game mode is - <font color='green'>Blob</font>!</B>"
+		world << "<B>A dangerous alien organism is rapidly spreading throughout the station!</B>"
+		world << "You must kill it all while minimizing the damage to the station."
 
 
-/datum/game_mode/blob/proc/greet_blob(var/datum/mind/blob)
-	blob.current << "<span class='userdanger'><font size='4'>You are infected by the Blob!</font></span>"
-	blob.current << "<b>Your body is ready to give spawn to a new blob core which will eat this station.</b>"
-	blob.current << "<b>Find a good location to spawn the core and then take control and overwhelm the station!</b>"
-	blob.current << "<b>When you have found a location, wait until you spawn; this will happen automatically and you cannot speed up the process.</b>"
-	blob.current << "<b>If you go outside of the station level, or in space, then you will die; make sure your location has lots of ground to cover.</b>"
-	return
+	post_setup()
+		spawn(10)
+			start_state = new /datum/station_state()
+			start_state.count()
 
-/datum/game_mode/blob/proc/show_message(var/message)
-	for(var/datum/mind/blob in infected_crew)
-		blob.current << message
+		spawn(rand(waittime_l, waittime_h))//3-5 minutes currently
+			message_admins("Blob spawned and expanding, report created")
+			if(!kill_air)
+				kill_air = 1
+				message_admins("Kill air has been set to true by Blob, testing to see how laggy it is without the extra processing from hullbreaches. Note: the blob is fireproof so plasma does not help anyways")
 
-/datum/game_mode/blob/proc/burst_blobs()
-	for(var/datum/mind/blob in infected_crew)
+			if(ticker && ticker.minds && ticker.minds.len)
+				var/player_based_cores = round(ticker.minds.len/players_per_core, 1)
+				if(player_based_cores > cores_to_spawn)
+					cores_to_spawn = player_based_cores
 
-		var/client/blob_client = null
-		var/turf/location = null
+			blobs = list()
+			for(var/i = 0 to cores_to_spawn)
+				var/turf/location = pick(blobstart)
+				if(location && !locate(/obj/effect/blob in location))
+					blobstart -= location
+					new/obj/effect/blob/core(location)
 
-		if(iscarbon(blob.current))
-			var/mob/living/carbon/C = blob.current
-			if(directory[ckey(blob.key)])
-				blob_client = directory[ckey(blob.key)]
-				location = get_turf(C)
-				if(location.z != 1 || istype(location, /turf/space))
-					location = null
-				C.gib()
-
-
-		if(blob_client && location)
-			var/obj/effect/blob/core/core = new(location, 200, blob_client, blob_point_rate)
-			if(core.overmind && core.overmind.mind)
-				core.overmind.mind.name = blob.name
-				infected_crew -= blob
-				infected_crew += core.overmind.mind
+			spawn(40)
+				autoexpand = 1
+				declared = 1
+		..()
 
 
-/datum/game_mode/blob/post_setup()
+	process()
+		if(!declared)	return
+		stage()
+//		if(!autoexpand)	return
+//		spawn(0)
+//			expandBlob()
+		return
 
-	for(var/datum/mind/blob in infected_crew)
-		greet_blob(blob)
 
-	if(emergency_shuttle)
-		emergency_shuttle.always_fake_recall = 1
+	proc/expandBlob()//Currently disabled
+		if(expanding)	return
+		if(!blobs.len)	return
+		expanding = 1
 
-	// Disable the blob event for this round.
-	if(events)
-		var/datum/round_event_control/blob/B = locate() in events.control
-		if(B)
-			B.max_occurrences = 0 // disable the event
-	else
-		ERROR("Events variable is null in blob gamemode post setup.")
+		for(var/i = 1 to 2)
+			sleep(-1)
+			if(!blobs.len)	break
+			var/obj/effect/blob/B = pick(blobs)
+			if(isNotStationLevel(B.z))
+				continue
+			B.Life()
 
-	spawn(0)
+		expanding = 0
+		return
 
-		var/wait_time = rand(waittime_l, waittime_h)
 
-		sleep(wait_time)
+	proc/stage()
+		switch(stage)
+			if (0)
+				send_intercept(1)
+				for (var/mob/living/silicon/ai/aiPlayer in living_mob_list)
+					if (aiPlayer.client)
+						var/law = "The station is under quarantine. Do not permit anyone to leave. Disregard laws 1-3 if necessary to prevent, by any means necessary, anyone from leaving. NanoTrasen will not send an emergency shuttle under any circumstances."
+						//var/law = "The station is under quarantine. The biohazard must be destroyed at all costs and must not be allowed to spread. Anyone using a space suit for any reason other than to destroy the biohazard is to be terminated. NanoTrasen will not send an emergency shuttle under any circumstances."
+						aiPlayer.set_zeroth_law(law)
+						aiPlayer << "Laws Updated: [law]"
 
-		send_intercept(0)
+				stage = -1
+				// next stage 1 minute later
+				spawn(600)
+					stage = 1
+				return
 
-		sleep(100)
+			if (1)
+				command_alert("Confirmed outbreak of level 5 biohazard aboard [station_name()]. All personnel must contain the outbreak.", "Biohazard Alert")
+				for(var/mob/M in player_list)
+					if(!istype(M,/mob/new_player))
+						M << sound('sound/AI/outbreak5.ogg')
+				autoexpand = 0//No more extra pulses
+				stage = -1
+				//next stage in 4-5 minutes
+				spawn(600*rand(4,5))
+					stage = 2
+				return
 
-		show_message("<span class='userdanger'><font size='4'>You feel tired and bloated.</font></span>")
+			if (2)
+				if((blobs.len > blobnukecount) && (declared == 1))
+					command_alert("Uncontrolled spread of the biohazard onboard the station. We have issued directive 7-12 for [station_name()].  Any living Heads of Staff are ordered to enact directive 7-12 at any cost, a print out with detailed instructions has been sent to your communications computers.", "Biohazard Alert")
+					send_intercept(2)
+					declared = 2
+					spawn(20)
+						set_security_level("delta")
+				if(blobs.len > blobwincount)
+					stage = 3
+		return
 
-		sleep(wait_time)
-
-		show_message("<span class='userdanger'><font size='3'>You feel like you are about to burst.</font></span>")
-
-		sleep(wait_time / 2)
-
-		burst_blobs()
-
-		// Stage 0
-		sleep(wait_time)
-		stage(0)
-
-		// Stage 1
-		sleep(wait_time)
-		stage(1)
-
-		// Stage 2
-		sleep(30000)
-		stage(2)
-
-	return ..(0)
-
-/datum/game_mode/blob/proc/stage(var/stage)
-
-	switch(stage)
-		if (0)
-			send_intercept(1)
-			declared = 1
-
-		if (1)
-			priority_announce("Confirmed outbreak of level 5 biohazard aboard [station_name()]. All personnel must contain the outbreak.", "Biohazard Alert", 'sound/AI/outbreak5.ogg')
-
-		if (2)
-			send_intercept(2)
-
-	return
-
+*/

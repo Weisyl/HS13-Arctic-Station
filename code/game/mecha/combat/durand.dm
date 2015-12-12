@@ -1,7 +1,8 @@
 /obj/mecha/combat/durand
 	desc = "An aging combat exosuit utilized by the Nanotrasen corporation. Originally developed to combat hostile alien lifeforms."
-	name = "\improper Durand"
+	name = "Durand"
 	icon_state = "durand"
+	initial_icon = "durand"
 	step_in = 4
 	dir_in = 1 //Facing North.
 	health = 400
@@ -12,7 +13,7 @@
 	force = 40
 	var/defence = 0
 	var/defence_deflect = 35
-	wreckage = /obj/structure/mecha_wreckage/durand
+	wreckage = /obj/effect/decal/mecha_wreckage/durand
 
 /*
 /obj/mecha/combat/durand/New()
@@ -26,7 +27,7 @@
 /obj/mecha/combat/durand/relaymove(mob/user,direction)
 	if(defence)
 		if(world.time - last_message > 20)
-			src.occupant_message("<span class='danger'>Unable to move while in defence mode</span>")
+			src.occupant_message("<font color='red'>Unable to move while in defence mode</font>")
 			last_message = world.time
 		return 0
 	. = ..()
@@ -38,15 +39,15 @@
 	set name = "Toggle defence mode"
 	set src = usr.loc
 	set popup_menu = 0
-	if(!can_use(usr))
+	if(usr!=src.occupant)
 		return
 	defence = !defence
 	if(defence)
 		deflect_chance = defence_deflect
-		src.occupant_message("<span class='notice'>You enable [src] defence mode.</span>")
+		src.occupant_message("<font color='blue'>You enable [src] defence mode.</font>")
 	else
 		deflect_chance = initial(deflect_chance)
-		src.occupant_message("<span class='danger'>You disable [src] defence mode.</span>")
+		src.occupant_message("<font color='red'>You disable [src] defence mode.</font>")
 	src.log_message("Toggled defence mode.")
 	return
 

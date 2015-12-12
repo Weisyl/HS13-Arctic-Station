@@ -1,8 +1,11 @@
+//Items labled as 'trash' for the trash bag.
+//TODO: Make this an item var or something...
+
 //Added by Jack Rost
 /obj/item/trash
-	icon = 'icons/obj/janitor.dmi'
+	icon = 'icons/obj/trash.dmi'
+	w_class = 2.0
 	desc = "This is rubbish."
-	w_class = 1.0
 
 /obj/item/trash/raisins
 	name = "\improper 4no raisins"
@@ -13,7 +16,7 @@
 	icon_state= "candy"
 
 /obj/item/trash/cheesie
-	name = "cheesie honkers"
+	name = "\improper Cheesie Honkers"
 	icon_state = "cheesie_honkers"
 
 /obj/item/trash/chips
@@ -25,11 +28,11 @@
 	icon_state = "popcorn"
 
 /obj/item/trash/sosjerky
-	name = "\improper Scaredy's Private Reserve Beef Jerky"
+	name = "Scaredy's Private Reserve Beef Jerky"
 	icon_state = "sosjerky"
 
 /obj/item/trash/syndi_cakes
-	name = "syndi-cakes"
+	name = "syndi cakes"
 	icon_state = "syndi_cakes"
 
 /obj/item/trash/waffles
@@ -61,24 +64,13 @@
 	icon = 'icons/obj/candle.dmi'
 	icon_state = "candle4"
 
-/obj/item/trash/can
-	name = "crushed can"
-	icon_state = "cola"
+/obj/item/trash/liquidfood
+	name = "\improper \"LiquidFood\" ration"
+	icon_state = "liquidfood"
 
-/obj/item/trash/attack(mob/M, mob/living/user)
+/obj/item/trash/tastybread
+	name = "bread tube"
+	icon_state = "tastybread"
+
+/obj/item/trash/attack(mob/M as mob, mob/living/user as mob)
 	return
-
-/obj/item/pornmag //Janitor's favorite passtime. Ironic how this is located in trash.dm, hah. THIS IS ACTUALLY A TRAITOR OBJECTIVE NOW HOLY SHIT
-	icon = 'icons/obj/library.dmi'
-	icon_state = "pornmag"
-	name = "porn mag"
-	desc = "Look at those pixels, man!"
-	w_class = 1.0
-	var/cooldown = 0
-
-/obj/item/pornmag/attack_self(mob/user as mob)
-	if(cooldown < world.time - 20)
-		playsound(src.loc, "pageturn", 50, 1)
-		user.visible_message("<span class='notice'>[user] skims through the pages of the [src] and giggles like a schoolgirl.</span>",\
-							"<span class='notice'>You skim through the pages of the pornmag. Lewd.</span>")
-		cooldown = world.time

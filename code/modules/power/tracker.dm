@@ -27,10 +27,9 @@
 
 //set the control of the tracker to a given computer if closer than SOLAR_MAX_DIST
 /obj/machinery/power/tracker/proc/set_control(var/obj/machinery/power/solar_control/SC)
-	if(!SC || (get_dist(src, SC) > SOLAR_MAX_DIST))
+	if(SC && (get_dist(src, SC) > SOLAR_MAX_DIST))
 		return 0
 	control = SC
-	SC.connected_tracker = src
 	return 1
 
 //set the control of the tracker to null and removes it from the previous control computer if needed
@@ -42,7 +41,7 @@
 /obj/machinery/power/tracker/proc/Make(var/obj/item/solar_assembly/S)
 	if(!S)
 		S = new /obj/item/solar_assembly(src)
-		S.glass_type = /obj/item/stack/sheet/glass
+		S.glass_type = /obj/item/stack/material/glass
 		S.tracker = 1
 		S.anchored = 1
 	S.loc = src
@@ -53,12 +52,12 @@
 	sun_angle = angle
 
 	//set icon dir to show sun illumination
-	dir = turn(NORTH, -angle - 22.5)	// 22.5 deg bias ensures, e.g. 67.5-112.5 is EAST
+	set_dir(turn(NORTH, -angle - 22.5))	// 22.5 deg bias ensures, e.g. 67.5-112.5 is EAST
 
 	if(powernet && (powernet == control.powernet)) //update if we're still in the same powernet
 		control.cdir = angle
 
-/obj/machinery/power/tracker/attackby(var/obj/item/weapon/W, var/mob/user, params)
+/obj/machinery/power/tracker/attackby(var/obj/item/weapon/W, var/mob/user)
 
 	if(istype(W, /obj/item/weapon/crowbar))
 		playsound(src.loc, 'sound/machines/click.ogg', 50, 1)

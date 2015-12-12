@@ -1,9 +1,11 @@
 /obj/machinery/ai_slipper
-	name = "\improper AI liquid dispenser"
+	name = "\improper AI Liquid Dispenser"
 	icon = 'icons/obj/device.dmi'
-	icon_state = "motion3"
+	icon_state = "motion0"
 	layer = 3
 	anchored = 1.0
+	use_power = 1
+	idle_power_usage = 10
 	var/uses = 20
 	var/disabled = 1
 	var/lethal = 0
@@ -13,22 +15,27 @@
 	var/cooldown_on = 0
 	req_access = list(access_ai_upload)
 
+
+/obj/machinery/ai_slipper/New()
+	..()
+	update_icon()
+
 /obj/machinery/ai_slipper/power_change()
-	if(stat & BROKEN)
-		return
+	..()
+	update_icon()
+
+/obj/machinery/ai_slipper/update_icon()
+	if (stat & NOPOWER || stat & BROKEN)
+		icon_state = "motion0"
 	else
-		if( powered() )
-			stat &= ~NOPOWER
-		else
-			icon_state = "motion0"
-			stat |= NOPOWER
+		icon_state = disabled ? "motion0" : "motion3"
 
 /obj/machinery/ai_slipper/proc/setState(var/enabled, var/uses)
 	src.disabled = disabled
 	src.uses = uses
 	src.power_change()
 
-/obj/machinery/ai_slipper/attackby(obj/item/weapon/W, mob/user, params)
+/obj/machinery/ai_slipper/attackby(obj/item/weapon/W, mob/user)
 	if(stat & (NOPOWER|BROKEN))
 		return
 	if (istype(user, /mob/living/silicon))
@@ -45,7 +52,7 @@
 				if (user.machine==src)
 					src.attack_hand(usr)
 		else
-			user << "<span class='danger'>Access denied.</span>"
+			user << "\red Access denied."
 			return
 	return
 
@@ -70,7 +77,7 @@
 		user << text("Turret badly positioned - loc.loc is [].", loc)
 		return
 	var/area/area = loc
-	var/t = "<TT><B>AI Liquid Dispenser</B> ([format_text(area.name)])<HR>"
+	var/t = "<TT><B>AI Liquid Dispenser</B> ([area.name])<HR>"
 
 	if(src.locked && (!istype(user, /mob/living/silicon)))
 		t += "<I>(Swipe ID card to unlock control panel.)</I><BR>"
@@ -83,15 +90,14 @@
 	return
 
 /obj/machinery/ai_slipper/Topic(href, href_list)
-	if(..())
-		return
+	..()
 	if (src.locked)
 		if (!istype(usr, /mob/living/silicon))
 			usr << "Control panel is locked!"
 			return
 	if (href_list["toggleOn"])
 		src.disabled = !src.disabled
-		icon_state = src.disabled? "motion0":"motion3"
+		update_icon()
 	if (href_list["toggleUse"])
 		if(cooldown_on || disabled)
 			return

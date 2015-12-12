@@ -23,11 +23,11 @@ FLOOR SAFES
 
 
 /obj/structure/safe/New()
-	tumbler_1_pos = rand(0, 71)
-	tumbler_1_open = rand(0, 71)
+	tumbler_1_pos = rand(0, 72)
+	tumbler_1_open = rand(0, 72)
 
-	tumbler_2_pos = rand(0, 71)
-	tumbler_2_open = rand(0, 71)
+	tumbler_2_pos = rand(0, 72)
+	tumbler_2_open = rand(0, 72)
 
 
 /obj/structure/safe/initialize()
@@ -90,7 +90,7 @@ FLOOR SAFES
 	var/mob/living/carbon/human/user = usr
 
 	var/canhear = 0
-	if(istype(user.l_hand, /obj/item/clothing/tie/stethoscope) || istype(user.r_hand, /obj/item/clothing/tie/stethoscope))
+	if(istype(user.l_hand, /obj/item/clothing/accessory/stethoscope) || istype(user.r_hand, /obj/item/clothing/accessory/stethoscope))
 		canhear = 1
 
 	if(href_list["open"])
@@ -142,13 +142,11 @@ FLOOR SAFES
 				updateUsrDialog()
 
 
-/obj/structure/safe/attackby(obj/item/I as obj, mob/user as mob, params)
+/obj/structure/safe/attackby(obj/item/I as obj, mob/user as mob)
 	if(open)
 		if(I.w_class + space <= maxspace)
 			space += I.w_class
-			if(!user.drop_item())
-				user << "<span class='notice'>\The [I] is stuck to your hand, you cannot put it in the safe!</span>"
-				return
+			user.drop_item()
 			I.loc = src
 			user << "<span class='notice'>You put [I] in [src].</span>"
 			updateUsrDialog()
@@ -157,7 +155,7 @@ FLOOR SAFES
 			user << "<span class='notice'>[I] won't fit in [src].</span>"
 			return
 	else
-		if(istype(I, /obj/item/clothing/tie/stethoscope))
+		if(istype(I, /obj/item/clothing/accessory/stethoscope))
 			user << "Hold [I] in one of your hands while you manipulate the dial."
 			return
 
@@ -165,7 +163,12 @@ FLOOR SAFES
 obj/structure/safe/blob_act()
 	return
 
-obj/structure/safe/ex_act(severity, target)
+
+obj/structure/safe/ex_act(severity)
+	return
+
+
+obj/structure/safe/meteorhit(obj/O as obj)
 	return
 
 

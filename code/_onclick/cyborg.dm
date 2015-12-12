@@ -15,9 +15,6 @@
 		build_click(src, client.buildmode, params, A)
 		return
 
-	if(stat || lockcharge || weakened || stunned || paralysis)
-		return
-
 	var/list/modifiers = params2list(params)
 	if(modifiers["shift"] && modifiers["ctrl"])
 		CtrlShiftClickOn(A)
@@ -35,10 +32,21 @@
 		CtrlClickOn(A)
 		return
 
+	if(stat || lockcharge || weakened || stunned || paralysis)
+		return
+
 	if(next_move >= world.time)
 		return
 
 	face_atom(A) // change direction to face what you clicked on
+
+	if(aiCamera.in_camera_mode)
+		aiCamera.camera_mode_off()
+		if(is_component_functioning("camera"))
+			aiCamera.captureimage(A, usr)
+		else
+			src << "<span class='userdanger'>Your camera isn't functional.</span>"
+		return
 
 	/*
 	cyborg restrained() currently does nothing
@@ -46,15 +54,12 @@
 		RestrainedClickOn(A)
 		return
 	*/
-	if(aicamera.in_camera_mode) //Cyborg picture taking
-		aicamera.camera_mode_off()
-		aicamera.captureimage(A, usr)
-		return
 
 	var/obj/item/W = get_active_hand()
 
 	// Cyborgs have no range-checking unless there is item use
 	if(!W)
+		A.add_hiddenprint(src)
 		A.attack_robot(src)
 		return
 
@@ -63,13 +68,21 @@
 		return
 
 	if(W == A)
-		W.attack_self(src, params)
+		next_move = world.time + 8
+		if(W.flags&USEDELAY)
+			next_move += 5
+
+		W.attack_self(src)
 		return
 
 	// cyborgs are prohibited from using storage items so we can I think safely remove (A.loc in contents)
 	if(A == loc || (A in loc) || (A in contents))
 		// No adjacency checks
-		var/resolved = A.attackby(W,src,params)
+		next_move = world.time + 8
+		if(W.flags&USEDELAY)
+			next_move += 5
+
+		var/resolved = A.attackby(W,src)
 		if(!resolved && A && W)
 			W.afterattack(A,src,1,params)
 		return
@@ -80,11 +93,16 @@
 	// cyborgs are prohibited from using storage items so we can I think safely remove (A.loc && isturf(A.loc.loc))
 	if(isturf(A) || isturf(A.loc))
 		if(A.Adjacent(src)) // see adjacent.dm
-			var/resolved = A.attackby(W, src,params)
+			next_move = world.time + 10
+			if(W.flags&USEDELAY)
+				next_move += 5
+
+			var/resolved = A.attackby(W, src)
 			if(!resolved && A && W)
 				W.afterattack(A, src, 1, params)
 			return
 		else
+			next_move = world.time + 10
 			W.afterattack(A, src, 0, params)
 			return
 	return
@@ -98,19 +116,21 @@
 // for non-doors/apcs
 /mob/living/silicon/robot/CtrlShiftClickOn(var/atom/A)
 	A.BorgCtrlShiftClick(src)
+
 /mob/living/silicon/robot/ShiftClickOn(var/atom/A)
 	A.BorgShiftClick(src)
+
 /mob/living/silicon/robot/CtrlClickOn(var/atom/A)
 	A.BorgCtrlClick(src)
+
 /mob/living/silicon/robot/AltClickOn(var/atom/A)
 	A.BorgAltClick(src)
 
 /atom/proc/BorgCtrlShiftClick(var/mob/living/silicon/robot/user) //forward to human click if not overriden
 	CtrlShiftClick(user)
 
-/obj/machinery/door/airlock/BorgCtrlShiftClick() // Sets/Unsets Emergency Access Override Forwards to AI code.
+/obj/machinery/door/airlock/BorgCtrlShiftClick()
 	AICtrlShiftClick()
-
 
 /atom/proc/BorgShiftClick(var/mob/living/silicon/robot/user) //forward to human click if not overriden
 	ShiftClick(user)

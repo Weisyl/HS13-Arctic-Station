@@ -1,69 +1,96 @@
-/mob/living/carbon/human/say_quote(text)
-	if(!text)
-		return "says, \"...\"";	//not the best solution, but it will stop a large number of runtimes. The cause is somewhere in the Tcomms code
-	var/ending = copytext(text, length(text))
-	if (src.stuttering)
-		return "stammers, \"[text]\"";
-	if(isliving(src))
-		var/mob/living/L = src
-		if (L.getBrainLoss() >= 60)
-			return "gibbers, \"[text]\"";
-	if (ending == "?")
-		return "asks, \"[text]\"";
-	if (ending == "!")
-		return "exclaims, \"[text]\"";
+/mob/living/carbon/human/say(var/message)
+	var/alt_name = ""
+	if(name != GetVoice())
+		alt_name = "(as [get_id_name("Unknown")])"
 
-	if(dna)
-		return "[dna.species.say_mod], \"[text]\"";
+	message = sanitize(message)
+	..(message, alt_name = alt_name)
 
-	return "says, \"[text]\"";
+/mob/living/carbon/human/is_muzzled()
+	return istype(src.wear_mask, /obj/item/clothing/mask/muzzle)
 
-/mob/living/carbon/human/treat_message(message)
-	if(dna)
-		message = dna.species.handle_speech(message,src)
+/mob/living/carbon/human/proc/forcesay(list/append)
+	if(stat == CONSCIOUS)
+		if(client)
+			var/virgin = 1	//has the text been modified yet?
+			var/temp = winget(client, "input", "text")
+			if(findtextEx(temp, "Say \"", 1, 7) && length(temp) > 5)	//case sensitive means
 
-	if ((HULK in mutations) && health >= 25 && length(message))
-		message = "[uppertext(replacetext(message, ".", "!"))]!!" //because I don't know how to code properly in getting vars from other files -Bro
+				temp = replacetext(temp, ";", "")	//general radio
 
-	if(viruses.len)
-		for(var/datum/disease/pierrot_throat/D in viruses)
-			var/list/temp_message = text2list(message, " ") //List each word in the message
-			var/list/pick_list = list()
-			for(var/i = 1, i <= temp_message.len, i++) //Create a second list for excluding words down the line
-				pick_list += i
-			for(var/i=1, ((i <= D.stage) && (i <= temp_message.len)), i++) //Loop for each stage of the disease or until we run out of words
-				if(prob(3 * D.stage)) //Stage 1: 3% Stage 2: 6% Stage 3: 9% Stage 4: 12%
-					var/H = pick(pick_list)
-					if(findtext(temp_message[H], "*") || findtext(temp_message[H], ";") || findtext(temp_message[H], ":")) continue
-					temp_message[H] = "HONK"
-					pick_list -= H //Make sure that you dont HONK the same word twice
-				message = list2text(temp_message, " ")
+				if(findtext(trim_left(temp), ":", 6, 7))	//dept radio
+					temp = copytext(trim_left(temp), 8)
+					virgin = 0
 
-	message = ..(message)
+				if(virgin)
+					temp = copytext(trim_left(temp), 6)	//normal speech
+					virgin = 0
 
-	return message
+				while(findtext(trim_left(temp), ":", 1, 2))	//dept radio again (necessary)
+					temp = copytext(trim_left(temp), 3)
+
+				if(findtext(temp, "*", 1, 2))	//emotes
+					return
+				temp = copytext(trim_left(temp), 1, rand(5,8))
+
+				var/trimmed = trim_left(temp)
+				if(length(trimmed))
+					if(append)
+						temp += pick(append)
+
+					say(temp)
+				winset(client, "input", "text=[null]")
+
+/mob/living/carbon/human/say_understands(var/mob/other,var/datum/language/speaking = null)
+
+	if(has_brain_worms()) //Brain worms translate everything. Even mice and alien speak.
+		return 1
+
+	if(species.can_understand(other))
+		return 1
+
+	//These only pertain to common. Languages are handled by mob/say_understands()
+	if (!speaking)
+		if (istype(other, /mob/living/carbon/alien/diona))
+			if(other.languages.len >= 2) //They've sucked down some blood and can speak common now.
+				return 1
+		if (istype(other, /mob/living/silicon))
+			return 1
+		if (istype(other, /mob/living/carbon/brain))
+			return 1
+		if (istype(other, /mob/living/carbon/slime))
+			return 1
+
+	//This is already covered by mob/say_understands()
+	//if (istype(other, /mob/living/simple_animal))
+	//	if((other.universal_speak && !speaking) || src.universal_speak || src.universal_understand)
+	//		return 1
+	//	return 0
+
+	return ..()
 
 /mob/living/carbon/human/GetVoice()
-	if(istype(wear_mask, /obj/item/clothing/mask/gas/voice))
-		var/obj/item/clothing/mask/gas/voice/V = wear_mask
-		if(V.vchange && wear_id)
-			var/obj/item/weapon/card/id/idcard = wear_id.GetID()
-			if(istype(idcard))
-				return idcard.registered_name
-			else
-				return real_name
-		else
-			return real_name
+
+	var/voice_sub
+	if(istype(back,/obj/item/weapon/rig))
+		var/obj/item/weapon/rig/rig = back
+		// todo: fix this shit
+		if(rig.speech && rig.speech.voice_holder && rig.speech.voice_holder.active && rig.speech.voice_holder.voice)
+			voice_sub = rig.speech.voice_holder.voice
+	else
+		for(var/obj/item/gear in list(wear_mask,wear_suit,head))
+			if(!gear)
+				continue
+			var/obj/item/voice_changer/changer = locate() in gear
+			if(changer && changer.active && changer.voice)
+				voice_sub = changer.voice
+	if(voice_sub)
+		return voice_sub
 	if(mind && mind.changeling && mind.changeling.mimicing)
 		return mind.changeling.mimicing
 	if(GetSpecialVoice())
 		return GetSpecialVoice()
 	return real_name
-
-/mob/living/carbon/human/IsVocal()
-	if(mind)
-		return !mind.miming
-	return 1
 
 /mob/living/carbon/human/proc/SetSpecialVoice(var/new_voice)
 	if(new_voice)
@@ -77,79 +104,120 @@
 /mob/living/carbon/human/proc/GetSpecialVoice()
 	return special_voice
 
-/mob/living/carbon/human/binarycheck()
-	if(ears)
-		var/obj/item/device/radio/headset/dongle = ears
-		if(!istype(dongle)) return 0
-		if(dongle.translate_binary) return 1
 
-/mob/living/carbon/human/radio(message, message_mode)
-	. = ..()
-	if(. != 0)
-		return .
+/*
+   ***Deprecated***
+   let this be handled at the hear_say or hear_radio proc
+   This is left in for robot speaking when humans gain binary channel access until I get around to rewriting
+   robot_talk() proc.
+   There is no language handling build into it however there is at the /mob level so we accept the call
+   for it but just ignore it.
+*/
 
+/mob/living/carbon/human/say_quote(var/message, var/datum/language/speaking = null)
+	var/verb = "says"
+	var/ending = copytext(message, length(message))
+
+	if(speaking)
+		verb = speaking.get_spoken_verb(ending)
+	else
+		if(ending == "!")
+			verb=pick("exclaims","shouts","yells")
+		else if(ending == "?")
+			verb="asks"
+
+	return verb
+
+/mob/living/carbon/human/handle_speech_problems(var/message, var/verb)
+	if(silent || (sdisabilities & MUTE))
+		message = ""
+		speech_problem_flag = 1
+	else if(istype(wear_mask, /obj/item/clothing/mask/horsehead))
+		var/obj/item/clothing/mask/horsehead/hoers = wear_mask
+		if(hoers.voicechange)
+			message = pick("NEEIIGGGHHHH!", "NEEEIIIIGHH!", "NEIIIGGHH!", "HAAWWWWW!", "HAAAWWW!")
+			verb = pick("whinnies","neighs", "says")
+			speech_problem_flag = 1
+
+	if(message != "")
+		var/list/parent = ..()
+		message = parent[1]
+		verb = parent[2]
+		if(parent[3])
+			speech_problem_flag = 1
+
+		var/braindam = getBrainLoss()
+		if(braindam >= 60)
+			speech_problem_flag = 1
+			if(prob(braindam/4))
+				message = stutter(message)
+				verb = pick("stammers", "stutters")
+			if(prob(braindam))
+				message = uppertext(message)
+				verb = "yells loudly"
+
+	var/list/returns[3]
+	returns[1] = message
+	returns[2] = verb
+	returns[3] = speech_problem_flag
+	return returns
+
+/mob/living/carbon/human/handle_message_mode(message_mode, message, verb, speaking, used_radios, alt_name)
 	switch(message_mode)
-		if(MODE_HEADSET)
-			if (ears)
-				ears.talk_into(src, message)
-			return ITALICS | REDUCE_RANGE
+		if("intercom")
+			if(!src.restrained())
+				for(var/obj/item/device/radio/intercom/I in view(1))
+					I.talk_into(src, message, null, verb, speaking)
+					I.add_fingerprint(src)
+					used_radios += I
+		if("headset")
+			if(l_ear && istype(l_ear,/obj/item/device/radio))
+				var/obj/item/device/radio/R = l_ear
+				R.talk_into(src,message,null,verb,speaking)
+				used_radios += l_ear
+			else if(r_ear && istype(r_ear,/obj/item/device/radio))
+				var/obj/item/device/radio/R = r_ear
+				R.talk_into(src,message,null,verb,speaking)
+				used_radios += r_ear
+		if("right ear")
+			var/obj/item/device/radio/R
+			var/has_radio = 0
+			if(r_ear && istype(r_ear,/obj/item/device/radio))
+				R = r_ear
+				has_radio = 1
+			if(r_hand && istype(r_hand, /obj/item/device/radio))
+				R = r_hand
+				has_radio = 1
+			if(has_radio)
+				R.talk_into(src,message,null,verb,speaking)
+				used_radios += R
+		if("left ear")
+			var/obj/item/device/radio/R
+			var/has_radio = 0
+			if(l_ear && istype(l_ear,/obj/item/device/radio))
+				R = l_ear
+				has_radio = 1
+			if(l_hand && istype(l_hand,/obj/item/device/radio))
+				R = l_hand
+				has_radio = 1
+			if(has_radio)
+				R.talk_into(src,message,null,verb,speaking)
+				used_radios += R
+		if("whisper")
+			whisper_say(message, speaking, alt_name)
+			return 1
+		else
+			if(message_mode)
+				if(l_ear && istype(l_ear,/obj/item/device/radio))
+					l_ear.talk_into(src,message, message_mode, verb, speaking)
+					used_radios += l_ear
+				else if(r_ear && istype(r_ear,/obj/item/device/radio))
+					r_ear.talk_into(src,message, message_mode, verb, speaking)
+					used_radios += r_ear
 
-		if(MODE_SECURE_HEADSET)
-			if (ears)
-				ears.talk_into(src, message, 1)
-			return ITALICS | REDUCE_RANGE
-
-		if(MODE_DEPARTMENT)
-			if (ears)
-				ears.talk_into(src, message, message_mode)
-			return ITALICS | REDUCE_RANGE
-
-	if(message_mode in radiochannels)
-		if(ears)
-			ears.talk_into(src, message, message_mode)
-			return ITALICS | REDUCE_RANGE
-
-	return 0
-
-/mob/living/carbon/human/get_alt_name()
-	if(name != GetVoice())
-		return " (as [get_id_name("Unknown")])"
-
-/mob/living/carbon/human/proc/forcesay(list/append) //this proc is at the bottom of the file because quote fuckery makes notepad++ cri
-	if(stat == CONSCIOUS)
-		if(client)
-
-			var/msg = null
-
-			var/cmd_text = winget(client, "input", "text")
-
-			if(lowertext(copytext(cmd_text, 1, 4)) == "say")
-				msg = copytext(cmd_text, 5)
-			else if(winget(client, "say_window", "is-visible"))
-				msg = winget(client, "say_window.say_input", "text")
-
-			if(!msg || length(msg) < 1)
-				return
-
-			while(1)
-				var/first_char = copytext(msg, 1, 2)
-
-				if(first_char == " " || first_char == "\"" || first_char == ";")
-					msg = copytext(msg, 2)
-				else if(first_char == ":")
-					msg = copytext(msg, 3)
-				else
-					break
-
-			if(length(msg) < 1)
-				return
-
-			msg = copytext(msg, 1, min(max(7, round(length(msg) * 0.4)), 20)) // Value of msg length * 0.4 restricted between 7 and 20
-
-			if(append)
-				msg += pick(append)
-
-			say(msg)
-
-			winset(client, "input", "text=[null]")
-			winset(client, "say_window.say_input", "text=[null]")
+/mob/living/carbon/human/handle_speech_sound()
+	if(species.speech_sounds && prob(species.speech_chance))
+		var/list/returns[2]
+		returns[1] = sound(pick(species.speech_sounds))
+		returns[2] = 50
+	return ..()

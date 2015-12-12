@@ -1,8 +1,5 @@
 var/global/datum/controller/process/ticker/tickerProcess
 
-var/global/const/TICKS_IN_DAY = 864000
-var/global/const/TICKS_IN_SECOND = 10
-
 /datum/controller/process/ticker
 	var/lastTickerTimeDuration
 	var/lastTickerTime

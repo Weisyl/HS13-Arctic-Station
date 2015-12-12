@@ -1,54 +1,75 @@
 /obj/item/clothing/shoes/magboots
-	desc = "Magnetic boots, often used during extravehicular activity to ensure the user remains safely attached to the vehicle."
+	desc = "Magnetic boots, often used during extravehicular activity to ensure the user remains safely attached to the vehicle. They're large enough to be worn over other footwear."
 	name = "magboots"
 	icon_state = "magboots0"
-	var/magboot_state = "magboots"
+	species_restricted = null
+	force = 3
+	overshoes = 1
 	var/magpulse = 0
-	var/slowdown_active = 2
-	action_button_name = "Toggle Magboots"
-	strip_delay = 70
-	put_on_delay = 70
-
-
-/obj/item/clothing/shoes/magboots/verb/toggle()
-	set name = "Toggle Magboots"
-	set category = "Object"
-	set src in usr
-	if(!can_use(usr))
-		return
-	attack_self(usr)
-
+	var/icon_base = "magboots"
+	icon_action_button = "action_blank"
+	action_button_name = "Toggle the magboots"
+	var/obj/item/clothing/shoes/shoes = null	//Undershoes
+	var/mob/living/carbon/human/wearer = null	//For shoe procs
+	
+/obj/item/clothing/shoes/magboots/proc/set_slowdown()
+	slowdown = shoes? max(SHOES_SLOWDOWN, shoes.slowdown): SHOES_SLOWDOWN	//So you can't put on magboots to make you walk faster.
+	if (magpulse)
+		slowdown += 3
 
 /obj/item/clothing/shoes/magboots/attack_self(mob/user)
-	if(src.magpulse)
-		src.flags &= ~NOSLIP
-		src.slowdown = SHOES_SLOWDOWN
+	if(magpulse)
+		flags &= ~NOSLIP
+		magpulse = 0
+		set_slowdown()
+		force = 3
+		if(icon_base) icon_state = "[icon_base]0"
+		user << "You disable the mag-pulse traction system."
 	else
-		src.flags |= NOSLIP
-		src.slowdown = slowdown_active
-	magpulse = !magpulse
-	icon_state = "[magboot_state][magpulse]"
-	user << "You [magpulse ? "enable" : "disable"] the mag-pulse traction system."
-	user.update_inv_shoes(0)	//so our mob-overlays update
-	user.update_gravity(user.mob_has_gravity())
+		flags |= NOSLIP
+		magpulse = 1
+		set_slowdown()
+		force = 5
+		if(icon_base) icon_state = "[icon_base]1"
+		user << "You enable the mag-pulse traction system."
+	user.update_inv_shoes()	//so our mob-overlays update
 
-/obj/item/clothing/shoes/magboots/negates_gravity()
-	return flags & NOSLIP
+/obj/item/clothing/shoes/magboots/mob_can_equip(mob/user)
+	var/mob/living/carbon/human/H = user
+	
+	if(H.shoes)
+		shoes = H.shoes
+		if(shoes.overshoes)
+			user << "You are unable to wear \the [src] as \the [H.shoes] are in the way."
+			shoes = null
+			return 0
+		H.drop_from_inventory(shoes)	//Remove the old shoes so you can put on the magboots.
+		shoes.loc = src
+
+	if(!..())
+		if(shoes) 	//Put the old shoes back on if the check fails.
+			if(H.equip_to_slot_if_possible(shoes, slot_shoes))
+				src.shoes = null
+		return 0
+
+	if (shoes)
+		user << "You slip \the [src] on over \the [shoes]."
+	set_slowdown()
+	wearer = H
+	return 1
+
+/obj/item/clothing/shoes/magboots/dropped()
+	..()
+	var/mob/living/carbon/human/H = wearer
+	if(shoes)
+		if(!H.equip_to_slot_if_possible(shoes, slot_shoes))
+			shoes.loc = get_turf(src)
+		src.shoes = null
+	wearer = null
 
 /obj/item/clothing/shoes/magboots/examine(mob/user)
-	..()
-	user << "Its mag-pulse traction system appears to be [magpulse ? "enabled" : "disabled"]."
-
-
-/obj/item/clothing/shoes/magboots/advance
-	desc = "Advanced magnetic boots that have a lighter magnetic pull, placing less burden on the wearer."
-	name = "advanced magboots"
-	icon_state = "advmag0"
-	magboot_state = "advmag"
-	slowdown_active = SHOES_SLOWDOWN
-
-/obj/item/clothing/shoes/magboots/syndie
-	desc = "Reverse-engineered magnetic boots that have a heavy magnetic pull. Property of Gorlex Marauders."
-	name = "blood-red magboots"
-	icon_state = "syndiemag0"
-	magboot_state = "syndiemag"
+	..(user)
+	var/state = "disabled"
+	if(src.flags&NOSLIP)
+		state = "enabled"
+	user << "Its mag-pulse traction system appears to be [state]."

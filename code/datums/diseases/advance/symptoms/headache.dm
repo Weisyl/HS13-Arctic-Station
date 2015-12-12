@@ -24,7 +24,6 @@ BONUS
 	stage_speed = 2
 	transmittable = 0
 	level = 1
-	severity = 1
 
 /datum/symptom/headache/Activate(var/datum/disease/advance/A)
 	..()

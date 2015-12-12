@@ -35,7 +35,7 @@
 	linked_cores = list()
 
 
-/obj/machinery/power/am_control_unit/Destroy()//Perhaps damage and run stability checks rather than just del on the others
+/obj/machinery/power/am_control_unit/Destroy()//Perhaps damage and run stability checks rather than just qdel on the others
 	for(var/obj/machinery/am_shielding/AMS in linked_shielding)
 		qdel(AMS)
 	..()
@@ -106,20 +106,28 @@
 	if(prob(100-stability))//Might infect the rest of the machine
 		for(var/obj/machinery/am_shielding/AMS in linked_shielding)
 			AMS.blob_act()
-		qdel(src)
+		spawn(0)
+			//Likely explode
+			qdel(src)
 		return
 	check_stability()
 	return
 
 
-/obj/machinery/power/am_control_unit/ex_act(severity, target)
-	stability -= (80 - (severity * 20))
+/obj/machinery/power/am_control_unit/ex_act(severity)
+	switch(severity)
+		if(1.0)
+			stability -= 60
+		if(2.0)
+			stability -= 40
+		if(3.0)
+			stability -= 20
 	check_stability()
 	return
 
 
 /obj/machinery/power/am_control_unit/bullet_act(var/obj/item/projectile/Proj)
-	if(Proj.flag != "bullet")
+	if(Proj.check_armour != "bullet")
 		stability -= Proj.force
 	return 0
 
@@ -137,7 +145,7 @@
 	//No other icons for it atm
 
 
-/obj/machinery/power/am_control_unit/attackby(obj/item/W, mob/user, params)
+/obj/machinery/power/am_control_unit/attackby(obj/item/W, mob/user)
 	if(!istype(W) || !user) return
 	if(istype(W, /obj/item/weapon/wrench))
 		if(!anchored)
@@ -155,18 +163,16 @@
 			src.anchored = 0
 			disconnect_from_network()
 		else
-			user << "<span class='danger'>Once bolted and linked to a shielding unit it the [src.name] is unable to be moved!</span>"
+			user << "\red Once bolted and linked to a shielding unit it the [src.name] is unable to be moved!"
 		return
 
 	if(istype(W, /obj/item/weapon/am_containment))
 		if(fueljar)
-			user << "<span class='danger'>There is already a [fueljar] inside!</span>"
+			user << "\red There is already a [fueljar] inside!"
 			return
 		fueljar = W
+		user.remove_from_mob(W)
 		W.loc = src
-		if(user.client)
-			user.client.screen -= W
-		user.unEquip(W)
 		user.update_icons()
 		user.visible_message("[user.name] loads an [W.name] into the [src.name].", \
 				"You load an [W.name].", \
@@ -268,7 +274,7 @@
 	dat += "Status: [(active?"Injecting":"Standby")] <BR>"
 	dat += "<A href='?src=\ref[src];togglestatus=1'>Toggle Status</A><BR>"
 
-	dat += "Stability: [stability]%<BR>"
+	dat += "Instability: [stability]%<BR>"
 	dat += "Reactor parts: [linked_shielding.len]<BR>"//TODO: perhaps add some sort of stability check
 	dat += "Cores: [linked_cores.len]<BR><BR>"
 	dat += "-Current Efficiency: [reported_core_efficiency]<BR>"
@@ -292,7 +298,11 @@
 
 
 /obj/machinery/power/am_control_unit/Topic(href, href_list)
-	if(..())
+	..()
+	//Ignore input if we are broken or guy is not touching us, AI can control from a ways away
+	if(stat & (BROKEN|NOPOWER) || (get_dist(src, usr) > 1 && !istype(usr, /mob/living/silicon/ai)))
+		usr.unset_machine()
+		usr << browse(null, "window=AMcontrol")
 		return
 
 	if(href_list["close"])

@@ -1,29 +1,23 @@
+#define SECOND *10
+#define SECONDS *10
+
+#define MINUTE *600
+#define MINUTES *600
+
+var/roundstart_hour = 0
 //Returns the world time in english
-/proc/worldtime2text()
-	return gameTimestamp("hh:mm")
+proc/worldtime2text(time = world.time)
+	if(!roundstart_hour) roundstart_hour = pick(2,7,12,17)
+	return "[(round(time / 36000)+roundstart_hour) % 24]:[(time / 600 % 60) < 10 ? add_zero(time / 600 % 60, 1) : time / 600 % 60]"
 
-/proc/time_stamp(var/format = "hh:mm:ss")
-	return time2text(world.timeofday, format)
+proc/worlddate2text()
+	return num2text((text2num(time2text(world.timeofday, "YYYY"))+544)) + "-" + time2text(world.timeofday, "MM-DD")
 
-/proc/gameTimestamp(var/format = "hh:mm:ss") // Get the game time in text
-	return time2text(world.time - timezoneOffset + 432000, format)
-
-/* Preserving this so future generations can see how fucking retarded some people are
 proc/time_stamp()
-	var/hh = text2num(time2text(world.timeofday, "hh")) // Set the hour
-	var/mm = text2num(time2text(world.timeofday, "mm")) // Set the minute
-	var/ss = text2num(time2text(world.timeofday, "ss")) // Set the second
-	var/ph
-	var/pm
-	var/ps
-	if(hh < 10) ph = "0"
-	if(mm < 10) pm = "0"
-	if(ss < 10) ps = "0"
-	return"[ph][hh]:[pm][mm]:[ps][ss]"
-*/
+	return time2text(world.timeofday, "hh:mm:ss")
 
 /* Returns 1 if it is the selected month and day */
-/proc/isDay(var/month, var/day)
+proc/isDay(var/month, var/day)
 	if(isnum(month) && isnum(day))
 		var/MM = text2num(time2text(world.timeofday, "MM")) // get the current month
 		var/DD = text2num(time2text(world.timeofday, "DD")) // get the current day
@@ -33,3 +27,21 @@ proc/time_stamp()
 		// Uncomment this out when debugging!
 		//else
 			//return 1
+
+var/next_duration_update = 0
+var/last_round_duration = 0
+proc/round_duration()
+	if(last_round_duration && world.time < next_duration_update)
+		return last_round_duration
+
+	var/mills = world.time // 1/10 of a second, not real milliseconds but whatever
+	//var/secs = ((mills % 36000) % 600) / 10 //Not really needed, but I'll leave it here for refrence.. or something
+	var/mins = round((mills % 36000) / 600)
+	var/hours = round(mills / 36000)
+
+	mins = mins < 10 ? add_zero(mins, 1) : mins
+	hours = hours < 10 ? add_zero(hours, 1) : hours
+
+	last_round_duration = "[hours]:[mins]"
+	next_duration_update = world.time + 1 MINUTES
+	return last_round_duration

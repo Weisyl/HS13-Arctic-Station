@@ -1,13 +1,8 @@
 var/list/forbidden_varedit_object_types = list(
 										/datum/admins,						//Admins editing their own admin-power object? Yup, sounds like a good idea.
 										/obj/machinery/blackbox_recorder,	//Prevents people messing with feedback gathering
-										/datum/feedback_variable,			//Prevents people messing with feedback gathering
-										/datum/admin_rank					//editing my own rank? it's more likely than you think
+										/datum/feedback_variable			//Prevents people messing with feedback gathering
 									)
-
-var/list/VVlocked = list("vars", "client", "virus", "viruses", "cuffed", "last_eaten", "unlock_content", "step_x", "step_y")
-var/list/VVicon_edit_lock = list("icon", "icon_state", "overlays", "underlays")
-var/list/VVckey_edit = list("key", "ckey")
 
 /*
 /client/proc/cmd_modify_object_variables(obj/O as obj|mob|turf|area in world)
@@ -49,7 +44,7 @@ var/list/VVckey_edit = list("key", "ckey")
 	switch(class)
 
 		if("text")
-			var_value = input("Enter new text:","Text") as null|text
+			var_value = input("Enter new text:","Text") as null|text//todo: sanitize ???
 
 		if("num")
 			var_value = input("Enter new number:","Num") as null|num
@@ -77,7 +72,7 @@ var/list/VVckey_edit = list("key", "ckey")
 	return var_value
 
 
-/client/proc/mod_list_add(var/list/L, atom/O, original_name, objectvar)
+/client/proc/mod_list_add(var/list/L)
 
 	var/class = "text"
 	if(src.holder && src.holder.marked_datum)
@@ -98,7 +93,7 @@ var/list/VVckey_edit = list("key", "ckey")
 	switch(class)
 
 		if("text")
-			var_value = input("Enter new text:","Text") as text
+			var_value = input("Enter new text:","Text") as text//todo: sanitize ???
 
 		if("num")
 			var_value = input("Enter new number:","Num") as num
@@ -129,19 +124,19 @@ var/list/VVckey_edit = list("key", "ckey")
 			L[var_value] = mod_list_add_ass() //haha
 		if("No")
 			L += var_value
-	world.log << "### ListVarEdit by [src]: [O.type] [objectvar]: ADDED=[var_value]"
-	log_admin("[key_name(src)] modified [original_name]'s [objectvar]: ADDED=[var_value]")
-	message_admins("[key_name_admin(src)] modified [original_name]'s [objectvar]: ADDED=[var_value]")
 
-/client/proc/mod_list(var/list/L, atom/O, original_name, objectvar)
+/client/proc/mod_list(var/list/L)
 	if(!check_rights(R_VAREDIT))	return
+
 	if(!istype(L,/list)) src << "Not a List."
+
+	var/list/locked = list("vars", "key", "ckey", "client", "firemut", "ishulk", "telekinesis", "xray", "virus", "viruses", "cuffed", "ka", "last_eaten", "urine", "poo", "icon", "icon_state")
 	var/list/names = sortList(L)
 
 	var/variable = input("Which var?","Var") as null|anything in names + "(ADD VAR)"
 
 	if(variable == "(ADD VAR)")
-		mod_list_add(L, O, original_name, objectvar)
+		mod_list_add(L)
 		return
 
 	if(!variable)
@@ -151,12 +146,8 @@ var/list/VVckey_edit = list("key", "ckey")
 
 	var/dir
 
-	if(variable in VVlocked)
+	if(variable in locked)
 		if(!check_rights(R_DEBUG))	return
-	if(variable in VVckey_edit)
-		if(!check_rights(R_SPAWN|R_DEBUG)) return
-	if(variable in VVicon_edit_lock)
-		if(!check_rights(R_FUN|R_DEBUG)) return
 
 	if(isnull(variable))
 		usr << "Unable to determine variable type."
@@ -221,12 +212,14 @@ var/list/VVckey_edit = list("key", "ckey")
 			usr << "If a direction, direction is: [dir]"
 
 	var/class = "text"
+	var/list/choices = list("text","num","type","reference","mob reference", "icon","file","list","edit referenced object","restore to default")
 	if(src.holder && src.holder.marked_datum)
-		class = input("What kind of variable?","Variable Type",default) as null|anything in list("text",
-			"num","type","reference","mob reference", "icon","file","list","edit referenced object","restore to default","marked datum ([holder.marked_datum.type])", "DELETE FROM LIST")
-	else
-		class = input("What kind of variable?","Variable Type",default) as null|anything in list("text",
-			"num","type","reference","mob reference", "icon","file","list","edit referenced object","restore to default", "DELETE FROM LIST")
+		choices += "marked datum ([holder.marked_datum.type])"
+	if(!isnull(default) && default != "num")
+		choices += "edit associated variable"
+	choices += "DELETE FROM LIST"
+
+	class = input("What kind of variable?","Variable Type",default) as null|anything in choices
 
 	if(!class)
 		return
@@ -234,74 +227,60 @@ var/list/VVckey_edit = list("key", "ckey")
 	if(holder.marked_datum && class == "marked datum ([holder.marked_datum.type])")
 		class = "marked datum"
 
-	var/original_var = L[L.Find(variable)]
-	var/new_var
 	switch(class) //Spits a runtime error if you try to modify an entry in the contents list. Dunno how to fix it, yet.
 
 		if("list")
-			mod_list(variable, O, original_name, objectvar)
+			mod_list(variable)
 
 		if("restore to default")
-			new_var = initial(variable)
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)]=initial(variable)
 
 		if("edit referenced object")
 			modify_variables(variable)
 
 		if("DELETE FROM LIST")
-			world.log << "### ListVarEdit by [src]: [O.type] [objectvar]: REMOVED=[html_encode("[variable]")]"
-			log_admin("[key_name(src)] modified [original_name]'s [objectvar]: REMOVED=[variable]")
-			message_admins("[key_name_admin(src)] modified [original_name]'s [objectvar]: REMOVED=[variable]")
 			L -= variable
 			return
 
 		if("text")
-			new_var = input("Enter new text:","Text") as text
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Enter new text:","Text") as text//todo: sanitize ???
 
 		if("num")
-			new_var = input("Enter new number:","Num") as num
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Enter new number:","Num") as num
 
 		if("type")
-			new_var = input("Enter type:","Type") in typesof(/obj,/mob,/area,/turf)
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Enter type:","Type") in typesof(/obj,/mob,/area,/turf)
 
 		if("reference")
-			new_var = input("Select reference:","Reference") as mob|obj|turf|area in world
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Select reference:","Reference") as mob|obj|turf|area in world
 
 		if("mob reference")
-			new_var = input("Select reference:","Reference") as mob in world
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Select reference:","Reference") as mob in world
 
 		if("file")
-			new_var = input("Pick file:","File") as file
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Pick file:","File") as file
 
 		if("icon")
-			new_var = input("Pick icon:","Icon") as icon
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = input("Pick icon:","Icon") as icon
 
 		if("marked datum")
-			new_var = holder.marked_datum
-			L[L.Find(variable)] = new_var
+			L[L.Find(variable)] = holder.marked_datum
 
-	world.log << "### ListVarEdit by [src]: [O.type] [objectvar]: [original_var]=[new_var]"
-	log_admin("[key_name(src)] modified [original_name]'s [objectvar]: [original_var]=[new_var]")
-	message_admins("[key_name_admin(src)] modified [original_name]'s varlist [objectvar]: [original_var]=[new_var]")
+		if("edit associated variable")
+			var/temp_var = mod_list_add_ass()
+			if(temp_var)
+				L[variable] = temp_var
+
 
 /client/proc/modify_variables(var/atom/O, var/param_var_name = null, var/autodetect_class = 0)
 	if(!check_rights(R_VAREDIT))	return
 
+	var/list/locked = list("vars", "key", "ckey", "client", "firemut", "ishulk", "telekinesis", "xray", "virus", "cuffed", "ka", "last_eaten", "icon", "icon_state")
+
 	for(var/p in forbidden_varedit_object_types)
 		if( istype(O,p) )
-			usr << "<span class='danger'>It is forbidden to edit this object's variables.</span>"
+			usr << "\red It is forbidden to edit this object's variables."
 			return
-
-	if(istype(O, /client) && (param_var_name == "ckey" || param_var_name == "key"))
-		usr << "<span class='danger'>You cannot edit ckeys on client objects.</span>"
-		return
 
 	var/class
 	var/variable
@@ -312,12 +291,8 @@ var/list/VVckey_edit = list("key", "ckey")
 			src << "A variable with this name ([param_var_name]) doesn't exist in this atom ([O])"
 			return
 
-		if(param_var_name in VVlocked)
+		if(param_var_name == "holder" || (param_var_name in locked))
 			if(!check_rights(R_DEBUG))	return
-		if(param_var_name in VVckey_edit)
-			if(!check_rights(R_SPAWN|R_DEBUG)) return
-		if(param_var_name in VVicon_edit_lock)
-			if(!check_rights(R_FUN|R_DEBUG)) return
 
 		variable = param_var_name
 
@@ -374,12 +349,8 @@ var/list/VVckey_edit = list("key", "ckey")
 		if(!variable)	return
 		var_value = O.vars[variable]
 
-		if(variable in VVlocked)
-			if(!check_rights(R_DEBUG)) return
-		if(variable in VVckey_edit)
-			if(!check_rights(R_SPAWN|R_DEBUG)) return
-		if(variable in VVicon_edit_lock)
-			if(!check_rights(R_FUN|R_DEBUG)) return
+		if(variable == "holder" || (variable in locked))
+			if(!check_rights(R_DEBUG))	return
 
 	if(!autodetect_class)
 
@@ -469,7 +440,7 @@ var/list/VVckey_edit = list("key", "ckey")
 	switch(class)
 
 		if("list")
-			mod_list(O.vars[variable], O, original_name, variable)
+			mod_list(O.vars[variable])
 			return
 
 		if("restore to default")
@@ -479,15 +450,15 @@ var/list/VVckey_edit = list("key", "ckey")
 			return .(O.vars[variable])
 
 		if("text")
-			var/var_new = input("Enter new text:","Text",O.vars[variable]) as null|text
+			var/var_new = input("Enter new text:","Text",O.vars[variable]) as null|text//todo: sanitize ???
 			if(var_new==null) return
 			O.vars[variable] = var_new
 
 		if("num")
-			if(variable=="luminosity")
+			if(variable=="light_range")
 				var/var_new = input("Enter new number:","Num",O.vars[variable]) as null|num
 				if(var_new == null) return
-				O.SetLuminosity(var_new)
+				O.set_light(var_new)
 			else if(variable=="stat")
 				var/var_new = input("Enter new number:","Num",O.vars[variable]) as null|num
 				if(var_new == null) return
@@ -533,4 +504,5 @@ var/list/VVckey_edit = list("key", "ckey")
 
 	world.log << "### VarEdit by [src]: [O.type] [variable]=[html_encode("[O.vars[variable]]")]"
 	log_admin("[key_name(src)] modified [original_name]'s [variable] to [O.vars[variable]]")
-	message_admins("[key_name_admin(src)] modified [original_name]'s [variable] to [O.vars[variable]]")
+	message_admins("[key_name_admin(src)] modified [original_name]'s [variable] to [O.vars[variable]]", 1)
+

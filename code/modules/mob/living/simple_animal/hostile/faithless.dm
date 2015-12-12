@@ -1,5 +1,5 @@
 /mob/living/simple_animal/hostile/faithless
-	name = "The Faithless"
+	name = "Faithless"
 	desc = "The Wish Granter's faith in humanity, incarnate"
 	icon_state = "faithless"
 	icon_living = "faithless"
@@ -9,14 +9,14 @@
 	response_help = "passes through"
 	response_disarm = "shoves"
 	response_harm = "hits"
-	speed = 0
+	speed = -1
 	maxHealth = 80
 	health = 80
 
 	harm_intent_damage = 10
 	melee_damage_lower = 15
 	melee_damage_upper = 15
-	attacktext = "grips"
+	attacktext = "gripped"
 	attack_sound = 'sound/hallucinations/growl1.ogg'
 
 	min_oxy = 0
@@ -28,16 +28,17 @@
 	min_n2 = 0
 	max_n2 = 0
 	minbodytemp = 0
+	speed = 4
 
-	faction = list("faithless")
+	faction = "faithless"
 
-/mob/living/simple_animal/hostile/faithless/Process_Spacemove(var/movement_dir = 0)
+/mob/living/simple_animal/hostile/faithless/Process_Spacemove(var/check_drift = 0)
 	return 1
 
 /mob/living/simple_animal/hostile/faithless/FindTarget()
 	. = ..()
 	if(.)
-		emote("me", 1, "wails at [.]!")
+		audible_emote("wails at [.]")
 
 /mob/living/simple_animal/hostile/faithless/AttackingTarget()
 	. =..()
@@ -46,3 +47,13 @@
 		if(prob(12))
 			L.Weaken(3)
 			L.visible_message("<span class='danger'>\the [src] knocks down \the [L]!</span>")
+
+/mob/living/simple_animal/hostile/faithless/cult
+	faction = "cult"
+
+/mob/living/simple_animal/hostile/faithless/cult/cultify()
+	return
+
+/mob/living/simple_animal/hostile/faithless/cult/Life()
+	..()
+	check_horde()

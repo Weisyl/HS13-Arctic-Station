@@ -180,8 +180,8 @@
 		HI.Insert(I, frame=1, delay = 5)
 		HI.Insert(J, frame=2, delay = 5)
 
-		del(I)
-		del(J)
+		qdel(I)
+		qdel(J)
 		H.icon = HI
 		H.layer = 25
 		usr.mapobjs += H
@@ -210,7 +210,7 @@
 
 					if("/turf/simulated/floor", "/turf/simulated/floor/engine")
 						var/datum/gas_mixture/environment = T.return_air()
-						var/turf_total = environment.total_moles()
+						var/turf_total = environment.total_moles
 						var/t1 = turf_total / MOLES_CELLSTANDARD * 175
 
 						if(t1<=100)
@@ -306,7 +306,7 @@
 		var/icon/I = imap[i+1]
 
 		H.icon = I
-		del(I)
+		qdel(I)
 		H.layer = 25
 		usr.mapobjs += H
 

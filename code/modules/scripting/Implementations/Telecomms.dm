@@ -10,25 +10,10 @@
 	HandleError(runtimeError/e)
 		Compiler.Holder.add_entry(e.ToString(), "Execution Error")
 
-	GC()
-		..()
-		Compiler = null
-
-
 /datum/TCS_Compiler
-
 	var/n_Interpreter/TCS_Interpreter/interpreter
 	var/obj/machinery/telecomms/server/Holder	// the server that is running the code
 	var/ready = 1 // 1 if ready to run code
-
-	/* -- Set ourselves to Garbage Collect -- */
-
-	proc/GC()
-
-		Holder = null
-		if(interpreter)
-			interpreter.GC()
-
 
 	/* -- Compile a raw block of text -- */
 
@@ -69,9 +54,7 @@
 		interpreter.SetVar("E" 		, 	2.718281828)	// value of e
 		interpreter.SetVar("SQURT2" , 	1.414213562)	// value of the square root of 2
 		interpreter.SetVar("FALSE"  , 	0)				// boolean shortcut to 0
-		interpreter.SetVar("false"  , 	0)				// boolean shortcut to 0
 		interpreter.SetVar("TRUE"	,	1)				// boolean shortcut to 1
-		interpreter.SetVar("true"	,	1)				// boolean shortcut to 1
 
 		interpreter.SetVar("NORTH" 	, 	NORTH)			// NORTH (1)
 		interpreter.SetVar("SOUTH" 	, 	SOUTH)			// SOUTH (2)
@@ -79,63 +62,35 @@
 		interpreter.SetVar("WEST" 	, 	WEST)			// WEST  (8)
 
 		// Channel macros
-		interpreter.SetVar("$common",	1459)
-		interpreter.SetVar("$science",	1351)
-		interpreter.SetVar("$command",	1353)
-		interpreter.SetVar("$medical",	1355)
-		interpreter.SetVar("$engineering",1357)
-		interpreter.SetVar("$security",	1359)
-		interpreter.SetVar("$supply",	1347)
-		interpreter.SetVar("$service",	1349)
+		interpreter.SetVar("$common",	PUB_FREQ)
+		interpreter.SetVar("$science",	SCI_FREQ)
+		interpreter.SetVar("$command",	COMM_FREQ)
+		interpreter.SetVar("$medical",	MED_FREQ)
+		interpreter.SetVar("$engineering",ENG_FREQ)
+		interpreter.SetVar("$security",	SEC_FREQ)
+		interpreter.SetVar("$supply",	SUP_FREQ)
 
 		// Signal data
 
-		interpreter.SetVar("$content", 	html_decode(signal.data["message"]))
+		interpreter.SetVar("$content", 	signal.data["message"])
 		interpreter.SetVar("$freq"   , 	signal.frequency)
 		interpreter.SetVar("$source" , 	signal.data["name"])
 		interpreter.SetVar("$job"    , 	signal.data["job"])
 		interpreter.SetVar("$sign"   ,	signal)
 		interpreter.SetVar("$pass"	 ,  !(signal.data["reject"])) // if the signal isn't rejected, pass = 1; if the signal IS rejected, pass = 0
 
-		//Language bitflags
-		interpreter.SetVar("HUMAN"   ,	HUMAN)
-		interpreter.SetVar("MONKEY"   ,	MONKEY)
-		interpreter.SetVar("ALIEN"   ,	ALIEN)
-		interpreter.SetVar("ROBOT"   ,	ROBOT)
-		interpreter.SetVar("SLIME"   ,	SLIME)
-		interpreter.SetVar("DRONE"   ,	DRONE)
-
-		var/curlang = HUMAN
-		if(istype(signal.data["mob"], /atom/movable))
-			var/atom/movable/M = signal.data["mob"]
-			curlang = M.languages
-
-		interpreter.SetVar("$language", curlang)
-
-
-		/*
-		Telecomms procs
-		*/
+		// Set up the script procs
 
 		/*
 			-> Send another signal to a server
-					@format: broadcast(content, frequency, source, job, lang)
+					@format: broadcast(content, frequency, source, job)
 
 					@param content:		Message to broadcast
 					@param frequency:	Frequency to broadcast to
 					@param source:		The name of the source you wish to imitate. Must be stored in stored_names list.
-					@param job:				The name of the job.
+					@param job:			The name of the job.
 		*/
 		interpreter.SetProc("broadcast", "tcombroadcast", signal, list("message", "freq", "source", "job"))
-
-		/*
-			-> Send a code signal.
-					@format: signal(frequency, code)
-
-					@param frequency:		Frequency to send the signal to
-					@param code:			Encryption code to send the signal with
-		*/
-		interpreter.SetProc("signal", "signaler", signal, list("freq", "code"))
 
 		/*
 			-> Store a value permanently to the server machine (not the actual game hosting machine, the ingame machine)
@@ -146,12 +101,49 @@
 		*/
 		interpreter.SetProc("mem", "mem", signal, list("address", "value"))
 
+		/*
+			-> Delay code for a given amount of deciseconds
+					@format: sleep(time)
+
+					@param time: 		time to sleep in deciseconds (1/10th second)
+		*/
+		interpreter.SetProc("sleep", /proc/delay)
 
 		/*
-		General NTSL procs
-		Should probably be moved to its own place
+			-> Replaces a string with another string
+					@format: replace(string, substring, replacestring)
+
+					@param string: 			the string to search for substrings (best used with $content$ constant)
+					@param substring: 		the substring to search for
+					@param replacestring: 	the string to replace the substring with
+
 		*/
-		// Vector
+		interpreter.SetProc("replace", /proc/string_replacetext)
+
+		/*
+			-> Locates an element/substring inside of a list or string
+					@format: find(haystack, needle, start = 1, end = 0)
+
+					@param haystack:	the container to search
+					@param needle:		the element to search for
+					@param start:		the position to start in
+					@param end:			the position to end in
+
+		*/
+		interpreter.SetProc("find", /proc/smartfind)
+
+		/*
+			-> Finds the length of a string or list
+					@format: length(container)
+
+					@param container: the list or container to measure
+
+		*/
+		interpreter.SetProc("length", /proc/smartlength)
+
+		/* -- Clone functions, carried from default BYOND procs --- */
+
+		// vector namespace
 		interpreter.SetProc("vector", /proc/n_list)
 		interpreter.SetProc("at", /proc/n_listpos)
 		interpreter.SetProc("copy", /proc/n_listcopy)
@@ -160,22 +152,19 @@
 		interpreter.SetProc("cut", /proc/n_listcut)
 		interpreter.SetProc("swap", /proc/n_listswap)
 		interpreter.SetProc("insert", /proc/n_listinsert)
-		interpreter.SetProc("pick", /proc/n_pick)
-		interpreter.SetProc("prob", /proc/n_prob)
-		interpreter.SetProc("substr", /proc/n_substr)
-		interpreter.SetProc("find", /proc/n_smartfind)
-		interpreter.SetProc("length", /proc/n_smartlength)
 
+		interpreter.SetProc("pick", /proc/n_pick)
+		interpreter.SetProc("prob", /proc/prob_chance)
+		interpreter.SetProc("substr", /proc/docopytext)
+
+		// Donkie~
 		// Strings
 		interpreter.SetProc("lower", /proc/n_lower)
 		interpreter.SetProc("upper", /proc/n_upper)
-		interpreter.SetProc("explode", /proc/n_explode)
-		interpreter.SetProc("implode", /proc/n_implode)
+		interpreter.SetProc("explode", /proc/string_explode)
 		interpreter.SetProc("repeat", /proc/n_repeat)
 		interpreter.SetProc("reverse", /proc/n_reverse)
 		interpreter.SetProc("tonum", /proc/n_str2num)
-		interpreter.SetProc("replace", /proc/n_replace)
-		interpreter.SetProc("proper", /proc/n_proper)
 
 		// Numbers
 		interpreter.SetProc("tostring", /proc/n_num2str)
@@ -186,15 +175,8 @@
 		interpreter.SetProc("round", /proc/n_round)
 		interpreter.SetProc("clamp", /proc/n_clamp)
 		interpreter.SetProc("inrange", /proc/n_inrange)
-		interpreter.SetProc("rand", /proc/n_rand)
-		interpreter.SetProc("randseed", /proc/n_randseed)
-		interpreter.SetProc("min", /proc/n_min)
-		interpreter.SetProc("max", /proc/n_max)
+		// End of Donkie~
 
-		// Time
-		interpreter.SetProc("time", /proc/n_time)
-		interpreter.SetProc("sleep", /proc/n_delay)
-		interpreter.SetProc("timestamp", /proc/gameTimestamp)
 
 		// Run the compiled code
 		interpreter.Run()
@@ -202,24 +184,27 @@
 		// Backwards-apply variables onto signal data
 		/* sanitize EVERYTHING. fucking players can't be trusted with SHIT */
 
-		signal.data["message"] 	= interpreter.GetCleanVar("$content", signal.data["message"])
-		signal.frequency 		= interpreter.GetCleanVar("$freq", signal.frequency)
+		signal.data["message"] 	= interpreter.GetVar("$content")
+		signal.frequency 		= interpreter.GetVar("$freq")
 
-		var/setname = interpreter.GetCleanVar("$source", signal.data["name"])
+		var/setname = ""
+		var/obj/machinery/telecomms/server/S = signal.data["server"]
+		if(interpreter.GetVar("$source") in S.stored_names)
+			setname = interpreter.GetVar("$source")
+		else
+			setname = "<i>[interpreter.GetVar("$source")]</i>"
 
 		if(signal.data["name"] != setname)
 			signal.data["realname"] = setname
 		signal.data["name"]		= setname
-		signal.data["job"]		= interpreter.GetCleanVar("$job", signal.data["job"])
-		signal.data["reject"]	= !(interpreter.GetCleanVar("$pass")) // set reject to the opposite of $pass
+		signal.data["job"]		= interpreter.GetVar("$job")
+		signal.data["reject"]	= !(interpreter.GetVar("$pass")) // set reject to the opposite of $pass
 
 		// If the message is invalid, just don't broadcast it!
 		if(signal.data["message"] == "" || !signal.data["message"])
 			signal.data["reject"] = 1
 
 /*  -- Actual language proc code --  */
-
-var/const/SIGNAL_COOLDOWN = 20 // 2 seconds
 
 datum/signal
 
@@ -235,37 +220,6 @@ datum/signal
 				S.memory[address] = value
 
 
-	proc/signaler(var/freq = 1459, var/code = 30)
-
-		if(isnum(freq) && isnum(code))
-
-			var/obj/machinery/telecomms/server/S = data["server"]
-
-			if(S.last_signal + SIGNAL_COOLDOWN > world.timeofday && S.last_signal < MIDNIGHT_ROLLOVER)
-				return
-			S.last_signal = world.timeofday
-
-			var/datum/radio_frequency/connection = radio_controller.return_frequency(freq)
-
-			if(findtext(num2text(freq), ".")) // if the frequency has been set as a decimal
-				freq *= 10 // shift the decimal one place
-
-			freq = sanitize_frequency(freq)
-
-			code = round(code)
-			code = Clamp(code, 0, 100)
-
-			var/datum/signal/signal = new
-			signal.source = S
-			signal.encryption = code
-			signal.data["message"] = "ACTIVATE"
-
-			connection.post_signal(S, signal)
-
-			var/time = time2text(world.realtime,"hh:mm:ss")
-			lastsignalers.Add("[time] <B>:</B> [S.id] sent a signal command, which was triggered by NTSL.<B>:</B> [format_frequency(freq)]/[code]")
-
-
 	proc/tcombroadcast(var/message, var/freq, var/source, var/job)
 
 		var/datum/signal/newsign = new
@@ -273,7 +227,7 @@ datum/signal
 		var/obj/item/device/radio/hradio = S.server_radio
 
 		if(!hradio)
-			ERROR("[src] has no radio.")
+			error("[src] has no radio.")
 			return
 
 		if((!message || message == "") && message != 0)
@@ -281,28 +235,22 @@ datum/signal
 		if(!source)
 			source = "[html_encode(uppertext(S.id))]"
 			hradio = new // sets the hradio as a radio intercom
-		if(!freq || (!isnum(freq) && text2num(freq) == null))
-			freq = 1459
+		if(!freq)
+			freq = PUB_FREQ
 		if(findtext(num2text(freq), ".")) // if the frequency has been set as a decimal
 			freq *= 10 // shift the decimal one place
 
 		if(!job)
-			job = "Unknown"
+			job = "?"
 
-		//SAY REWRITE RELATED CODE.
-		//This code is a little hacky, but it *should* work. Even though it'll result in a virtual speaker referencing another virtual speaker. vOv
-		var/atom/movable/virtualspeaker/virt = PoolOrNew(/atom/movable/virtualspeaker,null)
-		virt.name = source
-		virt.job = job
-		virt.faketrack = 1
-		virt.languages = HUMAN
-		//END SAY REWRITE RELATED CODE.
-
-		newsign.data["mob"] = virt
+		newsign.data["mob"] = null
 		newsign.data["mobtype"] = /mob/living/carbon/human
-		newsign.data["name"] = source
+		if(source in S.stored_names)
+			newsign.data["name"] = source
+		else
+			newsign.data["name"] = "<i>[html_encode(uppertext(source))]<i>"
 		newsign.data["realname"] = newsign.data["name"]
-		newsign.data["job"] = "[job]"
+		newsign.data["job"] = job
 		newsign.data["compression"] = 0
 		newsign.data["message"] = message
 		newsign.data["type"] = 2 // artificial broadcast
@@ -310,14 +258,15 @@ datum/signal
 			freq = text2num(freq)
 		newsign.frequency = freq
 
+		var/datum/radio_frequency/connection = radio_controller.return_frequency(freq)
+		newsign.data["connection"] = connection
+
 
 		newsign.data["radio"] = hradio
 		newsign.data["vmessage"] = message
 		newsign.data["vname"] = source
 		newsign.data["vmask"] = 0
-		newsign.data["level"] = data["level"]
-
-		newsign.sanitize_data()
+		newsign.data["level"] = list()
 
 		var/pass = S.relay_information(newsign, "/obj/machinery/telecomms/hub")
 		if(!pass)

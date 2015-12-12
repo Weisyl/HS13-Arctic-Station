@@ -46,7 +46,7 @@
 			src.updateUsrDialog()
 			return
 		var/mob/M = locate(href_list["traitormob"])
-		if(M.mind.special_role)
+		if(M.mind.special_role || jobban_isbanned(M, "Syndicate"))
 			temptext = "<i>We have no need for you at this time. Have a pleasant day.</i><br>"
 			src.updateUsrDialog()
 			return
@@ -59,38 +59,11 @@
 				return
 		if(istype(M, /mob/living/carbon/human))
 			var/mob/living/carbon/human/N = M
-			ticker.mode.equip_traitor(N)
-			ticker.mode.traitors += N.mind
-			N.mind.special_role = "traitor"
-			var/objective = "Free Objective"
-			switch(rand(1,100))
-				if(1 to 50)
-					objective = "Steal [pick("a hand teleporter", "the Captain's antique laser gun", "a jetpack", "the Captain's ID", "the Captain's jumpsuit")]."
-				if(51 to 60)
-					objective = "Destroy 70% or more of the station's plasma tanks."
-				if(61 to 70)
-					objective = "Cut power to 80% or more of the station's tiles."
-				if(71 to 80)
-					objective = "Destroy the AI."
-				if(81 to 90)
-					objective = "Kill all monkeys aboard the station."
-				else
-					objective = "Make certain at least 80% of the station evacuates on the shuttle."
-			var/datum/objective/custom_objective = new(objective)
-			custom_objective.owner = N.mind
-			N.mind.objectives += custom_objective
-
-			var/datum/objective/escape/escape_objective = new
-			escape_objective.owner = N.mind
-			N.mind.objectives += escape_objective
-
-
 			M << "<B>You have joined the ranks of the Syndicate and become a traitor to the station!</B>"
+			traitors.add_antagonist(N.mind)
+			traitors.equip(N)
+			message_admins("[N]/([N.ckey]) has accepted a traitor objective from a syndicate beacon.")
 
-			var/obj_count = 1
-			for(var/datum/objective/OBJ in M.mind.objectives)
-				M << "<B>Objective #[obj_count]</B>: [OBJ.explanation_text]"
-				obj_count++
 
 	src.updateUsrDialog()
 	return
@@ -98,7 +71,7 @@
 
 /obj/machinery/syndicate_beacon/proc/selfdestruct()
 	selfdestructing = 1
-	spawn() explosion(src.loc, rand(3,8), rand(1,3), 1, 10)
+	spawn() explosion(src.loc, 1, rand(1,3), rand(3,8), 10)
 
 ////////////////////////////////////////
 //Singularity beacon
@@ -154,7 +127,7 @@
 		return
 
 
-/obj/machinery/power/singularity_beacon/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
+/obj/machinery/power/singularity_beacon/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	if(istype(W,/obj/item/weapon/screwdriver))
 		if(active)
 			user << "<span class='danger'>You need to deactivate the beacon first!</span>"
@@ -186,35 +159,10 @@
 	if(!active)
 		return PROCESS_KILL
 	else
-		if(surplus() > 1500)
-			add_load(1500)
-		else
+		if(draw_power(1500) < 1500)
 			Deactivate()
 
 
 /obj/machinery/power/singularity_beacon/syndicate
 	icontype = "beaconsynd"
 	icon_state = "beaconsynd0"
-
-// SINGULO BEACON SPAWNER
-/obj/item/device/sbeacondrop
-	name = "suspicious beacon"
-	icon = 'icons/obj/radio.dmi'
-	icon_state = "beacon"
-	desc = "A label on it reads: <i>Warning: Activating this device will send a special beacon to your location</i>."
-	origin_tech = "bluespace=1;syndicate=7"
-	w_class = 2
-	var/droptype = /obj/machinery/power/singularity_beacon/syndicate
-
-
-/obj/item/device/sbeacondrop/attack_self(mob/user as mob)
-	if(user)
-		user << "<span class='notice'>Locked In.</span>"
-		new droptype( user.loc )
-		playsound(src, 'sound/effects/pop.ogg', 100, 1, 1)
-		qdel(src)
-	return
-
-/obj/item/device/sbeacondrop/bomb
-	desc = "A label on it reads: <i>Warning: Activating this device will send a high-ordinance explosive to your location</i>."
-	droptype = /obj/machinery/syndicatebomb

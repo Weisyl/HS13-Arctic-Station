@@ -14,6 +14,7 @@ NOTE: there are two lists of areas in the end of this file: centcom and station 
 */
 
 
+
 /area
 	var/fire = null
 	var/atmos = 1
@@ -21,16 +22,17 @@ NOTE: there are two lists of areas in the end of this file: centcom and station 
 	var/poweralm = 1
 	var/party = null
 	level = null
-	name = "Space"
+	name = "Unknown"
 	icon = 'icons/turf/areas.dmi'
 	icon_state = "unknown"
 	layer = 10
+	luminosity = 0
 	mouse_opacity = 0
-	invisibility = INVISIBILITY_LIGHTING
 	var/lightswitch = 1
 
 	var/eject = null
 
+	var/debug = 0
 	var/requires_power = 1
 	var/always_unpowered = 0	//this gets overriden to 1 for space in area/New()
 
@@ -41,78 +43,81 @@ NOTE: there are two lists of areas in the end of this file: centcom and station 
 	var/used_equip = 0
 	var/used_light = 0
 	var/used_environ = 0
-	var/static_equip
-	var/static_light = 0
-	var/static_environ
 
-	var/has_gravity = 1			//All areas by default will now have gravity since Arctic Station is obviously taking place on a planet.
-	var/safe = 0 				//Is the area teleport-safe: no space / radiation / aggresive mobs / other dangers
-
+	var/has_gravity = 1
+	var/obj/machinery/power/apc/apc = null
 	var/no_air = null
-	var/area/master				// master area used for power calcluations
-								// (original area before splitting due to sd_DAL)
-	var/list/related			// the other areas of the same type as this
 //	var/list/lights				// list of all lights on this area
-
+	var/list/all_doors = list()		//Added by Strumpetplaya - Alarm Change - Contains a list of doors adjacent to this area
+	var/air_doors_activated = 0
+	var/list/ambience = list('sound/ambience/ambigen1.ogg','sound/ambience/ambigen3.ogg','sound/ambience/ambigen4.ogg','sound/ambience/ambigen5.ogg','sound/ambience/ambigen6.ogg','sound/ambience/ambigen7.ogg','sound/ambience/ambigen8.ogg','sound/ambience/ambigen9.ogg','sound/ambience/ambigen10.ogg','sound/ambience/ambigen11.ogg','sound/ambience/ambigen12.ogg','sound/ambience/ambigen14.ogg')
+	var/list/forced_ambience = null
+	var/sound_env = 2	//reverb preset for sounds played in this area, see sound datum reference for more
 /*Adding a wizard area teleport list because motherfucking lag -- Urist*/
 /*I am far too lazy to make it a proper list of areas so I'll just make it run the usual telepot routine at the start of the game*/
 var/list/teleportlocs = list()
 
-proc/process_teleport_locs()
+/hook/startup/proc/setupTeleportLocs()
 	for(var/area/AR in world)
 		if(istype(AR, /area/shuttle) || istype(AR, /area/syndicate_station) || istype(AR, /area/wizard_station)) continue
 		if(teleportlocs.Find(AR.name)) continue
-		var/turf/picked = safepick(get_area_turfs(AR.type))
-		if (picked && picked.z == 1)
+		var/turf/picked = pick(get_area_turfs(AR.type))
+		if (picked.z in config.station_levels)
 			teleportlocs += AR.name
 			teleportlocs[AR.name] = AR
 
-	var/not_in_order = 0
-	do
-		not_in_order = 0
-		if(teleportlocs.len <= 1)
-			break
-		for(var/i = 1, i <= (teleportlocs.len - 1), i++)
-			if(sorttext(teleportlocs[i], teleportlocs[i+1]) == -1)
-				teleportlocs.Swap(i, i+1)
-				not_in_order = 1
-	while(not_in_order)
+	teleportlocs = sortAssoc(teleportlocs)
+
+	return 1
 
 var/list/ghostteleportlocs = list()
 
-proc/process_ghost_teleport_locs()
+/hook/startup/proc/setupGhostTeleportLocs()
 	for(var/area/AR in world)
 		if(ghostteleportlocs.Find(AR.name)) continue
-		if(istype(AR, /area/turret_protected/aisat) || istype(AR, /area/derelict) || istype(AR, /area/tdome))
+		if(istype(AR, /area/turret_protected/aisat) || istype(AR, /area/derelict) || istype(AR, /area/tdome) || istype(AR, /area/shuttle/specops/centcom))
 			ghostteleportlocs += AR.name
 			ghostteleportlocs[AR.name] = AR
-		var/turf/picked = safepick(get_area_turfs(AR.type))
-		if (picked && (picked.z == 1 || picked.z == 5 || picked.z == 3))
+		var/turf/picked = pick(get_area_turfs(AR.type))
+		if (picked.z in config.player_levels)
 			ghostteleportlocs += AR.name
 			ghostteleportlocs[AR.name] = AR
 
-	var/not_in_order = 0
-	do
-		not_in_order = 0
-		if(ghostteleportlocs.len <= 1)
-			break
-		for(var/i = 1, i <= (ghostteleportlocs.len - 1), i++)
-			if(sorttext(ghostteleportlocs[i], ghostteleportlocs[i+1]) == -1)
-				ghostteleportlocs.Swap(i, i+1)
-				not_in_order = 1
-	while(not_in_order)
+	ghostteleportlocs = sortAssoc(ghostteleportlocs)
 
+	return 1
 
 /*-----------------------------------------------------------------------------*/
-//chem area
-/area/toxins/chemtest
-	name = "Chemical Testing Area"
-	icon_state = "chem_test"
-/area/toxins/chemlab
-	name = "Chemical Laboratory"
-	icon_state = "chem_lab"
-//chem area
-/area/engine/
+
+/////////
+//SPACE//
+/////////
+
+/area/space
+	name = "\improper Space"
+	icon_state = "space"
+	requires_power = 1
+	always_unpowered = 1
+	lighting_use_dynamic = 0
+	power_light = 0
+	power_equip = 0
+	power_environ = 0
+	ambience = list('sound/ambience/ambispace.ogg','sound/music/title2.ogg','sound/music/space.ogg','sound/music/main.ogg','sound/music/traitor.ogg')
+
+area/space/atmosalert()
+	return
+
+/area/space/fire_alert()
+	return
+
+/area/space/fire_reset()
+	return
+
+/area/space/readyalert()
+	return
+
+/area/space/partyalert()
+	return
 
 /area/turret_protected/
 
@@ -127,190 +132,211 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Admin room"
 	icon_state = "start"
 
-/area/space
-	icon_state = "space"
-	requires_power = 1
-	always_unpowered = 1
-	lighting_use_dynamic = 0
-	power_light = 0
-	power_equip = 0
-	power_environ = 0
-	ambientsounds = list('sound/ambience/ambispace.ogg','sound/ambience/johncena.ogg',)
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 
-
-//These are shuttle areas, they must contain two areas in a subgroup if you want to move a shuttle from one
+////////////
+//SHUTTLES//
+////////////
+//shuttle areas must contain at least two areas in a subgroup if you want to move a shuttle from one
 //place to another. Look at escape shuttle for example.
-//All shuttles show now be under shuttle since we have smooth-wall code.
+//All shuttles should now be under shuttle since we have smooth-wall code.
 
-/area/shuttle //DO NOT TURN THE lighting_use_dynamic STUFF ON FOR SHUTTLES. IT BREAKS THINGS.
+/area/shuttle
 	requires_power = 0
-	luminosity = 1
-	lighting_use_dynamic = 0
-	var/push_dir = SOUTH
-	var/destination
 
 /area/shuttle/arrival
 	name = "\improper Arrival Shuttle"
 
 /area/shuttle/arrival/pre_game
 	icon_state = "shuttle2"
-	destination = /area/shuttle/arrival/station
 
 /area/shuttle/arrival/station
 	icon_state = "shuttle"
-	destination = /area/shuttle/arrival/pre_game
 
 /area/shuttle/escape
 	name = "\improper Emergency Shuttle"
+	music = "music/escape.ogg"
 
 /area/shuttle/escape/station
 	name = "\improper Emergency Shuttle Station"
 	icon_state = "shuttle2"
-	destination = /area/shuttle/escape/transit
 
 /area/shuttle/escape/centcom
 	name = "\improper Emergency Shuttle Centcom"
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape/station
 
 /area/shuttle/escape/transit // the area to pass through for 3 minute transit
 	name = "\improper Emergency Shuttle Transit"
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape/centcom
 
 /area/shuttle/escape_pod1
 	name = "\improper Escape Pod One"
+	music = "music/escape.ogg"
 
 /area/shuttle/escape_pod1/station
 	icon_state = "shuttle2"
-	destination = /area/shuttle/escape_pod1/transit
 
 /area/shuttle/escape_pod1/centcom
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod1/station
 
 /area/shuttle/escape_pod1/transit
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod1/centcom
-
-
-	mob_activate(var/mob/living/L)
-		push_mob_back(L, push_dir)
 
 /area/shuttle/escape_pod2
 	name = "\improper Escape Pod Two"
+	music = "music/escape.ogg"
 
 /area/shuttle/escape_pod2/station
 	icon_state = "shuttle2"
-	destination = /area/shuttle/escape_pod2/transit
 
 /area/shuttle/escape_pod2/centcom
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod2/station
 
 /area/shuttle/escape_pod2/transit
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod2/centcom
-
-	mob_activate(var/mob/living/L)
-		push_mob_back(L, push_dir)
 
 /area/shuttle/escape_pod3
 	name = "\improper Escape Pod Three"
-	push_dir = WEST
+	music = "music/escape.ogg"
 
 /area/shuttle/escape_pod3/station
 	icon_state = "shuttle2"
-	destination = /area/shuttle/escape_pod3/transit
 
 /area/shuttle/escape_pod3/centcom
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod3/station
 
 /area/shuttle/escape_pod3/transit
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod3/centcom
 
-	mob_activate(var/mob/living/L)
-		push_mob_back(L, push_dir)
+/area/shuttle/escape_pod5 //Pod 4 was lost to meteors
+	name = "\improper Escape Pod Five"
+	music = "music/escape.ogg"
 
-/area/shuttle/escape_pod4 //Renaming areas 2hard
-	name = "\improper Escape Pod Four"
-	push_dir = WEST
-
-/area/shuttle/escape_pod4/station
+/area/shuttle/escape_pod5/station
 	icon_state = "shuttle2"
-	destination = /area/shuttle/escape_pod4/transit
 
-/area/shuttle/escape_pod4/centcom
+/area/shuttle/escape_pod5/centcom
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod4/station
 
-/area/shuttle/escape_pod4/transit
+/area/shuttle/escape_pod5/transit
 	icon_state = "shuttle"
-	destination = /area/shuttle/escape_pod4/centcom
-
-	mob_activate(var/mob/living/L)
-		push_mob_back(L, push_dir)
 
 /area/shuttle/mining
 	name = "\improper Mining Shuttle"
+	music = "music/escape.ogg"
 
 /area/shuttle/mining/station
 	icon_state = "shuttle2"
-	destination = /area/shuttle/mining/outpost
 
 /area/shuttle/mining/outpost
 	icon_state = "shuttle"
-	destination = /area/shuttle/mining/station
-
-/area/shuttle/laborcamp
-	name = "\improper Labor Camp Shuttle"
-
-/area/shuttle/laborcamp/station
-	icon_state = "shuttle"
-	destination = /area/shuttle/laborcamp/outpost
-
-/area/shuttle/laborcamp/outpost
-	icon_state = "shuttle"
-	destination = /area/shuttle/laborcamp/station
 
 /area/shuttle/transport1/centcom
 	icon_state = "shuttle"
 	name = "\improper Transport Shuttle Centcom"
-	destination = /area/shuttle/transport1/station
 
 /area/shuttle/transport1/station
 	icon_state = "shuttle"
 	name = "\improper Transport Shuttle"
-	destination = /area/shuttle/transport1/centcom
+
+/area/shuttle/alien/base
+	icon_state = "shuttle"
+	name = "\improper Alien Shuttle Base"
+	requires_power = 1
+
+/area/shuttle/alien/mine
+	icon_state = "shuttle"
+	name = "\improper Alien Shuttle Mine"
+	requires_power = 1
 
 /area/shuttle/prison/
 	name = "\improper Prison Shuttle"
 
+/area/shuttle/prison/station
+	icon_state = "shuttle"
+
+/area/shuttle/prison/prison
+	icon_state = "shuttle2"
+
 /area/shuttle/specops/centcom
 	name = "\improper Special Ops Shuttle"
 	icon_state = "shuttlered"
-	destination = /area/shuttle/specops/station
 
 /area/shuttle/specops/station
 	name = "\improper Special Ops Shuttle"
 	icon_state = "shuttlered2"
-	destination = /area/shuttle/specops/centcom
+
+/area/shuttle/syndicate_elite/mothership
+	name = "\improper Merc Elite Shuttle"
+	icon_state = "shuttlered"
+
+/area/shuttle/syndicate_elite/station
+	name = "\improper Merc Elite Shuttle"
+	icon_state = "shuttlered2"
+
+/area/shuttle/administration/centcom
+	name = "\improper Administration Shuttle Centcom"
+	icon_state = "shuttlered"
+
+/area/shuttle/administration/station
+	name = "\improper Administration Shuttle"
+	icon_state = "shuttlered2"
 
 /area/shuttle/thunderdome
 	name = "honk"
+
+/area/shuttle/thunderdome/grnshuttle
+	name = "\improper Thunderdome GRN Shuttle"
+	icon_state = "green"
+
+/area/shuttle/thunderdome/grnshuttle/dome
+	name = "\improper GRN Shuttle"
+	icon_state = "shuttlegrn"
+
+/area/shuttle/thunderdome/grnshuttle/station
+	name = "\improper GRN Station"
+	icon_state = "shuttlegrn2"
+
+/area/shuttle/thunderdome/redshuttle
+	name = "\improper Thunderdome RED Shuttle"
+	icon_state = "red"
+
+/area/shuttle/thunderdome/redshuttle/dome
+	name = "\improper RED Shuttle"
+	icon_state = "shuttlered"
+
+/area/shuttle/thunderdome/redshuttle/station
+	name = "\improper RED Station"
+	icon_state = "shuttlered2"
+// === Trying to remove these areas:
+
+/area/shuttle/research
+	name = "\improper Research Shuttle"
+	music = "music/escape.ogg"
+
+/area/shuttle/research/station
+	icon_state = "shuttle2"
+
+/area/shuttle/research/outpost
+	icon_state = "shuttle"
+
+/area/airtunnel1/      // referenced in airtunnel.dm:759
+
+/area/dummy/           // Referenced in engine.dm:261
 
 /area/start            // will be unused once kurper gets his login interface patch done
 	name = "start area"
 	icon_state = "start"
 	requires_power = 0
-	luminosity = 1
 	lighting_use_dynamic = 0
+	has_gravity = 1
 
 // === end remove
+
+/area/alien
+	name = "\improper Alien base"
+	icon_state = "yellow"
+	requires_power = 0
 
 // CENTCOM
 
@@ -318,9 +344,10 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Centcom"
 	icon_state = "centcom"
 	requires_power = 0
+	lighting_use_dynamic = 0
 
 /area/centcom/control
-	name = "\improper Centcom Docks"
+	name = "\improper Centcom Control"
 
 /area/centcom/evac
 	name = "\improper Centcom Emergency Shuttle"
@@ -331,8 +358,20 @@ proc/process_ghost_teleport_locs()
 /area/centcom/ferry
 	name = "\improper Centcom Transport Shuttle"
 
-/area/centcom/prison
-	name = "\improper Admin Prison"
+/area/centcom/shuttle
+	name = "\improper Centcom Administration Shuttle"
+
+/area/centcom/test
+	name = "\improper Centcom Testing Facility"
+
+/area/centcom/living
+	name = "\improper Centcom Living Quarters"
+
+/area/centcom/specops
+	name = "\improper Centcom Special Ops"
+
+/area/centcom/creed
+	name = "Creed's Office"
 
 /area/centcom/holding
 	name = "\improper Holding Facility"
@@ -340,28 +379,27 @@ proc/process_ghost_teleport_locs()
 //SYNDICATES
 
 /area/syndicate_mothership
-	name = "\improper Syndicate Mothership"
+	name = "\improper Mercenary Base"
 	icon_state = "syndie-ship"
 	requires_power = 0
-	ambloop = 'sound/ambience/loop/windwinterinside.ogg'
-	ambientsounds = list('sound/ambience/ambicreek1.ogg', 'sound/ambience/ambicreek2.ogg', 'sound/ambience/johncena.ogg')
+	lighting_use_dynamic = 0
 
 /area/syndicate_mothership/control
-	name = "\improper Syndicate Control Room"
+	name = "\improper Mercenary Control Room"
 	icon_state = "syndie-control"
 
 /area/syndicate_mothership/elite_squad
-	name = "\improper Syndicate Elite Squad"
+	name = "\improper Elite Mercenary Squad"
 	icon_state = "syndie-elite"
 
 //EXTRA
 
-/area/asteroid
+/area/asteroid					// -- TLE
 	name = "\improper Asteroid"
 	icon_state = "asteroid"
 	requires_power = 0
 
-/area/asteroid/cave
+/area/asteroid/cave				// -- TLE
 	name = "\improper Asteroid - Underground"
 	icon_state = "cave"
 	requires_power = 0
@@ -370,35 +408,30 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Asteroid - Artifact"
 	icon_state = "cave"
 
-/area/asteroid/artifactroom/New()
-	..()
-	lighting_use_dynamic = 1
-	InitializeLighting()
 
-/area/clownplanet
+
+
+
+
+
+
+
+
+
+
+
+
+
+/area/planet/clown
 	name = "\improper Clown Planet"
 	icon_state = "honk"
-	requires_power = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
-	ambientsounds = list('sound/ambience/clown.ogg','sound/misc/slip.ogg','sound/items/bikehorn.ogg')
-
-/area/telesciareas
-	name = "\improper Cosmic Anomaly"
-	icon_state = "telesci"
 	requires_power = 0
 
 /area/tdome
 	name = "\improper Thunderdome"
-	icon_state = "yellow"
+	icon_state = "thunder"
 	requires_power = 0
-
-/area/tdome/arena
-	name = "\improper Thunderdome Arena"
-	icon_state = "thunder"
-
-/area/tdome/arena_source
-	name = "\improper Thunderdome Arena Template"
-	icon_state = "thunder"
+	lighting_use_dynamic = 0
 
 /area/tdome/tdome1
 	name = "\improper Thunderdome (Team 1)"
@@ -406,7 +439,7 @@ proc/process_ghost_teleport_locs()
 
 /area/tdome/tdome2
 	name = "\improper Thunderdome (Team 2)"
-	icon_state = "green"
+	icon_state = "yellow"
 
 /area/tdome/tdomeadmin
 	name = "\improper Thunderdome (Admin.)"
@@ -420,15 +453,14 @@ proc/process_ghost_teleport_locs()
 
 //names are used
 /area/syndicate_station
-	name = "\improper Syndicate Station"
+	name = "\improper Independant Station"
 	icon_state = "yellow"
 	requires_power = 0
-	ambloop = 'sound/ambience/loop/cargohum.ogg'
+	flags = RAD_SHIELDED
 
 /area/syndicate_station/start
-	name = "\improper Syndicate Forward Operating Base"
+	name = "\improper Mercenary Forward Operating Base"
 	icon_state = "yellow"
-	// ambloop = 'sound/ambience/loop/windwinterinside.ogg'
 
 /area/syndicate_station/southwest
 	name = "\improper south-west of SS13"
@@ -462,6 +494,14 @@ proc/process_ghost_teleport_locs()
 	name = "\improper north east of the mining asteroid"
 	icon_state = "north"
 
+/area/syndicate_station/arrivals_dock
+	name = "\improper docked with station"
+	icon_state = "shuttle"
+
+/area/syndicate_station/maint_dock
+	name = "\improper docked with station"
+	icon_state = "shuttle"
+
 /area/syndicate_station/transit
 	name = "\improper hyperspace"
 	icon_state = "shuttle"
@@ -470,11 +510,40 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Wizard's Den"
 	icon_state = "yellow"
 	requires_power = 0
+	lighting_use_dynamic = 0
 
+/area/skipjack_station
+	name = "\improper Skipjack"
+	icon_state = "yellow"
+	requires_power = 0
 
+/area/skipjack_station/start
+	name = "\improper Skipjack"
+	icon_state = "yellow"
 
+/area/skipjack_station/transit
+	name = "\improper hyperspace"
+	icon_state = "shuttle"
 
+/area/skipjack_station/southwest_solars
+	name = "\improper aft port solars"
+	icon_state = "southwest"
 
+/area/skipjack_station/northwest_solars
+	name = "\improper fore port solars"
+	icon_state = "northwest"
+
+/area/skipjack_station/northeast_solars
+	name = "\improper fore starboard solars"
+	icon_state = "northeast"
+
+/area/skipjack_station/southeast_solars
+	name = "\improper aft starboard solars"
+	icon_state = "southeast"
+
+/area/skipjack_station/mining
+	name = "\improper nearby mining asteroid"
+	icon_state = "north"
 
 //PRISON
 /area/prison
@@ -493,7 +562,6 @@ proc/process_ghost_teleport_locs()
 /area/prison/crew_quarters
 	name = "\improper Prison Security Quarters"
 	icon_state = "security"
-	safe = 1
 
 /area/prison/rec_room
 	name = "\improper Prison Rec Room"
@@ -522,7 +590,6 @@ proc/process_ghost_teleport_locs()
 /area/prison/morgue
 	name = "\improper Prison Morgue"
 	icon_state = "morgue"
-	ambientsounds = list('sound/ambience/ambimo1.ogg','sound/ambience/ambimo2.ogg')
 
 /area/prison/medical_research
 	name = "\improper Prison Genetic Research"
@@ -561,39 +628,62 @@ proc/process_ghost_teleport_locs()
 	name = "Prison Cell Block C"
 	icon_state = "brig"
 
-//STATION13
-
-/area/atmos
- 	name = "Atmospherics"
- 	icon_state = "atmos"
+////////////////////
+//SPACE STATION 13//
+////////////////////
 
 //Maintenance
+
 /area/maintenance
-	ambientsounds = list('sound/ambience/ambimaint1.ogg', 'sound/ambience/ambimaint2.ogg', 'sound/ambience/ambimaint3.ogg', 'sound/ambience/ambimaint4.ogg', 'sound/ambience/ambimaint5.ogg')
+	flags = RAD_SHIELDED
+
+/area/maintenance/aft
+	name = "Aft Maintenance"
+	icon_state = "amaint"
+
+/area/maintenance/fore
+	name = "Fore Maintenance"
+	icon_state = "fmaint"
+
+/area/maintenance/starboard
+	name = "Starboard Maintenance"
+	icon_state = "smaint"
+
+/area/maintenance/port
+	name = "Port Maintenance"
+	icon_state = "pmaint"
 
 /area/maintenance/atmos_control
 	name = "Atmospherics Maintenance"
 	icon_state = "fpmaint"
 
 /area/maintenance/fpmaint
-	name = "EVA Maintenance"
+	name = "Fore Port Maintenance - 1"
 	icon_state = "fpmaint"
 
 /area/maintenance/fpmaint2
-	name = "Arrivals North Maintenance"
+	name = "Fore Port Maintenance - 2"
 	icon_state = "fpmaint"
 
 /area/maintenance/fsmaint
-	name = "Dormitory Maintenance"
+	name = "Fore Starboard Maintenance - 1"
 	icon_state = "fsmaint"
 
 /area/maintenance/fsmaint2
-	name = "Bar Maintenance"
+	name = "Fore Starboard Maintenance - 2"
 	icon_state = "fsmaint"
 
 /area/maintenance/asmaint
-	name = "Medbay Maintenance"
+	name = "Aft Starboard Maintenance"
 	icon_state = "asmaint"
+
+/area/maintenance/engi_shuttle
+	name = "Engineering Shuttle Access"
+	icon_state = "maint_e_shuttle"
+
+/area/maintenance/engi_engine
+	name = "Engine Maintenance"
+	icon_state = "maint_engine"
 
 /area/maintenance/asmaint2
 	name = "Science Maintenance"
@@ -607,44 +697,112 @@ proc/process_ghost_teleport_locs()
 	name = "Bridge Maintenance"
 	icon_state = "maintcentral"
 
-/area/maintenance/fore
-	name = "Fore Maintenance"
-	icon_state = "fmaint"
+/area/maintenance/arrivals
+	name = "Arrivals Maintenance"
+	icon_state = "maint_arrivals"
 
-/area/maintenance/starboard
-	name = "Starboard Maintenance"
-	icon_state = "smaint"
+/area/maintenance/bar
+	name = "Bar Maintenance"
+	icon_state = "maint_bar"
 
-/area/maintenance/port
-	name = "Locker Room Maintenance"
-	icon_state = "pmaint"
-
-/area/maintenance/aft
-	name = "Engineering Maintenance"
-	icon_state = "amaint"
-
-/area/maintenance/storage
-	name = "Atmospherics"
-	icon_state = "green"
-
-/area/maintenance/abandonlab
-	name = "\improper Abandoned Lab"
-	icon_state = "disposal"
+/area/maintenance/cargo
+	name = "Cargo Maintenance"
+	icon_state = "maint_cargo"
 
 /area/maintenance/disposal
 	name = "Waste Disposal"
 	icon_state = "disposal"
 
-/area/maintenance/electrical
-	name = "Electrical Maintenance"
-	icon_state = "yellow"
+/area/maintenance/engineering
+	name = "Engineering Maintenance"
+	icon_state = "maint_engineering"
 
-/area/maintenance/bar
-	name = "Speakeasy"
-	icon_state = "yellow"
+/area/maintenance/evahallway
+	name = "\improper EVA Maintenance"
+	icon_state = "maint_eva"
+
+/area/maintenance/dormitory
+	name = "Dormitory Maintenance"
+	icon_state = "maint_dormitory"
+
+/area/maintenance/incinerator
+	name = "\improper Incinerator"
+	icon_state = "disposal"
+
+/area/maintenance/library
+	name = "Library Maintenance"
+	icon_state = "maint_library"
+
+/area/maintenance/locker
+	name = "Locker Room Maintenance"
+	icon_state = "maint_locker"
+
+/area/maintenance/medbay
+	name = "Medbay Maintenance"
+	icon_state = "maint_medbay"
+
+/area/maintenance/research_port
+	name = "Research Maintenance - Port"
+	icon_state = "maint_research_port"
+
+/area/maintenance/research_starboard
+	name = "Research Maintenance - Starboard"
+	icon_state = "maint_research_starboard"
+
+/area/maintenance/research_shuttle
+	name = "Research Shuttle Dock Maintenance"
+	icon_state = "maint_research_shuttle"
+
+/area/maintenance/security_port
+	name = "Security Maintenance - Port"
+	icon_state = "maint_security_port"
+
+/area/maintenance/security_starboard
+	name = "Security Maintenance - Starboard"
+	icon_state = "maint_security_starboard"
+
+/area/maintenance/storage
+	name = "Atmospherics"
+	icon_state = "green"
+
+// SUBSTATIONS (Subtype of maint, that should let them serve as shielded area during radstorm)
+
+/area/maintenance/substation
+	name = "Substation"
+	icon_state = "substation"
+
+/area/maintenance/substation/engineering // Probably will be connected to engineering SMES room, as wires cannot be crossed properly without them sharing powernets.
+	name = "Engineering Substation"
+
+// No longer used:
+/area/maintenance/substation/medical_science // Medbay and Science. Each has it's own separated machinery, but it originates from the same room.
+	name = "Medical Research Substation"
+
+/area/maintenance/substation/medical // Medbay
+	name = "Medical Substation"
+
+/area/maintenance/substation/research // Research
+	name = "Research Substation"
+
+/area/maintenance/substation/civilian_east // Bar, kitchen, dorms, ...
+	name = "Civilian East Substation"
+
+/area/maintenance/substation/civilian_west // Cargo, PTS, locker room, probably arrivals, ...)
+	name = "Civilian West Substation"
+
+/area/maintenance/substation/command // AI and central cluster. This one will be between HoP office and meeting room (probably).
+	name = "Command Substation"
+
+/area/maintenance/substation/security // Security, Brig, Permabrig, etc.
+	name = "Security Substation"
+
+
 
 
 //Hallway
+
+/area/hallway/primary/
+	sound_env = 12 //hallway
 
 /area/hallway/primary/fore
 	name = "\improper Fore Primary Hallway"
@@ -662,9 +820,17 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Port Primary Hallway"
 	icon_state = "hallP"
 
-/area/hallway/primary/central
+/area/hallway/primary/central_one
 	name = "\improper Central Primary Hallway"
-	icon_state = "hallC"
+	icon_state = "hallC1"
+
+/area/hallway/primary/central_two
+	name = "\improper Central Primary Hallway"
+	icon_state = "hallC2"
+
+/area/hallway/primary/central_three
+	name = "\improper Central Primary Hallway"
+	icon_state = "hallC3"
 
 /area/hallway/secondary/exit
 	name = "\improper Escape Shuttle Hallway"
@@ -674,14 +840,21 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Construction Area"
 	icon_state = "construction"
 
+/area/hallway/secondary/entry/fore
+	name = "\improper Arrival Shuttle Hallway - Fore"
+	icon_state = "entry_1"
 
-/area/woodshop
-	name = "Wood Shop"
-	icon_state = "woodshop"
+/area/hallway/secondary/entry/port
+	name = "\improper Arrival Shuttle Hallway - Port"
+	icon_state = "entry_2"
 
-/area/hallway/secondary/entry
-	name = "\improper Arrival Shuttle Hallway"
-	icon_state = "entry"
+/area/hallway/secondary/entry/starboard
+	name = "\improper Arrival Shuttle Hallway - Starboard"
+	icon_state = "entry_3"
+
+/area/hallway/secondary/entry/aft
+	name = "\improper Arrival Shuttle Hallway - Aft"
+	icon_state = "entry_4"
 
 //Command
 
@@ -692,28 +865,36 @@ proc/process_ghost_teleport_locs()
 
 /area/bridge/meeting_room
 	name = "\improper Heads of Staff Meeting Room"
-	icon_state = "meeting"
+	icon_state = "bridge"
 	music = null
 
 /area/crew_quarters/captain
-	name = "\improper Captain's Office"
+	name = "\improper Command - Captain's Office"
 	icon_state = "captain"
+
+/area/crew_quarters/heads/hop
+	name = "\improper Command - HoP's Office"
+	icon_state = "head_quarters"
+
+/area/crew_quarters/heads/hor
+	name = "\improper Research - RD's Office"
+	icon_state = "head_quarters"
+
+/area/crew_quarters/heads/chief
+	name = "\improper Engineering - CE's Office"
+	icon_state = "head_quarters"
+
+/area/crew_quarters/heads/hos
+	name = "\improper Security - HoS' Office"
+	icon_state = "head_quarters"
+
+/area/crew_quarters/heads/cmo
+	name = "\improper Medbay - CMO's Office"
+	icon_state = "head_quarters"
 
 /area/crew_quarters/courtroom
 	name = "\improper Courtroom"
 	icon_state = "courtroom"
-
-/area/crew_quarters/heads
-	name = "\improper Head of Personnel's Office"
-	icon_state = "head_quarters"
-
-/area/crew_quarters/hor
-	name = "\improper Research Director's Office"
-	icon_state = "head_quarters"
-
-/area/crew_quarters/chief
-	name = "\improper Chief Engineer's Office"
-	icon_state = "head_quarters"
 
 /area/mint
 	name = "\improper Mint"
@@ -724,7 +905,7 @@ proc/process_ghost_teleport_locs()
 	icon_state = "tcomsatcham"
 
 /area/server
-	name = "\improper Messaging Server Room"
+	name = "\improper Research Server Room"
 	icon_state = "server"
 
 //Crew
@@ -732,6 +913,7 @@ proc/process_ghost_teleport_locs()
 /area/crew_quarters
 	name = "\improper Dormitories"
 	icon_state = "Sleep"
+	flags = RAD_SHIELDED
 
 /area/crew_quarters/toilet
 	name = "\improper Dormitory Toilets"
@@ -739,6 +921,18 @@ proc/process_ghost_teleport_locs()
 
 /area/crew_quarters/sleep
 	name = "\improper Dormitories"
+	icon_state = "Sleep"
+
+/area/crew_quarters/sleep/engi_wash
+	name = "\improper Engineering Washroom"
+	icon_state = "toilet"
+
+/area/crew_quarters/sleep/bedrooms
+	name = "\improper Dormitory Bedroom One"
+	icon_state = "Sleep"
+
+/area/crew_quarters/sleep/cryo
+	name = "\improper Cryogenic Storage"
 	icon_state = "Sleep"
 
 /area/crew_quarters/sleep_male
@@ -789,33 +983,18 @@ proc/process_ghost_teleport_locs()
  	name = "\improper Library"
  	icon_state = "library"
 
-/area/johncenaarena
-	name = "Superslam Arena"
-	icon_state = "superslam"
-	ambientsounds = list('sound/ambience/johncena.ogg') //This didn't have johncena.ogg as an ambient sound. THAT IS A SIN.
-
 /area/chapel/main
 	name = "\improper Chapel"
 	icon_state = "chapel"
-	ambientsounds = list('sound/ambience/ambicha1.ogg','sound/ambience/ambicha2.ogg','sound/ambience/ambicha3.ogg','sound/ambience/ambicha4.ogg')
+	ambience = list('sound/ambience/ambicha1.ogg','sound/ambience/ambicha2.ogg','sound/ambience/ambicha3.ogg','sound/ambience/ambicha4.ogg','sound/music/traitor.ogg')
 
 /area/chapel/office
 	name = "\improper Chapel Office"
 	icon_state = "chapeloffice"
 
 /area/lawoffice
-	name = "\improper Law Office"
+	name = "\improper Internal Affairs"
 	icon_state = "law"
-
-/area/clown
-	name = "\improper Clown Office"
-	icon_state = "clown"
-
-/area/mime
-	name = "\improper Mime Office"
-	icon_state = "mime"
-
-
 
 
 
@@ -823,16 +1002,13 @@ proc/process_ghost_teleport_locs()
 /area/holodeck
 	name = "\improper Holodeck"
 	icon_state = "Holodeck"
-	luminosity = 1
 	lighting_use_dynamic = 0
 
 /area/holodeck/alphadeck
 	name = "\improper Holodeck Alpha"
 
-
 /area/holodeck/source_plating
 	name = "\improper Holodeck - Off"
-	icon_state = "Holodeck"
 
 /area/holodeck/source_emptycourt
 	name = "\improper Holodeck - Empty Court"
@@ -840,18 +1016,17 @@ proc/process_ghost_teleport_locs()
 /area/holodeck/source_boxingcourt
 	name = "\improper Holodeck - Boxing Court"
 
-/area/holodeck/source_wrestlingcourt
-	name = "\improper Holodeck - Wrestling Court"
-
 /area/holodeck/source_basketball
 	name = "\improper Holodeck - Basketball Court"
 
 /area/holodeck/source_thunderdomecourt
 	name = "\improper Holodeck - Thunderdome Court"
 
+/area/holodeck/source_courtroom
+	name = "\improper Holodeck - Courtroom"
+
 /area/holodeck/source_beach
 	name = "\improper Holodeck - Beach"
-	icon_state = "Holodeck" // Lazy.
 
 /area/holodeck/source_burntest
 	name = "\improper Holodeck - Atmospheric Burn Test"
@@ -859,60 +1034,104 @@ proc/process_ghost_teleport_locs()
 /area/holodeck/source_wildlife
 	name = "\improper Holodeck - Wildlife Simulation"
 
+/area/holodeck/source_meetinghall
+	name = "\improper Holodeck - Meeting Hall"
 
+/area/holodeck/source_theatre
+	name = "\improper Holodeck - Theatre"
 
+/area/holodeck/source_picnicarea
+	name = "\improper Holodeck - Picnic Area"
 
+/area/holodeck/source_snowfield
+	name = "\improper Holodeck - Snow Field"
 
+/area/holodeck/source_desert
+	name = "\improper Holodeck - Desert"
 
-
-
-
-
+/area/holodeck/source_space
+	name = "\improper Holodeck - Space"
+	has_gravity = 0
 
 //Engineering
 
-/area/engine
-	ambientsounds = list('sound/ambience/ambisin1.ogg','sound/ambience/ambisin2.ogg','sound/ambience/ambisin3.ogg','sound/ambience/ambisin4.ogg')
+/area/engineering/
+	name = "\improper Engineering"
+	icon_state = "engineering"
+	ambience = list('sound/ambience/ambisin1.ogg','sound/ambience/ambisin2.ogg','sound/ambience/ambisin3.ogg','sound/ambience/ambisin4.ogg')
 
-/area/engine/engine_smes
+/area/engineering/atmos
+ 	name = "\improper Atmospherics"
+ 	icon_state = "atmos"
+
+/area/engineering/atmos/monitoring
+	name = "\improper Atmospherics Monitoring Room"
+	icon_state = "atmos_monitoring"
+
+/area/engineering/atmos/storage
+	name = "\improper Atmospherics Storage"
+	icon_state = "atmos_storage"
+
+/area/engineering/drone_fabrication
+	name = "\improper Engineering Drone Fabrication"
+	icon_state = "drone_fab"
+
+/area/engineering/engine_smes
 	name = "\improper Engineering SMES"
 	icon_state = "engine_smes"
 
-/area/engine/engineering
-	name = "Engineering"
+/area/engineering/engine_room
+	name = "\improper Engine Room"
 	icon_state = "engine"
 
-/area/engine/sm_area
-	name = "Supermatter Area"
-	icon_state = "supermatter"
+/area/engineering/engine_airlock
+	name = "\improper Engine Room Airlock"
+	icon_state = "engine"
 
-/area/engine/break_room
+/area/engineering/engine_monitoring
+	name = "\improper Engine Monitoring Room"
+	icon_state = "engine_monitoring"
+
+/area/engineering/engine_waste
+	name = "\improper Engine Waste Handling"
+	icon_state = "engine_waste"
+
+/area/engineering/engineering_monitoring
+	name = "\improper Engineering Monitoring Room"
+	icon_state = "engine_monitoring"
+
+/area/engineering/foyer
 	name = "\improper Engineering Foyer"
-	icon_state = "engine"
+	icon_state = "engineering_foyer"
 
-/area/engine/engineering_lounge
-	name = "Engineering Lounge"
-	icon_state = "engine_lounge"
+/area/engineering/storage
+	name = "\improper Engineering Storage"
+	icon_state = "engineering_storage"
 
-/area/engine/chiefs_office
-	name = "\improper Chief Engineer's office"
-	icon_state = "engine_control"
+/area/engineering/break_room
+	name = "\improper Engineering Break Room"
+	icon_state = "engineering_break"
 
-/area/engine/secure_construction
-	name = "\improper Secure Construction Area"
-	icon_state = "engine"
+/area/engineering/engine_eva
+	name = "\improper Engine EVA"
+	icon_state = "engine_eva"
 
-/area/engine/gravity_generator
-	name = "Gravity Generator Room"
-	icon_state = "grav_gen"
+/area/engineering/locker_room
+	name = "\improper Engineering Locker Room"
+	icon_state = "engineering_locker"
+
+/area/engineering/workshop
+	name = "\improper Engineering Workshop"
+	icon_state = "engineering_workshop"
+
+
 
 //Solars
 
 /area/solar
-	requires_power = 0
-	luminosity = 1
+	requires_power = 1
+	always_unpowered = 1
 	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 	auxport
 		name = "\improper Fore Port Solar Array"
@@ -939,21 +1158,24 @@ proc/process_ghost_teleport_locs()
 		icon_state = "panelsP"
 
 /area/maintenance/auxsolarport
-	name = "Fore Port Solar Maintenance"
-	icon_state = "SolarcontrolA"
+	name = "Solar Maintenance - Fore Port"
+	icon_state = "SolarcontrolP"
 
 /area/maintenance/starboardsolar
-	name = "Aft Starboard Solar Maintenance"
+	name = "Solar Maintenance - Aft Starboard"
 	icon_state = "SolarcontrolS"
 
 /area/maintenance/portsolar
-	name = "Aft Port Solar Maintenance"
+	name = "Solar Maintenance - Aft Port"
 	icon_state = "SolarcontrolP"
 
 /area/maintenance/auxsolarstarboard
-	name = "Fore Starboard Solar Maintenance"
-	icon_state = "SolarcontrolA"
+	name = "Solar Maintenance - Fore Starboard"
+	icon_state = "SolarcontrolS"
 
+/area/maintenance/foresolar
+	name = "Solar Maintenance - Fore"
+	icon_state = "SolarcontrolA"
 
 /area/assembly/chargebay
 	name = "\improper Mech Bay"
@@ -965,7 +1187,7 @@ proc/process_ghost_teleport_locs()
 
 /area/assembly/robotics
 	name = "\improper Robotics Lab"
-	icon_state = "ass_line"
+	icon_state = "robotics"
 
 /area/assembly/assembly_line //Derelict Assembly Line
 	name = "\improper Assembly Line"
@@ -987,27 +1209,51 @@ proc/process_ghost_teleport_locs()
 	music = "signal"
 
 /area/AIsattele
-	name = "\improper Abandoned Teleporter"
+	name = "\improper AI Satellite Teleporter Room"
 	icon_state = "teleporter"
 	music = "signal"
-	ambientsounds = list('sound/ambience/ambimalf.ogg')
-	ambloop = 'sound/ambience/loop/quiethum.ogg'
+	ambience = list('sound/ambience/ambimalf.ogg')
 
 //MedBay
 
 /area/medical/medbay
-	name = "Medbay"
+	name = "\improper Medbay Hallway - Port"
 	icon_state = "medbay"
 	music = 'sound/ambience/signal.ogg'
 
 //Medbay is a large area, these additional areas help level out APC load.
 /area/medical/medbay2
-	name = "Medbay"
+	name = "\improper Medbay Hallway - Starboard"
 	icon_state = "medbay2"
 	music = 'sound/ambience/signal.ogg'
 
 /area/medical/medbay3
-	name = "Medbay"
+	name = "\improper Medbay Hallway - Fore"
+	icon_state = "medbay3"
+	music = 'sound/ambience/signal.ogg'
+
+/area/medical/medbay4
+	name = "\improper Medbay Hallway - Aft"
+	icon_state = "medbay4"
+	music = 'sound/ambience/signal.ogg'
+
+/area/medical/biostorage
+	name = "\improper Secondary Storage"
+	icon_state = "medbay2"
+	music = 'sound/ambience/signal.ogg'
+
+/area/medical/reception
+	name = "\improper Medbay Reception"
+	icon_state = "medbay"
+	music = 'sound/ambience/signal.ogg'
+
+/area/medical/psych
+	name = "\improper Psych Room"
+	icon_state = "medbay3"
+	music = 'sound/ambience/signal.ogg'
+
+/area/crew_quarters/medbreak
+	name = "\improper Break Room"
 	icon_state = "medbay3"
 	music = 'sound/ambience/signal.ogg'
 
@@ -1015,41 +1261,69 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Patient's Rooms"
 	icon_state = "patients"
 
-/area/medical/cmo
-	name = "\improper Chief Medical Officer's office"
+/area/medical/ward
+	name = "\improper Recovery Ward"
+	icon_state = "patients"
+
+/area/medical/patient_a
+	name = "\improper Isolation A"
+	icon_state = "patients"
+
+/area/medical/patient_b
+	name = "\improper Isolation B"
+	icon_state = "patients"
+
+/area/medical/patient_c
+	name = "\improper Isolation C"
+	icon_state = "patients"
+
+/area/medical/patient_wing
+	name = "\improper Patient Wing"
+	icon_state = "patients"
+
+/area/medical/cmostore
+	name = "\improper Secure Storage"
 	icon_state = "CMO"
 
 /area/medical/robotics
-	name = "Robotics"
-	icon_state = "medresearch"
-
-/area/medical/medlounge
-	name = "Medical Waiting Area"
-	icon_state = "medlounge"
-
-/area/medical/research
-	name = "Medical Research"
+	name = "\improper Robotics"
 	icon_state = "medresearch"
 
 /area/medical/virology
-	name = "Virology"
+	name = "\improper Virology"
+	icon_state = "virology"
+
+/area/medical/virologyaccess
+	name = "\improper Virology Access"
 	icon_state = "virology"
 
 /area/medical/morgue
 	name = "\improper Morgue"
 	icon_state = "morgue"
-	ambientsounds = list('sound/ambience/ambimo1.ogg','sound/ambience/ambimo2.ogg')
+	ambience = list('sound/ambience/ambimo1.ogg','sound/ambience/ambimo2.ogg','sound/music/main.ogg')
 
 /area/medical/chemistry
-	name = "Chemistry"
+	name = "\improper Chemistry"
 	icon_state = "chem"
 
 /area/medical/surgery
-	name = "Surgery"
+	name = "\improper Operating Theatre 1"
+	icon_state = "surgery"
+
+/area/medical/surgery2
+	name = "\improper Operating Theatre 2"
+	icon_state = "surgery"
+
+/area/medical/surgeryobs
+	name = "\improper Operation Observation Room"
+	icon_state = "surgery"
+
+/area/medical/surgeryprep
+	name = "\improper Pre-Op Prep Room"
 	icon_state = "surgery"
 
 /area/medical/cryo
-	name = "Cryogenics"
+	name = "\improper Cryogenics"
 	icon_state = "cryo"
 
 /area/medical/exam_room
@@ -1057,15 +1331,15 @@ proc/process_ghost_teleport_locs()
 	icon_state = "exam_room"
 
 /area/medical/genetics
-	name = "Genetics Lab"
+	name = "\improper Genetics Lab"
 	icon_state = "genetics"
 
 /area/medical/genetics_cloning
-	name = "Cloning Lab"
+	name = "\improper Cloning Lab"
 	icon_state = "cloning"
 
 /area/medical/sleeper
-	name = "Medbay Treatment Center"
+	name = "\improper Emergency Treatment Centre"
 	icon_state = "exam_room"
 
 //Security
@@ -1074,45 +1348,38 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Security Office"
 	icon_state = "security"
 
-/area/security/seclounge
-	name = "Security Lounge"
-	icon_state = "seclounge"
+/area/security/lobby
+	name = "\improper Security Lobby"
+	icon_state = "security"
 
 /area/security/brig
-	name = "\improper Brig"
+	name = "\improper Security - Brig"
 	icon_state = "brig"
 
 /area/security/prison
-	name = "\improper Prison Wing"
-	icon_state = "sec_prison"
-
-/area/security/processing
-	name = "\improper Labor Shuttle Dock"
+	name = "\improper Security - Prison Wing"
 	icon_state = "sec_prison"
 
 /area/security/warden
-	name = "\improper Brig Control"
+	name = "\improper Security - Warden's Office"
 	icon_state = "Warden"
 
-/area/security/armory
-	name = "\improper Armory"
-	icon_state = "armory"
-
-/area/security/hos
-	name = "\improper Head of Security's Office"
-	icon_state = "sec_hos"
+/area/security/armoury
+	name = "\improper Security - Armory"
+	icon_state = "Warden"
 
 /area/security/detectives_office
-	name = "\improper Detective's Office"
+	name = "\improper Security - Forensic Office"
 	icon_state = "detective"
 
 /area/security/range
-	name = "\improper Firing Range"
+	name = "\improper Security - Firing Range"
 	icon_state = "firingrange"
 
-/area/security/transfer
-	name = "\improper Transfer Centre"
-	icon_state = "armory"
+/area/security/tactical
+	name = "\improper Security - Tactical Equipment"
+	icon_state = "Tactical"
+
 
 /*
 	New()
@@ -1135,16 +1402,12 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Vault"
 	icon_state = "nuke_storage"
 
-/area/ai_monitored/nuke_storage
-	name = "\improper Vault"
-	icon_state = "nuke_storage"
-
 /area/security/checkpoint
 	name = "\improper Security Checkpoint"
 	icon_state = "checkpoint1"
 
 /area/security/checkpoint2
-	name = "\improper Security Checkpoint"
+	name = "\improper Security - Arrival Checkpoint"
 	icon_state = "security"
 
 /area/security/checkpoint/supply
@@ -1163,25 +1426,17 @@ proc/process_ghost_teleport_locs()
 	name = "Security Post - Science"
 	icon_state = "checkpoint1"
 
-/area/security/checkpoint/central
-	name = "Security Post - Central"
-	icon_state = "checkpoint1"
-
 /area/security/vacantoffice
+	name = "\improper Vacant Office"
+	icon_state = "security"
+
+/area/security/vacantoffice2
 	name = "\improper Vacant Office"
 	icon_state = "security"
 
 /area/quartermaster
 	name = "\improper Quartermasters"
 	icon_state = "quart"
-
-///////////WORK IN PROGRESS//////////
-
-/area/quartermaster/sorting
-	name = "\improper Delivery Office"
-	icon_state = "quartstorage"
-
-////////////WORK IN PROGRESS//////////
 
 /area/quartermaster/office
 	name = "\improper Cargo Office"
@@ -1192,67 +1447,77 @@ proc/process_ghost_teleport_locs()
 	icon_state = "quartstorage"
 
 /area/quartermaster/qm
-	name = "\improper Quartermaster's Office"
+	name = "\improper Cargo - Quartermaster's Office"
 	icon_state = "quart"
 
 /area/quartermaster/miningdock
-	name = "\improper Mining Dock"
+	name = "\improper Cargo Mining Dock"
 	icon_state = "mining"
-
-/area/quartermaster/miningstorage
-	name = "\improper Mining Storage"
-	icon_state = "green"
-
-/area/quartermaster/mechbay
-	name = "\improper Mech Bay"
-	icon_state = "yellow"
 
 /area/janitor/
 	name = "\improper Custodial Closet"
 	icon_state = "janitor"
 
 /area/hydroponics
-	name = "Hydroponics"
+	name = "\improper Hydroponics"
 	icon_state = "hydro"
 
-//Toxins
+/area/hydroponics/garden
+	name = "\improper Garden"
+	icon_state = "garden"
 
-/area/toxins/lab
+//rnd (Research and Development
+/area/rnd/research
 	name = "\improper Research and Development"
+	icon_state = "research"
+
+/area/rnd/docking
+	name = "\improper Research Dock"
+	icon_state = "research_dock"
+
+/area/rnd/lab
+	name = "\improper Research Lab"
 	icon_state = "toxlab"
 
-/area/toxins/xenobiology
+/area/rnd/rdoffice
+	name = "\improper Research Director's Office"
+	icon_state = "head_quarters"
+
+/area/rnd/supermatter
+	name = "\improper Supermatter Lab"
+	icon_state = "toxlab"
+
+/area/rnd/xenobiology
 	name = "\improper Xenobiology Lab"
-	icon_state = "toxlab"
+	icon_state = "xeno_lab"
 
-/area/toxins/storage
+/area/rnd/xenobiology/xenoflora_storage
+	name = "\improper Xenoflora Storage"
+	icon_state = "xeno_f_store"
+
+/area/rnd/xenobiology/xenoflora
+	name = "\improper Xenoflora Lab"
+	icon_state = "xeno_f_lab"
+
+/area/rnd/storage
 	name = "\improper Toxins Storage"
 	icon_state = "toxstorage"
 
-/area/toxins/mineral_storeroom
-	name = "\improper Mineral Storeroom"
-	icon_state = "toxmisc"
-
-/area/toxins/test_area
+/area/rnd/test_area
 	name = "\improper Toxins Test Area"
 	icon_state = "toxtest"
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
-/area/toxins/mixing
+/area/rnd/mixing
 	name = "\improper Toxins Mixing Room"
 	icon_state = "toxmix"
 
-/area/toxins/misc_lab
-	name = "\improper Testing Lab"
+/area/rnd/misc_lab
+	name = "\improper Miscellaneous Research"
 	icon_state = "toxmisc"
 
 /area/toxins/server
 	name = "\improper Server Room"
 	icon_state = "server"
-
-/area/toxins/telesci
-	name = "\improper Telescience Lab"
-	icon_state = "toxtest"
 
 //Storage
 
@@ -1292,6 +1557,10 @@ proc/process_ghost_teleport_locs()
 	name = "Port Emergency Storage"
 	icon_state = "emergencystorage"
 
+/area/storage/emergency3
+	name = "Central Emergency Storage"
+	icon_state = "emergencystorage"
+
 /area/storage/tech
 	name = "Technical Storage"
 	icon_state = "auxstorage"
@@ -1304,27 +1573,18 @@ proc/process_ghost_teleport_locs()
 //DJSTATION
 
 /area/djstation
-	name = "\improper Ruskie DJ Station"
-	icon_state = "DJ"
+	name = "\improper Listening Post"
+	icon_state = "LP"
 
 /area/djstation/solars
-	name = "\improper DJ Station Solars"
-	icon_state = "DJ"
-	requires_power = 0
-	luminosity = 1
-	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
+	name = "\improper Listening Post Solars"
+	icon_state = "LPS"
 
 //DERELICT
 
 /area/derelict
 	name = "\improper Derelict Station"
 	icon_state = "storage"
-	ambloop = 'sound/ambience/loop/quiethum.ogg'
-	ambientsounds = list('sound/ambience/ambmaint.ogg','sound/ambience/ambicreek1.ogg',\
-							'sound/ambience/ambicreek2.ogg','sound/ambience/ambigen5.ogg',\
-							'sound/ambience/ambigen7.ogg','sound/ambience/ambigen8.ogg',\
-							'sound/ambience/ambieng1.ogg')
 
 /area/derelict/hallway/primary
 	name = "\improper Derelict Primary Hallway"
@@ -1408,10 +1668,80 @@ proc/process_ghost_teleport_locs()
 	name = "\improper Derelict Singularity Engine"
 	icon_state = "engine"
 
+//HALF-BUILT STATION (REPLACES DERELICT IN BAYCODE, ABOVE IS LEFT FOR DOWNSTREAM)
+
+/area/shuttle/constructionsite
+	name = "\improper Construction Site Shuttle"
+	icon_state = "yellow"
+
+/area/shuttle/constructionsite/station
+	name = "\improper Construction Site Shuttle"
+
+/area/shuttle/constructionsite/site
+	name = "\improper Construction Site Shuttle"
+
+/area/constructionsite
+	name = "\improper Construction Site"
+	icon_state = "storage"
+
+/area/constructionsite/storage
+	name = "\improper Construction Site Storage Area"
+
+/area/constructionsite/science
+	name = "\improper Construction Site Research"
+
+/area/constructionsite/bridge
+	name = "\improper Construction Site Bridge"
+	icon_state = "bridge"
+
+/area/constructionsite/maintenance
+	name = "\improper Construction Site Maintenance"
+	icon_state = "yellow"
+
+/area/constructionsite/hallway/aft
+	name = "\improper Construction Site Aft Hallway"
+	icon_state = "hallP"
+
+/area/constructionsite/hallway/fore
+	name = "\improper Construction Site Fore Hallway"
+	icon_state = "hallS"
+
+/area/constructionsite/atmospherics
+	name = "\improper Construction Site Atmospherics"
+	icon_state = "green"
+
+/area/constructionsite/medical
+	name = "\improper Construction Site Medbay"
+	icon_state = "medbay"
+
+/area/constructionsite/ai
+	name = "\improper Construction Computer Core"
+	icon_state = "ai"
+
+/area/constructionsite/engineering
+	name = "\improper Construction Site Engine Bay"
+	icon_state = "engine"
+
+/area/solar/constructionsite
+	name = "\improper Construction Site Solars"
+	icon_state = "aft"
+
+/area/constructionsite/teleporter
+	name = "Construction Site Teleporter"
+	icon_state = "yellow"
+
+
+//area/constructionsite
+//	name = "\improper Construction Site Shuttle"
+
+//area/constructionsite
+//	name = "\improper Construction Site Shuttle"
+
+
 //Construction
 
 /area/construction
-	name = "\improper Construction Area"
+	name = "\improper Engineering Construction Area"
 	icon_state = "yellow"
 
 /area/construction/supplyshuttle
@@ -1433,10 +1763,6 @@ proc/process_ghost_teleport_locs()
 /area/construction/solars
 	name = "\improper Solar Panels"
 	icon_state = "yellow"
-	requires_power = 0
-	luminosity = 1
-	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 /area/construction/solarscontrol
 	name = "\improper Solar Panel Control"
@@ -1447,9 +1773,6 @@ proc/process_ghost_teleport_locs()
 	icon_state = "yellow"
 
 //AI
-/area/ai_monitored/security/armory
-	name = "\improper Armory"
-	icon_state = "armory"
 
 /area/ai_monitored/storage/eva
 	name = "EVA Storage"
@@ -1463,37 +1786,35 @@ proc/process_ghost_teleport_locs()
 	name = "Emergency Storage"
 	icon_state = "storage"
 
-/area/ai_monitored/storage/satellite
-	name = "\improper AI Satellite Maint"
-	icon_state = "storage"
-
-
-/area/turret_protected/
-	ambientsounds = list('sound/ambience/ambimalf.ogg')
-	ambloop = 'sound/ambience/loop/softhum.ogg'
-
 /area/turret_protected/ai_upload
 	name = "\improper AI Upload Chamber"
 	icon_state = "ai_upload"
+	ambience = list('sound/ambience/ambimalf.ogg')
 
 /area/turret_protected/ai_upload_foyer
 	name = "AI Upload Access"
 	icon_state = "ai_foyer"
+	ambience = list('sound/ambience/ambimalf.ogg')
+
+/area/turret_protected/ai_server_room
+	name = "Messaging Server Room"
+	icon_state = "ai_server"
 
 /area/turret_protected/ai
 	name = "\improper AI Chamber"
 	icon_state = "ai_chamber"
+	ambience = list('sound/ambience/ambimalf.ogg')
+
+/area/turret_protected/ai_cyborg_station
+	name = "\improper Cyborg Station"
+	icon_state = "ai_cyborg"
 
 /area/turret_protected/aisat
 	name = "\improper AI Satellite"
 	icon_state = "ai"
 
-/area/aisat
-	name = "\improper AI Satellite Exterior"
-	icon_state = "yellow"
-
 /area/turret_protected/aisat_interior
-	name = "\improper AI Satellite Antechamber"
+	name = "\improper AI Satellite"
 	icon_state = "ai"
 
 /area/turret_protected/AIsatextFP
@@ -1501,173 +1822,184 @@ proc/process_ghost_teleport_locs()
 	icon_state = "storage"
 	luminosity = 1
 	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 /area/turret_protected/AIsatextFS
 	name = "\improper AI Sat Ext"
 	icon_state = "storage"
 	luminosity = 1
 	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 /area/turret_protected/AIsatextAS
 	name = "\improper AI Sat Ext"
 	icon_state = "storage"
 	luminosity = 1
 	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 /area/turret_protected/AIsatextAP
 	name = "\improper AI Sat Ext"
 	icon_state = "storage"
 	luminosity = 1
 	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
 
 /area/turret_protected/NewAIMain
 	name = "\improper AI Main New"
 	icon_state = "storage"
 
-/area/turret_protected/IPCup
-	requires_power = 0
-	luminosity = 1
-	name = "\improper IPC ship turret 1"
-	icon_state = "spacecontent1"
-
-/area/turret_protected/ICPdown
-	requires_power = 0
-	luminosity = 1
-	name = "\improper IPC ship turret 2"
-	icon_state = "spacecontent2"
-
 
 
 //Misc
 
-/area/space/debris
-	name = "\improper Space debris"
-	icon_state = "spacedebris"
 
-/area/wreck
-	name = "\improper Spacewreck"
-	icon_state = "centcom"
-	has_gravity = 1
-	ambientsounds = list('sound/ambience/ambieng1.ogg', 'sound/ambience/ambimine.ogg')
-	// ambloop = 'sound/ambience/loop/softhum.ogg'
 
-/area/wreck/living
-	name = "\improper Prototype living area"
+/area/wreck/ai
+	name = "\improper AI Chamber"
 	icon_state = "ai"
 
 /area/wreck/main
-	name = "\improper Prototype Main Hall"
+	name = "\improper Wreck"
 	icon_state = "storage"
 
 /area/wreck/engineering
-	name = "\improper Prototype Power Room"
+	name = "\improper Power Room"
 	icon_state = "engine"
 
 /area/wreck/bridge
-	name = "\improper Prototype Bridge"
+	name = "\improper Bridge"
 	icon_state = "bridge"
-
-/area/wreck/botany
-	name = "\improper Prototype Botany"
-	icon_state = "hydro"
-
-/area/wreck/solars
-	name = "\improper Prototype Solars"
-	icon_state = "engine"
-	requires_power = 0
-	luminosity = 1
-	lighting_use_dynamic = 0
-	ambloop = 'sound/ambience/loop/hallow.ogg'
-
-/area/wrecked/russian
-	name = "\improper Russianstation"
-	icon_state = "engine"
-	requires_power = 0
-	ambloop = 'sound/ambience/loop/opressivehum.ogg'
-	ambientsounds = list('sound/ambience/johncena.ogg')
-
-/area/abandonedship
-	name = "\improper Abandoned Spaceship"
-	icon_state = "centcom"
-	has_gravity = 1
-	requires_power = 0
-	ambientsounds = list('sound/ambience/ambiatm1.ogg', 'sound/ambience/ambmaint.ogg',\
-						'sound/ambience/ambicreek1.ogg', 'sound/ambience/ambicreek2.ogg',\
-						'sound/ambience/ambicha2.ogg', 'sound/ambience/ambicha3.ogg')
-	ambloop = 'sound/ambience/loop/softhum.ogg'
 
 /area/generic
 	name = "Unknown"
 	icon_state = "storage"
 
-/area/abductor_ship
-	name = "\improper Abductor Ship"
-	icon_state = "yellow"
-	requires_power = 0
 
 
 // Telecommunications Satellite
-
-/area/tcommsat
-	ambientsounds = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
+/area/tcommsat/
+	ambience = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
 
 /area/tcommsat/entrance
 	name = "\improper Telecoms Teleporter"
 	icon_state = "tcomsatentrance"
 
 /area/tcommsat/chamber
-	name = "\improper Abandoned Satellite"
+	name = "\improper Telecoms Central Compartment"
 	icon_state = "tcomsatcham"
 
 /area/turret_protected/tcomsat
 	name = "\improper Telecoms Satellite"
 	icon_state = "tcomsatlob"
-	ambientsounds = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
+	ambience = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
 
 /area/turret_protected/tcomfoyer
 	name = "\improper Telecoms Foyer"
 	icon_state = "tcomsatentrance"
-	ambientsounds = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
+	ambience = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
 
 /area/turret_protected/tcomwest
 	name = "\improper Telecommunications Satellite West Wing"
 	icon_state = "tcomsatwest"
-	ambientsounds = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
+	ambience = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
 
 /area/turret_protected/tcomeast
 	name = "\improper Telecommunications Satellite East Wing"
 	icon_state = "tcomsateast"
-	ambientsounds = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
+	ambience = list('sound/ambience/ambisin2.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/signal.ogg', 'sound/ambience/ambigen10.ogg')
 
 /area/tcommsat/computer
 	name = "\improper Telecoms Control Room"
 	icon_state = "tcomsatcomp"
 
-/area/tcommsat/server
-	name = "\improper Telecoms Server Room"
-	icon_state = "tcomsatcham"
-
 /area/tcommsat/lounge
 	name = "\improper Telecommunications Satellite Lounge"
 	icon_state = "tcomsatlounge"
+
+
 
 // Away Missions
 /area/awaymission
 	name = "\improper Strange Location"
 	icon_state = "away"
-	has_gravity = 1
 
 /area/awaymission/example
 	name = "\improper Strange Station"
 	icon_state = "away"
 
+/area/awaymission/wwmines
+	name = "\improper Wild West Mines"
+	icon_state = "away1"
+	luminosity = 1
+	requires_power = 0
+
+/area/awaymission/wwgov
+	name = "\improper Wild West Mansion"
+	icon_state = "away2"
+	luminosity = 1
+	requires_power = 0
+
+/area/awaymission/wwrefine
+	name = "\improper Wild West Refinery"
+	icon_state = "away3"
+	luminosity = 1
+	requires_power = 0
+
+/area/awaymission/wwvault
+	name = "\improper Wild West Vault"
+	icon_state = "away3"
+	luminosity = 0
+
+/area/awaymission/wwvaultdoors
+	name = "\improper Wild West Vault Doors"  // this is to keep the vault area being entirely lit because of requires_power
+	icon_state = "away2"
+	requires_power = 0
+	luminosity = 0
+
 /area/awaymission/desert
 	name = "Mars"
 	icon_state = "away"
+
+/area/awaymission/BMPship1
+	name = "\improper Aft Block"
+	icon_state = "away1"
+
+/area/awaymission/BMPship2
+	name = "\improper Midship Block"
+	icon_state = "away2"
+
+/area/awaymission/BMPship3
+	name = "\improper Fore Block"
+	icon_state = "away3"
+
+/area/awaymission/spacebattle
+	name = "\improper Space Battle"
+	icon_state = "away"
+	requires_power = 0
+
+/area/awaymission/spacebattle/cruiser
+	name = "\improper Nanotrasen Cruiser"
+
+/area/awaymission/spacebattle/syndicate1
+	name = "\improper Syndicate Assault Ship 1"
+
+/area/awaymission/spacebattle/syndicate2
+	name = "\improper Syndicate Assault Ship 2"
+
+/area/awaymission/spacebattle/syndicate3
+	name = "\improper Syndicate Assault Ship 3"
+
+/area/awaymission/spacebattle/syndicate4
+	name = "\improper Syndicate War Sphere 1"
+
+/area/awaymission/spacebattle/syndicate5
+	name = "\improper Syndicate War Sphere 2"
+
+/area/awaymission/spacebattle/syndicate6
+	name = "\improper Syndicate War Sphere 3"
+
+/area/awaymission/spacebattle/syndicate7
+	name = "\improper Syndicate Fighter"
+
+/area/awaymission/spacebattle/secret
+	name = "\improper Hidden Chamber"
 
 /area/awaymission/listeningpost
 	name = "\improper Listening Post"
@@ -1676,267 +2008,60 @@ proc/process_ghost_teleport_locs()
 
 /area/awaymission/beach
 	name = "Beach"
-	icon_state = "away"
+	icon_state = "null"
 	luminosity = 1
 	lighting_use_dynamic = 0
 	requires_power = 0
-	ambientsounds = list('sound/ambience/shore.ogg', 'sound/ambience/seag1.ogg','sound/ambience/seag2.ogg','sound/ambience/seag2.ogg')
-
-/area/spacecontent
-	name = "space"
-
-/area/spacecontent/SpaceBar
-	name = "\improper Space Bar"
-	icon_state = "spacecontent1"
-
-/area/spacecontent/IPC
-	name = "space"
-
-/area/spacecontent/IPC/IPCResearch
-	name = "\improper IPC ship Research"
-	icon_state = "spacecontent2"
-
-/area/spacecontent/IPC/IPCDining
-	name = "\improper IPC ship Dining"
-	icon_state = "spacecontent3"
-
-/area/spacecontent/IPC/IPCDorms
-	name = "\improper IPC ship Dorms"
-	icon_state = "spacecontent4"
-
-/area/spacecontent/IPC/IPCRobotics
-	name = "\improper IPC ship Robotics"
-	icon_state = "spacecontent5"
-
-/area/spacecontent/IPC/IPCEngine
-	name = "\improper IPC ship Engine"
-	icon_state = "spacecontent6"
-
-/area/spacecontent/IPC/IPCBridge
-	name = "\improper IPC ship Bridge"
-	icon_state = "spacecontent7"
-
-/area/spacecontent/Blobship
-	name = "\improper Blobship"
-	has_gravity = 1
-	icon_state = "spacecontent8"
-
-/area/spacecontent/a9
-	icon_state = "spacecontent9"
-
-/area/spacecontent/a10
-	icon_state = "spacecontent10"
-
-/area/spacecontent/a11
-	icon_state = "spacecontent11"
-
-/area/spacecontent/a11
-	icon_state = "spacecontent12"
-
-/area/spacecontent/a12
-	icon_state = "spacecontent13"
-
-/area/spacecontent/a13
-	icon_state = "spacecontent14"
-
-/area/spacecontent/a14
-	icon_state = "spacecontent14"
-
-/area/spacecontent/a15
-	icon_state = "spacecontent15"
-
-/area/spacecontent/a16
-	icon_state = "spacecontent16"
-
-/area/spacecontent/a17
-	icon_state = "spacecontent17"
-
-/area/spacecontent/a18
-	icon_state = "spacecontent18"
-
-/area/spacecontent/a19
-	icon_state = "spacecontent19"
-
-/area/spacecontent/a20
-	icon_state = "spacecontent20"
-
-/area/spacecontent/a21
-	icon_state = "spacecontent21"
-
-/area/spacecontent/a22
-	icon_state = "spacecontent22"
-
-/area/spacecontent/a23
-	icon_state = "spacecontent23"
-
-/area/spacecontent/a24
-	icon_state = "spacecontent24"
-
-/area/spacecontent/a25
-	icon_state = "spacecontent25"
-
-/area/spacecontent/a26
-	icon_state = "spacecontent26"
-
-/area/spacecontent/a27
-	icon_state = "spacecontent27"
-
-/area/spacecontent/a28
-	icon_state = "spacecontent28"
-
-/area/spacecontent/a29
-	icon_state = "spacecontent29"
-
-/area/spacecontent/a30
-	icon_state = "spacecontent30"
-
-/area/awaycontent
-	name = "space"
-
-/area/awaycontent/a1
-	icon_state = "awaycontent1"
-
-/area/awaycontent/a2
-	icon_state = "awaycontent2"
-
-/area/awaycontent/a3
-	icon_state = "awaycontent3"
-
-/area/awaycontent/a4
-	icon_state = "awaycontent4"
-
-/area/awaycontent/a5
-	icon_state = "awaycontent5"
-
-/area/awaycontent/a6
-	icon_state = "awaycontent6"
-
-/area/awaycontent/a7
-	icon_state = "awaycontent7"
-
-/area/awaycontent/a8
-	icon_state = "awaycontent8"
-
-/area/awaycontent/a9
-	icon_state = "awaycontent9"
-
-/area/awaycontent/a10
-	icon_state = "awaycontent10"
-
-/area/awaycontent/a11
-	icon_state = "awaycontent11"
-
-/area/awaycontent/a11
-	icon_state = "awaycontent12"
-
-/area/awaycontent/a12
-	icon_state = "awaycontent13"
-
-/area/awaycontent/a13
-	icon_state = "awaycontent14"
-
-/area/awaycontent/a14
-	icon_state = "awaycontent14"
-
-/area/awaycontent/a15
-	icon_state = "awaycontent15"
-
-/area/awaycontent/a16
-	icon_state = "awaycontent16"
-
-/area/awaycontent/a17
-	icon_state = "awaycontent17"
-
-/area/awaycontent/a18
-	icon_state = "awaycontent18"
-
-/area/awaycontent/a19
-	icon_state = "awaycontent19"
-
-/area/awaycontent/a20
-	icon_state = "awaycontent20"
-
-/area/awaycontent/a21
-	icon_state = "awaycontent21"
-
-/area/awaycontent/a22
-	icon_state = "awaycontent22"
-
-/area/awaycontent/a23
-	icon_state = "awaycontent23"
-
-/area/awaycontent/a24
-	icon_state = "awaycontent24"
-
-/area/awaycontent/a25
-	icon_state = "awaycontent25"
-
-/area/awaycontent/a26
-	icon_state = "awaycontent26"
-
-/area/awaycontent/a27
-	icon_state = "awaycontent27"
-
-/area/awaycontent/a28
-	icon_state = "awaycontent28"
-
-/area/awaycontent/a29
-	icon_state = "awaycontent29"
-
-/area/awaycontent/a30
-	icon_state = "awaycontent30"
-
-//Outdoor Arctic Areas
-
-/area/arctic
-	name = "Arctic"
-	icon_state = "arcticspace" //placeholder icons for now
-	ambientsounds = list('sound/ambience/arctic_suspense_1.ogg', 'sound/ambience/arctic_ambience_1.ogg', 'sound/ambience/arctic_ambience_2.ogg')
-
-/area/arctic/north
-	name = "Northern Arctic"
-
-/area/arctic/south
-	name = "Southern Arctic"
-
-/area/arctic/west
-	name = "Western Arctic"
-
-/area/arctic/east
-	name = "Eastern Arctic"
-
-/area/arctic/forest
-	name = "Arctic Forest"
-
-/area/arctic/forest/forest1
-	name = "Arctic Forest"
-
-/area/arctic/forest/forest2
-	name = "Arctic Forest"
-
-/area/arctic/tundra
-	name = "Arctic Tundra"
-
-/area/arctic/cave
-	name = "Arctic Cave"
-
-/area/arctic/lake
-	name = "Lake"
-
-/area/arctic/river
-	name = "River"
-
-/area/arctic/wasteland
-	name = "Arctic Wasteland"
-
-/area/arctic/aband_outpost
-	name = "Abandoned Outpost"
-
-/area/arctic/cabin
-	name = "Log Cabin"
-	icon_state = "yellow" //also placeholder
-
-
+	ambience = list()
+	var/sound/mysound = null
+
+	New()
+		..()
+		var/sound/S = new/sound()
+		mysound = S
+		S.file = 'sound/ambience/shore.ogg'
+		S.repeat = 1
+		S.wait = 0
+		S.channel = 123
+		S.volume = 100
+		S.priority = 255
+		S.status = SOUND_UPDATE
+		process()
+
+	Entered(atom/movable/Obj,atom/OldLoc)
+		if(ismob(Obj))
+			if(Obj:client)
+				mysound.status = SOUND_UPDATE
+				Obj << mysound
+		return
+
+	Exited(atom/movable/Obj)
+		if(ismob(Obj))
+			if(Obj:client)
+				mysound.status = SOUND_PAUSED | SOUND_UPDATE
+				Obj << mysound
+
+	proc/process()
+		set background = 1
+
+		var/sound/S = null
+		var/sound_delay = 0
+		if(prob(25))
+			S = sound(file=pick('sound/ambience/seag1.ogg','sound/ambience/seag2.ogg','sound/ambience/seag3.ogg'), volume=100)
+			sound_delay = rand(0, 50)
+
+		for(var/mob/living/carbon/human/H in src)
+			if(H.s_tone > -55)
+				H.s_tone--
+				H.update_body()
+			if(H.client)
+				mysound.status = SOUND_UPDATE
+				H << mysound
+				if(S)
+					spawn(sound_delay)
+						H << S
+
+		spawn(60) .()
 
 /////////////////////////////////////////////////////////////////////
 /*
@@ -1951,8 +2076,9 @@ var/list/centcom_areas = list (
 	/area/shuttle/escape_pod1/centcom,
 	/area/shuttle/escape_pod2/centcom,
 	/area/shuttle/escape_pod3/centcom,
-	/area/shuttle/escape_pod4/centcom,
+	/area/shuttle/escape_pod5/centcom,
 	/area/shuttle/transport1/centcom,
+	/area/shuttle/administration/centcom,
 	/area/shuttle/specops/centcom,
 )
 
@@ -1963,22 +2089,23 @@ var/list/the_station_areas = list (
 	/area/shuttle/escape_pod1/station,
 	/area/shuttle/escape_pod2/station,
 	/area/shuttle/escape_pod3/station,
-	/area/shuttle/escape_pod4/station,
+	/area/shuttle/escape_pod5/station,
 	/area/shuttle/mining/station,
 	/area/shuttle/transport1/station,
-//	/area/shuttle/transport2/station,	//not present on map
+	// /area/shuttle/transport2/station,
+	/area/shuttle/prison/station,
+	/area/shuttle/administration/station,
 	/area/shuttle/specops/station,
-	/area/atmos,
 	/area/maintenance,
 	/area/hallway,
 	/area/bridge,
 	/area/crew_quarters,
 	/area/holodeck,
-//	/area/mint,		//not present on map
+	/area/mint,
 	/area/library,
 	/area/chapel,
 	/area/lawoffice,
-	/area/engine,
+	/area/engineering,
 	/area/solar,
 	/area/assembly,
 	/area/teleporter,
@@ -1987,13 +2114,73 @@ var/list/the_station_areas = list (
 	/area/quartermaster,
 	/area/janitor,
 	/area/hydroponics,
-	/area/toxins,
+	/area/rnd,
 	/area/storage,
 	/area/construction,
 	/area/ai_monitored/storage/eva, //do not try to simplify to "/area/ai_monitored" --rastaf0
-//	/area/ai_monitored/storage/secure,	//not present on map
-//	/area/ai_monitored/storage/emergency,	//not present on map
+	/area/ai_monitored/storage/secure,
+	/area/ai_monitored/storage/emergency,
 	/area/turret_protected/ai_upload, //do not try to simplify to "/area/turret_protected" --rastaf0
 	/area/turret_protected/ai_upload_foyer,
 	/area/turret_protected/ai,
 )
+
+
+
+
+/area/beach
+	name = "Keelin's private beach"
+	icon_state = "null"
+	luminosity = 1
+	lighting_use_dynamic = 0
+	requires_power = 0
+	var/sound/mysound = null
+
+	New()
+		..()
+		var/sound/S = new/sound()
+		mysound = S
+		S.file = 'sound/ambience/shore.ogg'
+		S.repeat = 1
+		S.wait = 0
+		S.channel = 123
+		S.volume = 100
+		S.priority = 255
+		S.status = SOUND_UPDATE
+		process()
+
+	Entered(atom/movable/Obj,atom/OldLoc)
+		if(ismob(Obj))
+			if(Obj:client)
+				mysound.status = SOUND_UPDATE
+				Obj << mysound
+		return
+
+	Exited(atom/movable/Obj)
+		if(ismob(Obj))
+			if(Obj:client)
+				mysound.status = SOUND_PAUSED | SOUND_UPDATE
+				Obj << mysound
+
+	proc/process()
+		set background = 1
+
+		var/sound/S = null
+		var/sound_delay = 0
+		if(prob(25))
+			S = sound(file=pick('sound/ambience/seag1.ogg','sound/ambience/seag2.ogg','sound/ambience/seag3.ogg'), volume=100)
+			sound_delay = rand(0, 50)
+
+		for(var/mob/living/carbon/human/H in src)
+//			if(H.s_tone > -55)	//ugh...nice/novel idea but please no.
+//				H.s_tone--
+//				H.update_body()
+			if(H.client)
+				mysound.status = SOUND_UPDATE
+				H << mysound
+				if(S)
+					spawn(sound_delay)
+						H << S
+
+		spawn(60) .()
+

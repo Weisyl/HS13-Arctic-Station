@@ -1,20 +1,22 @@
-/datum/round_event_control/meteor_wave/dust
-	name = "Minor Space Dust"
-	typepath = /datum/round_event/meteor_wave/dust
-	weight = 300
-	max_occurrences = 1000
-	earliest_start = 0
+/datum/event/dust
+	startWhen	= 10
+	endWhen		= 30
 
-/datum/round_event/meteor_wave/dust
-	startWhen		= 1
-	endWhen			= 2
-	announceWhen	= 0
+/datum/event/dust/announce()
+	command_announcement.Announce("The station is now passing through a belt of space dust.", "Dust Alert")
 
-/datum/round_event/meteor_wave/dust/announce()
-	return
+/datum/event/dust/start()
+	dust_swarm(get_severity())
 
-/datum/round_event/meteor_wave/dust/start()
-	spawn_meteors(1, meteorsC)
+/datum/event/dust/end()
+	command_announcement.Announce("The station has now passed through the belt of space dust.", "Dust Notice")
 
-/datum/round_event/meteor_wave/dust/tick()
-	return
+/datum/event/dust/proc/get_severity()
+	switch(severity)
+		if(EVENT_LEVEL_MUNDANE)
+			return "weak"
+		if(EVENT_LEVEL_MODERATE)
+			return prob(80) ? "norm" : "strong"
+		if(EVENT_LEVEL_MAJOR)
+			return "super"
+	return "weak"

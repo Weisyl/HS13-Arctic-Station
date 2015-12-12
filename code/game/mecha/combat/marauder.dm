@@ -1,7 +1,8 @@
 /obj/mecha/combat/marauder
 	desc = "Heavy-duty, combat exosuit, developed after the Durand model. Rarely found among civilian populations."
-	name = "\improper Marauder"
+	name = "Marauder"
 	icon_state = "marauder"
+	initial_icon = "marauder"
 	step_in = 5
 	health = 500
 	deflect_chance = 25
@@ -13,58 +14,40 @@
 	var/smoke = 5
 	var/smoke_ready = 1
 	var/smoke_cooldown = 100
-	var/datum/effect/effect/system/harmless_smoke_spread/smoke_system = new
+	var/datum/effect/effect/system/smoke_spread/smoke_system = new
 	operation_req_access = list(access_cent_specops)
-	wreckage = /obj/structure/mecha_wreckage/marauder
+	wreckage = /obj/effect/decal/mecha_wreckage/marauder
 	add_req_access = 0
 	internal_damage_threshold = 25
 	force = 45
 	max_equip = 4
 
-/obj/mecha/combat/marauder/Destroy()
-	qdel(smoke_system)
-	..()
-
 /obj/mecha/combat/marauder/seraph
 	desc = "Heavy-duty, command-type exosuit. This is a custom model, utilized only by high-ranking military personnel."
-	name = "\improper Seraph"
+	name = "Seraph"
 	icon_state = "seraph"
-	operation_req_access = list(access_cent_specops)
+	initial_icon = "seraph"
+	operation_req_access = list(access_cent_creed)
 	step_in = 3
 	health = 550
-	wreckage = /obj/structure/mecha_wreckage/seraph
+	wreckage = /obj/effect/decal/mecha_wreckage/seraph
 	internal_damage_threshold = 20
 	force = 55
 	max_equip = 5
 
 /obj/mecha/combat/marauder/mauler
 	desc = "Heavy-duty, combat exosuit, developed off of the existing Marauder model."
-	name = "\improper Mauler"
+	name = "Mauler"
 	icon_state = "mauler"
+	initial_icon = "mauler"
 	operation_req_access = list(access_syndicate)
-	wreckage = /obj/structure/mecha_wreckage/mauler
+	wreckage = /obj/effect/decal/mecha_wreckage/mauler
 
-/obj/mecha/combat/marauder/mauler/loaded/New()
+/obj/mecha/combat/marauder/New()
 	..()
-	var/obj/item/mecha_parts/mecha_equipment/ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/lmg(src)
+	var/obj/item/mecha_parts/mecha_equipment/ME = new /obj/item/mecha_parts/mecha_equipment/weapon/energy/pulse
 	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot(src)
-	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack(src)
-	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/tesla_energy_relay(src)
-	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/antiproj_armor_booster(src)
-	ME.attach(src)
-	src.smoke_system.set_up(3, 0, src)
-	src.smoke_system.attach(src)
-	return
-
-/obj/mecha/combat/marauder/loaded/New()
-	..()
-	var/obj/item/mecha_parts/mecha_equipment/ME = new /obj/item/mecha_parts/mecha_equipment/weapon/energy/pulse(src)
-	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack(src)
+	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack/explosive
 	ME.attach(src)
 	ME = new /obj/item/mecha_parts/mecha_equipment/tesla_energy_relay(src)
 	ME.attach(src)
@@ -83,7 +66,7 @@
 			qdel(ME)
 	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/scattershot(src)
 	ME.attach(src)
-	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack(src)
+	ME = new /obj/item/mecha_parts/mecha_equipment/weapon/ballistic/missile_rack/explosive(src)
 	ME.attach(src)
 	ME = new /obj/item/mecha_parts/mecha_equipment/teleporter(src)
 	ME.attach(src)
@@ -93,21 +76,54 @@
 	ME.attach(src)
 	return
 
+/obj/mecha/combat/marauder/Destroy()
+	qdel(smoke_system)
+	..()
+
 /obj/mecha/combat/marauder/relaymove(mob/user,direction)
+	if(user != src.occupant) //While not "realistic", this piece is player friendly.
+		user.loc = get_turf(src)
+		user << "You climb out from [src]"
+		return 0
+	if(!can_move)
+		return 0
 	if(zoom)
 		if(world.time - last_message > 20)
 			src.occupant_message("Unable to move while in zoom mode.")
 			last_message = world.time
 		return 0
-	return ..()
+	if(connected_port)
+		if(world.time - last_message > 20)
+			src.occupant_message("Unable to move while connected to the air system port")
+			last_message = world.time
+		return 0
+	if(!thrusters && src.pr_inertial_movement.active())
+		return 0
+	if(state || !has_charge(step_energy_drain))
+		return 0
+	var/tmp_step_in = step_in
+	var/tmp_step_energy_drain = step_energy_drain
+	var/move_result = 0
+	if(internal_damage&MECHA_INT_CONTROL_LOST)
+		move_result = mechsteprand()
+	else if(src.dir!=direction)
+		move_result = mechturn(direction)
+	else
+		move_result	= mechstep(direction)
+	if(move_result)
+		if(istype(src.loc, /turf/space))
+			if(!src.check_for_support())
+				src.pr_inertial_movement.start(list(src,direction))
+				if(thrusters)
+					src.pr_inertial_movement.set_process_args(list(src,direction))
+					tmp_step_energy_drain = step_energy_drain*2
 
-
-/obj/mecha/combat/marauder/Process_Spacemove(var/movement_dir = 0)
-	if(..())
-		return 1
-	if(thrusters && movement_dir && use_power(step_energy_drain))
+		can_move = 0
+		spawn(tmp_step_in) can_move = 1
+		use_power(tmp_step_energy_drain)
 		return 1
 	return 0
+
 
 /obj/mecha/combat/marauder/verb/toggle_thrusters()
 	set category = "Exosuit Interface"
@@ -139,6 +155,7 @@
 			smoke_ready = 1
 	return
 
+//TODO replace this with zoom code that doesn't increase peripherial vision
 /obj/mecha/combat/marauder/verb/zoom()
 	set category = "Exosuit Interface"
 	set name = "Zoom"

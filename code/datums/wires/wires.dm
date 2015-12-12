@@ -6,8 +6,8 @@
 #define MAX_FLAG 65535
 
 var/list/same_wires = list()
-// 12 colours, if you're adding more than 12 wires then add more colours here
-var/list/wireColours = list("red", "blue", "green", "black", "orange", "brown", "gold", "gray", "cyan", "navy", "purple", "pink")
+// 14 colours, if you're adding more than 14 wires then add more colours here
+var/list/wireColours = list("red", "blue", "green", "darkred", "orange", "brown", "gold", "gray", "cyan", "navy", "purple", "pink", "black", "yellow")
 
 /datum/wires
 
@@ -97,6 +97,9 @@ var/list/wireColours = list("red", "blue", "green", "black", "orange", "brown", 
 		html += " <A href='?src=\ref[src];action=1;attach=[colour]'>[IsAttached(colour) ? "Detach" : "Attach"] Signaller</A></td></tr>"
 	html += "</table>"
 	html += "</div>"
+
+	if (random)
+		html += "<i>\The [holder] appears to have tamper-resistant electronics installed.</i><br><br>" //maybe this could be more generic?
 
 	return html
 
@@ -275,6 +278,11 @@ var/const/POWER = 8
 	var/r = rand(1, wires.len)
 	CutWireIndex(r)
 
+/datum/wires/proc/RandomCutAll(var/probability = 10)
+	for(var/i = 1; i < MAX_FLAG && i < (1 << wire_count); i += i)
+		if(prob(probability))
+			CutWireIndex(i)
+
 /datum/wires/proc/CutAll()
 	for(var/i = 1; i < MAX_FLAG && i < (1 << wire_count); i += i)
 		CutWireIndex(i)
@@ -283,6 +291,11 @@ var/const/POWER = 8
 	if(wires_status == (1 << wire_count) - 1)
 		return 1
 	return 0
+
+/datum/wires/proc/MendAll()
+	for(var/i = 1; i < MAX_FLAG && i < (1 << wire_count); i += i)
+		if(IsIndexCut(i))
+			CutWireIndex(i)
 
 //
 //Shuffle and Mend

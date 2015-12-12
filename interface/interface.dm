@@ -3,52 +3,39 @@
 	set name = "wiki"
 	set desc = "Visit the wiki."
 	set hidden = 1
-	if(config.wikiurl)
+	if( config.wikiurl )
 		if(alert("This will open the wiki in your browser. Are you sure?",,"Yes","No")=="No")
 			return
 		src << link(config.wikiurl)
 	else
-		src << "<span class='danger'>The wiki URL is not set in the server configuration.</span>"
+		src << "\red The wiki URL is not set in the server configuration."
 	return
 
 /client/verb/forum()
 	set name = "forum"
 	set desc = "Visit the forum."
 	set hidden = 1
-	if(config.forumurl)
+	if( config.forumurl )
 		if(alert("This will open the forum in your browser. Are you sure?",,"Yes","No")=="No")
 			return
 		src << link(config.forumurl)
 	else
-		src << "<span class='danger'>The forum URL is not set in the server configuration.</span>"
+		src << "\red The forum URL is not set in the server configuration."
 	return
 
+#define RULES_FILE "config/rules.html"
 /client/verb/rules()
 	set name = "Rules"
 	set desc = "Show Server Rules."
 	set hidden = 1
-	if(config.rulesurl)
-		if(alert("This will open the rules in your browser. Are you sure?",,"Yes","No")=="No")
-			return
-		src << link(config.rulesurl)
-	else
-		src << "<span class='danger'>The rules URL is not set in the server configuration.</span>"
-	return
-
-/client/verb/reportissue()
-	set name = "Report issue"
-	set desc = "Report an issue"
-	set hidden = 1
-	if(alert("This will open our GitLab issue reporter in your browser. Are you sure? ( You will have to make an account!)",,"Yes","No")=="No")
-		return
-	src << link("http://github.com/HippieStationCode/HippieStation13/issues")
-	return
+	src << browse(file(RULES_FILE), "window=rules;size=480x320")
+#undef RULES_FILE
 
 /client/verb/hotkeys_help()
 	set name = "hotkeys-help"
 	set category = "OOC"
 
-	var/adminhotkeys = {"<font color='purple'>
+	var/admin = {"<font color='purple'>
 Admin:
 \tF5 = Aghost (admin-ghost)
 \tF6 = player-panel-new
@@ -56,13 +43,6 @@ Admin:
 \tF8 = Invisimin
 </font>"}
 
-	mob.hotkey_help()
-
-	if(holder)
-		src << adminhotkeys
-
-
-/mob/proc/hotkey_help()
 	var/hotkey_mode = {"<font color='purple'>
 Hotkey-Mode: (hotkey-mode must be on)
 \tTAB = toggle hotkey-mode
@@ -74,14 +54,18 @@ Hotkey-Mode: (hotkey-mode must be on)
 \te = equip
 \tr = throw
 \tt = say
+\t5 = emote
 \tx = swap-hand
 \tz = activate held object (or y)
+\tj = toggle-aiming-mode
 \tf = cycle-intents-left
 \tg = cycle-intents-right
 \t1 = help-intent
 \t2 = disarm-intent
 \t3 = grab-intent
 \t4 = harm-intent
+\tCtrl = drag
+\tShift = examine
 </font>"}
 
 	var/other = {"<font color='purple'>
@@ -101,6 +85,10 @@ Any-Mode: (hotkey doesn't need to be on)
 \tCtrl+2 = disarm-intent
 \tCtrl+3 = grab-intent
 \tCtrl+4 = harm-intent
+\tF1 = adminhelp
+\tF2 = ooc
+\tF3 = say
+\tF4 = emote
 \tDEL = pull
 \tINS = cycle-intents-right
 \tHOME = drop
@@ -109,11 +97,7 @@ Any-Mode: (hotkey doesn't need to be on)
 \tEND = throw
 </font>"}
 
-	src << hotkey_mode
-	src << other
-
-/mob/living/silicon/robot/hotkey_help()
-	var/hotkey_mode = {"<font color='purple'>
+	var/robot_hotkey_mode = {"<font color='purple'>
 Hotkey-Mode: (hotkey-mode must be on)
 \tTAB = toggle hotkey-mode
 \ta = left
@@ -130,9 +114,12 @@ Hotkey-Mode: (hotkey-mode must be on)
 \t2 = activate module 2
 \t3 = activate module 3
 \t4 = toggle intents
+\t5 = emote
+\tCtrl = drag
+\tShift = examine
 </font>"}
 
-	var/other = {"<font color='purple'>
+	var/robot_other = {"<font color='purple'>
 Any-Mode: (hotkey doesn't need to be on)
 \tCtrl+a = left
 \tCtrl+s = down
@@ -147,11 +134,21 @@ Any-Mode: (hotkey doesn't need to be on)
 \tCtrl+2 = activate module 2
 \tCtrl+3 = activate module 3
 \tCtrl+4 = toggle intents
+\tF1 = adminhelp
+\tF2 = ooc
+\tF3 = say
+\tF4 = emote
 \tDEL = pull
 \tINS = toggle intents
 \tPGUP = cycle active modules
 \tPGDN = activate held object
 </font>"}
 
-	src << hotkey_mode
-	src << other
+	if(isrobot(src.mob))
+		src << robot_hotkey_mode
+		src << robot_other
+	else
+		src << hotkey_mode
+		src << other
+	if(holder)
+		src << admin

@@ -2,160 +2,134 @@
 	name = "helmet"
 	desc = "Standard Security gear. Protects the head from impacts."
 	icon_state = "helmet"
-	flags = HEADCOVERSEYES | HEADBANGPROTECT
+	flags = HEADCOVERSEYES | THICKMATERIAL
 	item_state = "helmet"
 	armor = list(melee = 50, bullet = 15, laser = 50,energy = 10, bomb = 25, bio = 0, rad = 0)
 	flags_inv = HIDEEARS|HIDEEYES
 	cold_protection = HEAD
-	min_cold_protection_temperature = HELMET_MIN_TEMP_PROTECT
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
 	heat_protection = HEAD
-	max_heat_protection_temperature = HELMET_MAX_TEMP_PROTECT
-	strip_delay = 60
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+	w_class = 3
+
+/obj/item/clothing/head/helmet/warden
+	name = "warden's hat"
+	desc = "It's a special helmet issued to the Warden of a securiy force. Protects the head from impacts."
+	icon_state = "policehelm"
+	flags_inv = 0
+	body_parts_covered = 0
+
+/obj/item/clothing/head/helmet/hop
+	name = "crew resource's hat"
+	desc = "A stylish hat that both protects you from enraged former-crewmembers and gives you a false sense of authority."
+	icon_state = "hopcap"
+	flags_inv = 0
+	body_parts_covered = 0
+
+/obj/item/clothing/head/helmet/formalcaptain
+	name = "parade hat"
+	desc = "No one in a commanding position should be without a perfect, white hat of ultimate authority."
+	icon_state = "officercap"
+	flags_inv = 0
+	body_parts_covered = 0
 
 /obj/item/clothing/head/helmet/riot
 	name = "riot helmet"
 	desc = "It's a helmet specifically designed to protect against close range attacks."
 	icon_state = "riot"
 	item_state = "helmet"
-	flags = HEADCOVERSEYES|HEADCOVERSMOUTH|HEADBANGPROTECT
+	flags = HEADCOVERSEYES
 	armor = list(melee = 82, bullet = 15, laser = 5,energy = 5, bomb = 5, bio = 2, rad = 0)
-	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES|HIDEFACE
-	strip_delay = 80
-	action_button_name = "Toggle Helmet Visor"
-	visor_flags = HEADCOVERSEYES|HEADCOVERSMOUTH
-	visor_flags_inv = HIDEMASK|HIDEEYES|HIDEFACE
-
-/obj/item/clothing/head/helmet/riot/attack_self()
-	if(usr.canmove && !usr.stat && !usr.restrained())
-		if(up)
-			up = !up
-			flags |= (visor_flags)
-			flags_inv |= (visor_flags_inv)
-			icon_state = initial(icon_state)
-			usr << "You pull \the [src] down."
-			usr.update_inv_head(0)
-		else
-			up = !up
-			flags &= ~(visor_flags)
-			flags_inv &= ~(visor_flags_inv)
-			icon_state = "[initial(icon_state)]up"
-			usr << "You push \the [src] up."
-			usr.update_inv_head(0)
+	flags_inv = HIDEEARS
+	siemens_coefficient = 0.7
 
 /obj/item/clothing/head/helmet/swat
 	name = "\improper SWAT helmet"
-	desc = "An extremely robust, space-worthy helmet with the Nanotrasen logo emblazoned on the top."
+	desc = "They're often used by highly trained Swat Members."
 	icon_state = "swat"
+	flags = HEADCOVERSEYES
 	item_state = "swat"
 	armor = list(melee = 80, bullet = 60, laser = 50,energy = 25, bomb = 50, bio = 10, rad = 0)
-	cold_protection = HEAD
-	min_cold_protection_temperature = SPACE_HELM_MIN_TEMP_PROTECT
-	heat_protection = HEAD
-	max_heat_protection_temperature = SPACE_HELM_MAX_TEMP_PROTECT
-	strip_delay = 80
-
-/obj/item/clothing/head/helmet/soviethelmet
-	name = "New Russia helmet"
-	desc = "A standard camoflauge helmet of the New-Russia military. Has greater ballistic protection than many other helmets."
-	icon_state = "soviethelm"
-	flags = HEADCOVERSEYES | HEADBANGPROTECT
-	item_state = "soviethelm"
-	armor = list(melee = 50, bullet = 60, laser = 30,energy = 10, bomb = 25, bio = 0, rad = 0)
 	flags_inv = HIDEEARS|HIDEEYES
 	cold_protection = HEAD
-	min_cold_protection_temperature = HELMET_MIN_TEMP_PROTECT
-	heat_protection = HEAD
-	max_heat_protection_temperature = HELMET_MAX_TEMP_PROTECT
-	strip_delay = 60
+	min_cold_protection_temperature = SPACE_HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.5
 
 /obj/item/clothing/head/helmet/thunderdome
 	name = "\improper Thunderdome helmet"
 	desc = "<i>'Let the battle commence!'</i>"
 	icon_state = "thunderdome"
+	flags = HEADCOVERSEYES
 	item_state = "thunderdome"
 	armor = list(melee = 80, bullet = 60, laser = 50,energy = 10, bomb = 25, bio = 10, rad = 0)
 	cold_protection = HEAD
-	min_cold_protection_temperature = SPACE_HELM_MIN_TEMP_PROTECT
-	heat_protection = HEAD
-	max_heat_protection_temperature = SPACE_HELM_MAX_TEMP_PROTECT
-	strip_delay = 80
-
-/obj/item/clothing/head/helmet/roman
-	name = "roman helmet"
-	desc = "An ancient helmet made of bronze and leather."
-	flags = HEADCOVERSEYES
-	armor = list(melee = 25, bullet = 0, laser = 25, energy = 10, bomb = 10, bio = 0, rad = 0)
-	icon_state = "roman"
-	item_state = "roman"
-	strip_delay = 100
-
-/obj/item/clothing/head/helmet/roman/legionaire
-	name = "roman legionaire helmet"
-	desc = "An ancient helmet made of bronze and leather. Has a red crest on top of it."
-	icon_state = "roman_c"
-	item_state = "roman_c"
+	min_cold_protection_temperature = SPACE_HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	siemens_coefficient = 1
 
 /obj/item/clothing/head/helmet/gladiator
 	name = "gladiator helmet"
 	desc = "Ave, Imperator, morituri te salutant."
 	icon_state = "gladiator"
-	flags = HEADCOVERSEYES|BLOCKHAIR
+	flags = HEADCOVERSEYES|HEADCOVERSMOUTH|BLOCKHAIR
 	item_state = "gladiator"
 	flags_inv = HIDEMASK|HIDEEARS|HIDEEYES
+	siemens_coefficient = 1
 
-obj/item/clothing/head/helmet/redtaghelm
-	name = "red laser tag helmet"
-	desc = "They have chosen their own end."
-	icon_state = "redtaghelm"
+/obj/item/clothing/head/helmet/tactical
+	name = "tactical helmet"
+	desc = "An armored helmet capable of being fitted with a multitude of attachments."
+	icon_state = "swathelm"
+	item_state = "helmet"
 	flags = HEADCOVERSEYES
-	item_state = "redtaghelm"
-	armor = list(melee = 30, bullet = 10, laser = 20,energy = 10, bomb = 20, bio = 0, rad = 0)
-	// Offer about the same protection as a hardhat.
-	flags_inv = HIDEEARS|HIDEEYES
+	sprite_sheets = list(
+		"Tajara" = 'icons/mob/species/tajaran/helmet.dmi',
+		"Unathi" = 'icons/mob/species/unathi/helmet.dmi',
+		)
+	
+	armor = list(melee = 62, bullet = 50, laser = 50,energy = 35, bomb = 10, bio = 2, rad = 0)
+	flags_inv = HIDEEARS
+	siemens_coefficient = 0.7
 
-obj/item/clothing/head/helmet/bluetaghelm
-	name = "blue laser tag helmet"
-	desc = "They'll need more men."
-	icon_state = "bluetaghelm"
+/obj/item/clothing/head/helmet/augment
+	name = "Augment Array"
+	desc = "A helmet with optical and cranial augments coupled to it."
+	icon_state = "v62"
 	flags = HEADCOVERSEYES
-	item_state = "bluetaghelm"
-	armor = list(melee = 30, bullet = 10, laser = 20,energy = 10, bomb = 20, bio = 0, rad = 0)
-	// Offer about the same protection as a hardhat.
+	item_state = "v62"
+	armor = list(melee = 80, bullet = 60, laser = 50,energy = 25, bomb = 50, bio = 10, rad = 0)
 	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = SPACE_HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.5
 
-/obj/item/clothing/head/helmet/alarm
-	name = "police siren helmet"
-	desc = "Issued to those who want to scare all the criminals off."
-	icon_state = "justice"
-	action_button_name = "Toggle Siren"
+//Non-hardsuit ERT helmets.
+/obj/item/clothing/head/helmet/ert
+	name = "emergency response team helmet"
+	desc = "An in-atmosphere helmet worn by members of the NanoTrasen Emergency Response Team. Protects the head from impacts."
+	icon_state = "erthelmet_cmd"
+	item_state = "syndicate-helm-green"
+	armor = list(melee = 62, bullet = 50, laser = 50,energy = 35, bomb = 10, bio = 2, rad = 0)
 
-/obj/item/clothing/head/helmet/alarm/pickup(mob/user)
-	if(up)
-		SetLuminosity(0)
-		user.AddLuminosity(3)
-	return
+//Commander
+/obj/item/clothing/head/helmet/ert/command
+	name = "emergency response team commander helmet"
+	desc = "An in-atmosphere helmet worn by the commander of a NanoTrasen Emergency Response Team. Has blue highlights."
 
-/obj/item/clothing/head/helmet/alarm/dropped(mob/user)
-	if(up)
-		user.AddLuminosity(-3)
-		SetLuminosity(1)
-	return
+//Security
+/obj/item/clothing/head/helmet/ert/security
+	name = "emergency response team security helmet"
+	desc = "An in-atmosphere helmet worn by security members of the NanoTrasen Emergency Response Team. Has red highlights."
+	icon_state = "erthelmet_sec"
 
-/obj/item/clothing/head/helmet/alarm/attack_self()
-	if(!usr.stat && !usr.restrained())
-		if(up)
-			up = !up
-			icon_state = initial(icon_state)
-			usr << "You turn off the lights on \the [src]."
-			usr.update_inv_head(0)
-			usr.AddLuminosity(-3)
-		else
-			up = !up
-			icon_state = "[icon_state]up"
-			usr << "You turn on the lights on \the [src]"
-			usr.update_inv_head(0)
-			usr.AddLuminosity(3)
+//Engineer
+/obj/item/clothing/head/helmet/ert/engineer
+	name = "emergency response team engineer helmet"
+	desc = "An in-atmosphere helmet worn by engineering members of the NanoTrasen Emergency Response Team. Has orange highlights."
+	icon_state = "erthelmet_eng"
 
-/obj/item/clothing/head/helmet/alarm/apeescape
-	desc = "Issued to those who want to STOP THAT MONKEY"
-	icon_state = "justice2"
+//Medical
+/obj/item/clothing/head/helmet/ert/medical
+	name = "emergency response team medical helmet"
+	desc = "A set of armor worn by medical members of the NanoTrasen Emergency Response Team. Has red and white highlights."
+	icon_state = "erthelmet_med"

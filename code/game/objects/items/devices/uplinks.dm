@@ -6,122 +6,159 @@ A list of items and costs is stored under the datum of every game mode, alongsid
 
 */
 
-var/list/world_uplinks = list()
+/datum/uplink_item/
+	var/name = ""
+	var/cost = 0
+	var/path = null
+	var/reference = ""
+	var/description = ""
+
+datum/uplink_item/New(var/itemPath, var/itemCost, var/itemName, var/itemReference, var/itemDescription)
+	cost = itemCost
+	path = itemPath
+	name = itemName
+	reference = itemReference
+	description = itemDescription
+
+datum/uplink_item/proc/description()
+	if(!description)
+		// Fallback description
+		var/obj/temp = src.path
+		description = replacetext(initial(temp.desc), "\n", "<br>")
+	return description
+
+/datum/uplink_item/proc/generate_item(var/newloc)
+	var/list/L = list()
+	if(ispath(path))
+		L += new path(newloc)
+	else if(islist(path))
+		for(var/item_path in path)
+			L += new item_path(newloc)
+	return L
+
+datum/nano_item_lists
+	var/list/items_nano
+	var/list/items_reference
 
 /obj/item/device/uplink
-	var/welcome = "Syndicate Uplink Console:"	// Welcoming menu message
-	var/uses = 20								// Numbers of crystals
-	// List of items not to shove in their hands.
-	var/purchase_log = ""
-	var/show_description = null
-	var/active = 0
+	var/welcome 			// Welcoming menu message
+	var/uses 				// Numbers of crystals
+	var/list/ItemsCategory	// List of categories with lists of items
+	var/list/ItemsReference	// List of references with an associated item
+	var/list/nanoui_items	// List of items for NanoUI use
+	var/nanoui_menu = 0		// The current menu we are in
+	var/list/nanoui_data = new // Additional data for NanoUI use
 
-	var/uplink_owner = null//text-only
+	var/list/purchase_log = new
+	var/datum/mind/uplink_owner = null
 	var/used_TC = 0
+
+/obj/item/device/uplink/nano_host()
+	return loc
 
 /obj/item/device/uplink/New()
 	..()
-	world_uplinks+=src
+	welcome = ticker.mode.uplink_welcome
+	uses = ticker.mode.uplink_uses
+	ItemsCategory = ticker.mode.uplink_items
+
+	world_uplinks += src
 
 /obj/item/device/uplink/Destroy()
-	world_uplinks-=src
+	world_uplinks -= src
 	..()
 
-//Let's build a menu!
-/obj/item/device/uplink/proc/generate_menu(var/mob/user)
+/obj/item/device/uplink/proc/generate_items()
+	var/datum/nano_item_lists/IL = generate_item_lists()
+	nanoui_items = IL.items_nano
+	ItemsReference = IL.items_reference
 
+// BS12 no longer use this menu but there are forks that do, hency why we keep it
+/obj/item/device/uplink/proc/generate_menu()
 	var/dat = "<B>[src.welcome]</B><BR>"
 	dat += "Tele-Crystals left: [src.uses]<BR>"
 	dat += "<HR>"
 	dat += "<B>Request item:</B><BR>"
-	dat += "<I>Each item costs a number of tele-crystals as indicated by the number following their name.</I><br><BR>"
+	dat += "<I>Each item costs a number of tele-crystals as indicated by the number following their name.</I><br>"
 
-	var/list/buyable_items = get_uplink_items()
-
-	// Loop through categories
-	var/index = 0
-	for(var/category in buyable_items)
-
-		index++
+	var/category_items = 1
+	for(var/category in ItemsCategory)
+		if(category_items < 1)
+			dat += "<i>We apologize, as you could not afford anything from this category.</i><br>"
+		dat += "<br>"
 		dat += "<b>[category]</b><br>"
+		category_items = 0
 
-		var/i = 0
-		// Loop through items in category
-		for(var/datum/uplink_item/I in buyable_items[category])
-			i++
-			var/datum/uplink_item/item = I
-			var/desc = "[item.desc]"
-			var/cost_text = ""
-			// world << "[I] is uplink_item"
-			if(I.jobs.len && !(user.mind.assigned_role in I.jobs))
-				// world << "User doesn't fit the job requirement."
+		for(var/datum/uplink_item/I in ItemsCategory[category])
+			if(I.cost > uses)
 				continue
-			if(I.jobs_exclude.len && (user.mind.assigned_role in I.jobs_exclude))
-				// world << "User's job is excluded."
-				continue
-			if(item.cost > 0)
-				cost_text = "([item.cost])"
-			if(item.cost <= uses)
-				dat += "<A href='byond://?src=\ref[src];buy_item=[category]:[i];'>[item.name]</A> [cost_text] "
-			else
-				dat += "<font color='grey'><i>[item.name] [cost_text] </i></font>"
-			if(item.desc)
-				if(show_description == item.type)
-					dat += "<A href='byond://?src=\ref[src];show_desc=0'><font size=2>\[-\]</font></A><BR><font size=2>[desc]</font>"
-				else
-					dat += "<A href='byond://?src=\ref[src];show_desc=[item.type]'><font size=2>\[?\]</font></A>"
-			dat += "<BR>"
+			dat += "<A href='byond://?src=\ref[src];buy_item=[I.reference];cost=[I.cost]'>[I.name]</A> ([I.cost])<BR>"
+			category_items++
 
-		// Break up the categories, if it isn't the last.
-		if(buyable_items.len != index)
-			dat += "<br>"
-
+	dat += "<A href='byond://?src=\ref[src];buy_item=random'>Random Item (??)</A><br>"
 	dat += "<HR>"
 	return dat
 
-// Interaction code. Gathers a list of items purchasable from the paren't uplink and displays it. It also adds a lock button.
-/obj/item/device/uplink/interact(mob/user as mob)
+/*
+	Built the item lists for use with NanoUI
+*/
+/obj/item/device/uplink/proc/generate_item_lists()
+	var/list/nano = new
+	var/list/reference = new
 
-	var/dat = "<body link='yellow' alink='white' bgcolor='#601414'><font color='white'>"
-	dat += src.generate_menu(user)
-	dat += "<A href='byond://?src=\ref[src];lock=1'>Lock</a>"
-	dat += "</font></body>"
-	user << browse(dat, "window=hidden")
-	onclose(user, "hidden")
-	return
+	for(var/category in ItemsCategory)
+		nano[++nano.len] = list("Category" = category, "items" = list())
+		for(var/datum/uplink_item/I in ItemsCategory[category])
+			nano[nano.len]["items"] += list(list("Name" = I.name, "Description" = I.description(),"Cost" = I.cost, "obj_path" = I.reference))
+			reference[I.reference] = I
 
+	var/datum/nano_item_lists/result = new
+	result.items_nano = nano
+	result.items_reference = reference
+	return result
 
-/obj/item/device/uplink/Topic(href, href_list)
-	..()
-
-	if(!active)
+//If 'random' was selected
+/obj/item/device/uplink/proc/chooseRandomItem()
+	if(uses <= 0)
 		return
 
-	if (href_list["buy_item"])
+	var/list/random_items = new
+	for(var/IR in ItemsReference)
+		var/datum/uplink_item/UI = ItemsReference[IR]
+		if(UI.cost <= uses)
+			random_items += UI
+	return pick(random_items)
 
-		var/item = href_list["buy_item"]
-		var/list/split = text2list(item, ":") // throw away variable
+/obj/item/device/uplink/Topic(href, href_list)
+	if(..())
+		return 1
 
-		if(split.len == 2)
-			// Collect category and number
-			var/category = split[1]
-			var/number = text2num(split[2])
+	if(href_list["buy_item"] == "random")
+		var/datum/uplink_item/UI = chooseRandomItem()
+		href_list["buy_item"] = UI.reference
+		return buy(UI, "RN")
+	else
+		var/datum/uplink_item/UI = ItemsReference[href_list["buy_item"]]
+		return buy(UI, UI ? UI.reference : "")
+	return 0
 
-			var/list/buyable_items = get_uplink_items()
-			// world << "Called Topic for uplink device. [buyable_items]"
-			var/list/uplink = buyable_items[category]
-			if(uplink && uplink.len >= number)
-				var/datum/uplink_item/I = uplink[number]
-				if(I)
-					I.buy(src, usr)
+/obj/item/device/uplink/proc/buy(var/datum/uplink_item/UI, var/reference)
+	if(UI && UI.cost <= uses)
+		uses -= UI.cost
+		used_TC += UI.cost
+		feedback_add_details("traitor_uplink_items_bought", reference)
+		log_and_message_admins("used \the [src.loc] uplink to buy \a [UI].")
 
+		var/list/L = UI.generate_item(get_turf(usr))
+		if(ishuman(usr))
+			var/mob/living/carbon/human/A = usr
+			for(var/obj/I in L)
+				A.put_in_any_hand_if_possible(I)
 
-	else if(href_list["show_desc"])
+		purchase_log[UI] = purchase_log[UI] + 1
 
-		var/type = text2path(href_list["show_desc"])
-		show_description = type
-		interact(usr)
-
+		return 1
+	return 0
 
 // HIDDEN UPLINK - Can be stored in anything but the host item has to have a trigger for it.
 /* How to create an uplink in 3 easy steps!
@@ -136,17 +173,16 @@ var/list/world_uplinks = list()
 */
 
 /obj/item/device/uplink/hidden
-	name = "hidden uplink."
+	name = "hidden uplink"
 	desc = "There is something wrong if you're examining this."
+	var/active = 0
 
-/obj/item/device/uplink/hidden/Topic(href, href_list)
-	if(usr.stat || usr.restrained() || usr.paralysis || usr.stunned || usr.weakened)
-		return 0		// To stop people using their uplink when they shouldn't be able to
+// The hidden uplink MUST be inside an obj/item's contents.
+/obj/item/device/uplink/hidden/New()
+	spawn(2)
+		if(!istype(src.loc, /obj/item))
+			qdel(src)
 	..()
-	if(href_list["lock"])
-		toggle()
-		usr << browse(null, "window=hidden")
-		return 1
 
 // Toggles the uplink on and off. Normally this will bypass the item's normal functions and go to the uplink menu, if activated.
 /obj/item/device/uplink/hidden/proc/toggle()
@@ -167,6 +203,95 @@ var/list/world_uplinks = list()
 		return 1
 	return 0
 
+/*
+	NANO UI FOR UPLINK WOOP WOOP
+*/
+/obj/item/device/uplink/hidden/ui_interact(mob/user, ui_key = "main", var/datum/nanoui/ui = null, var/force_open = 1)
+	var/title = "Remote Uplink"
+	var/data[0]
+
+	data["welcome"] = welcome
+	data["crystals"] = uses
+	data["menu"] = nanoui_menu
+	if(!nanoui_items)
+		generate_items()
+	data["nano_items"] = nanoui_items
+	data += nanoui_data
+
+	// update the ui if it exists, returns null if no ui is passed/found
+	ui = nanomanager.try_update_ui(user, src, ui_key, ui, data, force_open)
+	if (!ui)
+		// the ui does not exist, so we'll create a new() one
+        // for a list of parameters and their descriptions see the code docs in \code\modules\nano\nanoui.dm
+		ui = new(user, src, ui_key, "uplink.tmpl", title, 450, 600, state = inventory_state)
+		// when the ui is first opened this is the data it will use
+		ui.set_initial_data(data)
+		// open the new ui window
+		ui.open()
+
+
+// Interaction code. Gathers a list of items purchasable from the paren't uplink and displays it. It also adds a lock button.
+/obj/item/device/uplink/hidden/interact(mob/user)
+	ui_interact(user)
+
+// The purchasing code.
+/obj/item/device/uplink/hidden/Topic(href, href_list)
+	if (usr.stat || usr.restrained())
+		return 1
+
+	if (!( istype(usr, /mob/living/carbon/human)))
+		return 1
+	var/mob/user = usr
+	var/datum/nanoui/ui = nanomanager.get_open_ui(user, src, "main")
+	if ((usr.contents.Find(src.loc) || (in_range(src.loc, usr) && istype(src.loc.loc, /turf))))
+		usr.set_machine(src)
+		if(..(href, href_list))
+			return 1
+		else if(href_list["lock"])
+			toggle()
+			ui.close()
+			return 1
+		if(href_list["return"])
+			nanoui_menu = round(nanoui_menu/10)
+			update_nano_data()
+		if(href_list["menu"])
+			nanoui_menu = text2num(href_list["menu"])
+			update_nano_data(href_list["id"])
+
+	interact(usr)
+	return 1
+
+/obj/item/device/uplink/hidden/proc/update_nano_data(var/id)
+	if(nanoui_menu == 1)
+		var/permanentData[0]
+		for(var/datum/data/record/L in sortRecord(data_core.locked))
+			permanentData[++permanentData.len] = list(Name = L.fields["name"],"id" = L.fields["id"])
+		nanoui_data["exploit_records"] = permanentData
+
+	if(nanoui_menu == 11)
+		nanoui_data["exploit_exists"] = 0
+
+		for(var/datum/data/record/L in data_core.locked)
+			if(L.fields["id"] == id)
+				nanoui_data["exploit"] = list()  // Setting this to equal L.fields passes it's variables that are lists as reference instead of value.
+								 // We trade off being able to automatically add shit for more control over what gets passed to json
+								 // and if it's sanitized for html.
+				nanoui_data["exploit"]["nanoui_exploit_record"] = html_encode(L.fields["exploit_record"])                         		// Change stuff into html
+				nanoui_data["exploit"]["nanoui_exploit_record"] = replacetext(nanoui_data["exploit"]["nanoui_exploit_record"], "\n", "<br>")    // change line breaks into <br>
+				nanoui_data["exploit"]["name"] =  html_encode(L.fields["name"])
+				nanoui_data["exploit"]["sex"] =  html_encode(L.fields["sex"])
+				nanoui_data["exploit"]["age"] =  html_encode(L.fields["age"])
+				nanoui_data["exploit"]["species"] =  html_encode(L.fields["species"])
+				nanoui_data["exploit"]["rank"] =  html_encode(L.fields["rank"])
+				nanoui_data["exploit"]["home_system"] =  html_encode(L.fields["home_system"])
+				nanoui_data["exploit"]["citizenship"] =  html_encode(L.fields["citizenship"])
+				nanoui_data["exploit"]["faction"] =  html_encode(L.fields["faction"])
+				nanoui_data["exploit"]["religion"] =  html_encode(L.fields["religion"])
+				nanoui_data["exploit"]["fingerprint"] =  html_encode(L.fields["fingerprint"])
+
+				nanoui_data["exploit_exists"] = 1
+				break
+
 // I placed this here because of how relevant it is.
 // You place this in your uplinkable item to check if an uplink is active or not.
 // If it is, it will display the uplink menu and return 1, else it'll return false.
@@ -178,16 +303,6 @@ var/list/world_uplinks = list()
 			src.hidden_uplink.trigger(user)
 			return 1
 	return 0
-//Refund proc for the borg teleporter (later I'll make a general refund proc if there is demand for it)
-/obj/item/device/radio/uplink/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
-	if(istype(W, /obj/item/weapon/antag_spawner/borg_tele))
-		var/obj/item/weapon/antag_spawner/borg_tele/S = W
-		if(!S.used)
-			hidden_uplink.uses += S.TC_cost
-			qdel(S)
-			user << "<span class='notice'>Teleporter refunded.</span>"
-		else
-			user << "<span class='notice'>This teleporter is already used.</span>"
 
 // PRESET UPLINKS
 // A collection of preset uplinks.
@@ -216,7 +331,4 @@ var/list/world_uplinks = list()
 /obj/item/device/radio/headset/uplink/New()
 	..()
 	hidden_uplink = new(src)
-	hidden_uplink.uses = 20
-
-
-
+	hidden_uplink.uses = 10

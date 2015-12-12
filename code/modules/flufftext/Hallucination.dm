@@ -1,7 +1,7 @@
 /*
 Ideas for the subtle effects of hallucination:
 
-Light up oxygen/plasma indicators (done)
+Light up oxygen/phoron indicators (done)
 Cause health to look critical/dead, even when standing (done)
 Characters silently watching you
 Brief flashes of fire/space/bombs/c4/dangerous shit (done)
@@ -11,18 +11,18 @@ Gunshots/explosions/opening doors/less rare audio (done)
 
 */
 
-mob/living/carbon/
-	var/image/halimage
-	var/image/halbody
-	var/obj/halitem
-	var/hal_screwyhud = 0 //1 - critical, 2 - dead, 3 - oxygen indicator, 4 - toxin indicator
-	var/handling_hal = 0
-	var/hal_crit = 0
+mob/living/carbon/var
+	image/halimage
+	image/halbody
+	obj/halitem
+	hal_screwyhud = 0 //1 - critical, 2 - dead, 3 - oxygen indicator, 4 - toxin indicator
+	handling_hal = 0
+	hal_crit = 0
 
 mob/living/carbon/proc/handle_hallucinations()
 	if(handling_hal) return
 	handling_hal = 1
-	while(hallucination > 20)
+	while(client && hallucination > 20)
 		sleep(rand(200,500)/(hallucination/25))
 		var/halpick = rand(1,100)
 		switch(halpick)
@@ -77,7 +77,9 @@ mob/living/carbon/proc/handle_hallucinations()
 								halitem.name = "Flashbang"
 						if(client) client.screen += halitem
 						spawn(rand(100,250))
-							qdel(halitem)
+							if(client)
+								client.screen -= halitem
+							halitem = null
 			if(26 to 40)
 				//Flashes of danger
 				//src << "Danger Flash"
@@ -109,7 +111,7 @@ mob/living/carbon/proc/handle_hallucinations()
 			if(41 to 65)
 				//Strange audio
 				//src << "Strange Audio"
-				switch(rand(1,14))
+				switch(rand(1,12))
 					if(1) src << 'sound/machines/airlock.ogg'
 					if(2)
 						if(prob(50))src << 'sound/effects/Explosion1.ogg'
@@ -140,12 +142,6 @@ mob/living/carbon/proc/handle_hallucinations()
 							'sound/hallucinations/look_up1.ogg', 'sound/hallucinations/look_up2.ogg', 'sound/hallucinations/over_here1.ogg', 'sound/hallucinations/over_here2.ogg', 'sound/hallucinations/over_here3.ogg',\
 							'sound/hallucinations/turn_around1.ogg', 'sound/hallucinations/turn_around2.ogg', 'sound/hallucinations/veryfar_noise.ogg', 'sound/hallucinations/wail.ogg')
 						src << pick(creepyasssounds)
-					if(13)
-						src << "<span class='warning'>You feel a tiny prick!</span>"
-					if(14)
-						src << "<h1 class='alert'>Priority Announcement</h1>"
-						src << "<br><br><span class='alert'>The Emergency Shuttle has docked with the station. You have 3 minutes to board the Emergency Shuttle.</span><br><br>"
-						src << sound('sound/AI/shuttledock.ogg')
 			if(66 to 70)
 				//Flashes of danger
 				//src << "Danger Flash"
@@ -235,7 +231,7 @@ proc/check_panel(mob/M)
 	var/image/stand_icon = null
 	var/image/currentimage = null
 	var/icon/base = null
-	var/skin_tone
+	var/s_tone
 	var/mob/living/clone = null
 	var/image/left
 	var/image/right
@@ -245,86 +241,87 @@ proc/check_panel(mob/M)
 
 	var/health = 100
 
-/obj/effect/fake_attacker/attackby(var/obj/item/weapon/P as obj, mob/user as mob)
-	step_away(src,my_target,2)
-	my_target.visible_message("<span class='danger'>[my_target] flails around wildly.</span>", \
-							"<span class='danger'>[my_target] has attacked [src]!</span>")
-
-	src.health -= P.force
-
-
-	return
-
-/obj/effect/fake_attacker/Crossed(var/mob/M, somenumber)
-	if(M == my_target)
+	attackby(var/obj/item/weapon/P as obj, mob/user as mob)
 		step_away(src,my_target,2)
-		if(prob(30))
-			for(var/mob/O in oviewers(world.view , my_target))
-				O << "<span class='danger'>[my_target] stumbles around.</span>"
+		for(var/mob/M in oviewers(world.view,my_target))
+			M << "\red <B>[my_target] flails around wildly.</B>"
+		my_target.show_message("\red <B>[src] has been attacked by [my_target] </B>", 1) //Lazy.
 
-/obj/effect/fake_attacker/New()
-	..()
-	spawn(300)
-		if(my_target)
-			my_target.hallucinations -= src
-		qdel(src)
-	step_away(src,my_target,2)
-	spawn attack_loop()
+		src.health -= P.force
 
 
-/obj/effect/fake_attacker/proc/updateimage()
-//	del src.currentimage
+		return
 
-
-	if(src.dir == NORTH)
-		del src.currentimage
-		src.currentimage = new /image(up,src)
-	else if(src.dir == SOUTH)
-		del src.currentimage
-		src.currentimage = new /image(down,src)
-	else if(src.dir == EAST)
-		del src.currentimage
-		src.currentimage = new /image(right,src)
-	else if(src.dir == WEST)
-		del src.currentimage
-		src.currentimage = new /image(left,src)
-	my_target << currentimage
-
-
-/obj/effect/fake_attacker/proc/attack_loop()
-	while(1)
-		sleep(rand(5,10))
-		if(src.health < 0)
-			collapse()
-			continue
-		if(get_dist(src,my_target) > 1)
-			src.dir = get_dir(src,my_target)
-			step_towards(src,my_target)
-			updateimage()
-		else
-			if(prob(15))
-				if(weapon_name)
-					my_target << sound(pick('sound/weapons/genhit1.ogg', 'sound/weapons/genhit2.ogg', 'sound/weapons/genhit3.ogg'))
-					my_target.show_message("<span class='danger'>[src.name] has attacked [my_target] with [weapon_name]!</span>", 1)
-					my_target.staminaloss += 30
-					if(prob(20)) my_target.eye_blurry += 3
-					if(prob(33))
-						if(!locate(/obj/effect/overlay) in my_target.loc)
-							fake_blood(my_target)
-				else
-					my_target << sound(pick('sound/weapons/punch1.ogg','sound/weapons/punch2.ogg','sound/weapons/punch3.ogg','sound/weapons/punch4.ogg'))
-					my_target.show_message("<span class='userdanger'>[src.name] has punched [my_target]!</span>", 1)
-					my_target.staminaloss += 30
-					if(prob(33))
-						if(!locate(/obj/effect/overlay) in my_target.loc)
-							fake_blood(my_target)
-
-		if(prob(15))
+	Crossed(var/mob/M, somenumber)
+		if(M == my_target)
 			step_away(src,my_target,2)
+			if(prob(30))
+				for(var/mob/O in oviewers(world.view , my_target))
+					O << "\red <B>[my_target] stumbles around.</B>"
 
-/obj/effect/fake_attacker/proc/collapse()
-	collapse = 1
-	updateimage()
+	New()
+		..()
+		spawn(300)
+			if(my_target)
+				my_target.hallucinations -= src
+			qdel(src)
+		step_away(src,my_target,2)
+		spawn attack_loop()
+
+
+	proc/updateimage()
+	//	qdel(src.currentimage)
+
+
+		if(src.dir == NORTH)
+			qdel(src.currentimage)
+			src.currentimage = new /image(up,src)
+		else if(src.dir == SOUTH)
+			qdel(src.currentimage)
+			src.currentimage = new /image(down,src)
+		else if(src.dir == EAST)
+			qdel(src.currentimage)
+			src.currentimage = new /image(right,src)
+		else if(src.dir == WEST)
+			qdel(src.currentimage)
+			src.currentimage = new /image(left,src)
+		my_target << currentimage
+
+
+	proc/attack_loop()
+		while(1)
+			sleep(rand(5,10))
+			if(src.health < 0)
+				collapse()
+				continue
+			if(get_dist(src,my_target) > 1)
+				src.set_dir(get_dir(src,my_target))
+				step_towards(src,my_target)
+				updateimage()
+			else
+				if(prob(15))
+					if(weapon_name)
+						my_target << sound(pick('sound/weapons/genhit1.ogg', 'sound/weapons/genhit2.ogg', 'sound/weapons/genhit3.ogg'))
+						my_target.show_message("\red <B>[my_target] has been attacked with [weapon_name] by [src.name] </B>", 1)
+						my_target.halloss += 8
+						if(prob(20)) my_target.eye_blurry += 3
+						if(prob(33))
+							if(!locate(/obj/effect/overlay) in my_target.loc)
+								fake_blood(my_target)
+					else
+						my_target << sound(pick('sound/weapons/punch1.ogg','sound/weapons/punch2.ogg','sound/weapons/punch3.ogg','sound/weapons/punch4.ogg'))
+						my_target.show_message("\red <B>[src.name] has punched [my_target]!</B>", 1)
+						my_target.halloss += 4
+						if(prob(33))
+							if(!locate(/obj/effect/overlay) in my_target.loc)
+								fake_blood(my_target)
+
+			if(prob(15))
+				step_away(src,my_target,2)
+
+	proc/collapse()
+		collapse = 1
+		updateimage()
 
 /proc/fake_blood(var/mob/target)
 	var/obj/effect/overlay/O = new/obj/effect/overlay(target.loc)
@@ -335,21 +332,21 @@ proc/check_panel(mob/M)
 		qdel(O)
 	return
 
-var/list/non_fakeattack_weapons = list(/obj/item/weapon/gun/projectile, /obj/item/ammo_box/a357,\
-	/obj/item/weapon/gun/energy/crossbow, /obj/item/weapon/melee/energy/sword/saber,\
+var/list/non_fakeattack_weapons = list(/obj/item/weapon/gun/projectile, /obj/item/ammo_magazine/a357,\
+	/obj/item/weapon/gun/energy/crossbow, /obj/item/weapon/melee/energy/sword,\
 	/obj/item/weapon/storage/box/syndicate, /obj/item/weapon/storage/box/emps,\
 	/obj/item/weapon/cartridge/syndicate, /obj/item/clothing/under/chameleon,\
 	/obj/item/clothing/shoes/syndigaloshes, /obj/item/weapon/card/id/syndicate,\
 	/obj/item/clothing/mask/gas/voice, /obj/item/clothing/glasses/thermal,\
 	/obj/item/device/chameleon, /obj/item/weapon/card/emag,\
 	/obj/item/weapon/storage/toolbox/syndicate, /obj/item/weapon/aiModule,\
-	/obj/item/device/radio/headset/syndicate,	/obj/item/weapon/c4,\
+	/obj/item/device/radio/headset/syndicate,	/obj/item/weapon/plastique,\
 	/obj/item/device/powersink, /obj/item/weapon/storage/box/syndie_kit,\
-	/obj/item/toy/syndicateballoon, /obj/item/weapon/gun/energy/laser/captain,\
+	/obj/item/toy/syndicateballoon, /obj/item/weapon/gun/energy/captain,\
 	/obj/item/weapon/hand_tele, /obj/item/weapon/rcd, /obj/item/weapon/tank/jetpack,\
 	/obj/item/clothing/under/rank/captain, /obj/item/device/aicard,\
-	/obj/item/clothing/shoes/magboots, /obj/item/areaeditor/blueprints, /obj/item/weapon/disk/nuclear,\
-	/obj/item/clothing/suit/space/nasavoid, /obj/item/weapon/tank)
+	/obj/item/clothing/shoes/magboots, /obj/item/blueprints, /obj/item/weapon/disk/nuclear,\
+	/obj/item/clothing/suit/space/void, /obj/item/weapon/tank)
 
 /proc/fake_attack(var/mob/living/target)
 //	var/list/possible_clones = new/list()

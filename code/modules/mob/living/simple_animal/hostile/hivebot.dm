@@ -3,8 +3,8 @@
 	damage_type = BRUTE
 
 /mob/living/simple_animal/hostile/hivebot
-	name = "hivebot"
-	desc = "A small robot."
+	name = "Hivebot"
+	desc = "A small robot"
 	icon = 'icons/mob/hivebot.dmi'
 	icon_state = "basic"
 	icon_living = "basic"
@@ -13,10 +13,10 @@
 	maxHealth = 15
 	melee_damage_lower = 2
 	melee_damage_upper = 3
-	attacktext = "claws"
+	attacktext = "clawed"
 	projectilesound = 'sound/weapons/Gunshot.ogg'
 	projectiletype = /obj/item/projectile/hivebotbullet
-	faction = list("hivebot")
+	faction = "hivebot"
 	min_oxy = 0
 	max_oxy = 0
 	min_tox = 0
@@ -26,27 +26,25 @@
 	min_n2 = 0
 	max_n2 = 0
 	minbodytemp = 0
+	speed = 4
 
 /mob/living/simple_animal/hostile/hivebot/range
-	name = "hivebot"
+	name = "Hivebot"
 	desc = "A smallish robot, this one is armed!"
 	ranged = 1
-	retreat_distance = 5
-	minimum_distance = 5
 
 /mob/living/simple_animal/hostile/hivebot/rapid
 	ranged = 1
 	rapid = 1
-	retreat_distance = 5
-	minimum_distance = 5
 
 /mob/living/simple_animal/hostile/hivebot/strong
-	name = "strong hivebot"
+	name = "Strong Hivebot"
 	desc = "A robot, this one is armed and looks tough!"
 	health = 80
 	ranged = 1
 
-/mob/living/simple_animal/hostile/hivebot/Die()
+
+/mob/living/simple_animal/hostile/hivebot/death()
 	..()
 	visible_message("<b>[src]</b> blows apart!")
 	new /obj/effect/decal/cleanable/blood/gibs/robot(src.loc)
@@ -57,8 +55,8 @@
 	return
 
 /mob/living/simple_animal/hostile/hivebot/tele//this still needs work
-	name = "beacon"
-	desc = "Some odd beacon thing."
+	name = "Beacon"
+	desc = "Some odd beacon thing"
 	icon = 'icons/mob/hivebot.dmi'
 	icon_state = "def_radar-off"
 	icon_living = "def_radar-off"
@@ -78,15 +76,15 @@
 
 	New()
 		..()
-		var/datum/effect/effect/system/harmless_smoke_spread/smoke = new /datum/effect/effect/system/harmless_smoke_spread()
+		var/datum/effect/effect/system/smoke_spread/smoke = new /datum/effect/effect/system/smoke_spread()
 		smoke.set_up(5, 0, src.loc)
 		smoke.start()
-		visible_message("<span class='userdanger'>The [src] warps in!</span>")
+		visible_message("\red <B>The [src] warps in!</B>")
 		playsound(src.loc, 'sound/effects/EMPulse.ogg', 25, 1)
 
 	warpbots()
 		icon_state = "def_radar"
-		visible_message("<span class='danger'>The [src] turns on!</span>")
+		visible_message("\red The [src] turns on!")
 		while(bot_amt > 0)
 			bot_amt--
 			switch(bot_type)

@@ -1,282 +1,303 @@
-var/datum/controller/event/events
+/datum/event_manager
+	var/window_x = 700
+	var/window_y = 600
+	var/report_at_round_end = 0
+	var/table_options = " align='center'"
+	var/row_options1 = " width='85px'"
+	var/row_options2 = " width='260px'"
+	var/row_options3 = " width='150px'"
+	var/datum/event_container/selected_event_container = null
 
-/datum/controller/event
-	var/list/control = list()	//list of all datum/round_event_control. Used for selecting events based on weight and occurrences.
-	var/list/running = list()	//list of all existing /datum/round_event
+	var/list/datum/event/active_events = list()
+	var/list/datum/event/finished_events = list()
 
-	var/scheduled = 0			//The next world.time that a naturally occuring random event can be selected.
-	var/frequency_lower = 3000	//5 minutes lower bound.
-	var/frequency_upper = 9000	//15 minutes upper bound. Basically an event will happen every 15 to 30 minutes.
+	var/list/datum/event/allEvents
+	var/list/datum/event_container/event_containers = list(
+			EVENT_LEVEL_MUNDANE 	= new/datum/event_container/mundane,
+			EVENT_LEVEL_MODERATE	= new/datum/event_container/moderate,
+			EVENT_LEVEL_MAJOR 		= new/datum/event_container/major
+		)
 
-	var/holiday					//This will be a string of the name of any realworld holiday which occurs today (GMT time)
-	var/wizardmode = 0			//If the summon events spell is in effect this is true
+	var/datum/event_meta/new_event = new
 
-//Initial controller setup.
-/datum/controller/event/New()
-	//There can be only one events manager. Out with the old and in with the new.
-	if(events != src)
-		if(istype(events))
-			del(events)
-		events = src
+/datum/event_manager/New()
+	allEvents = typesof(/datum/event) - /datum/event
 
-	for(var/type in typesof(/datum/round_event_control))
-		var/datum/round_event_control/E = new type()
-		if(!E.typepath)
-			continue				//don't want this one! leave it for the garbage collector
-		if(E.wizardevent && !wizardmode)
-			E.weight = 0
-		control += E				//add it to the list of all events (controls)
-	reschedule()
-	getHoliday()
+/datum/event_manager/proc/process()
+	for(var/datum/event/E in event_manager.active_events)
+		E.process()
 
-//This is called by the MC every MC-tick (*neatfreak*).
-/datum/controller/event/proc/process()
-	checkEvent()
-	var/i = 1
-	while(i<=running.len)
-		var/datum/round_event/Event = running[i]
-		if(Event)
-			Event.process()
-			i++
-			continue
-		running.Cut(i,i+1)
+	for(var/i = EVENT_LEVEL_MUNDANE to EVENT_LEVEL_MAJOR)
+		var/list/datum/event_container/EC = event_containers[i]
+		EC.process()
 
-//checks if we should select a random event yet, and reschedules if necessary
-/datum/controller/event/proc/checkEvent()
-	if(scheduled <= world.time)
-		spawnEvent()
-		reschedule()
-
-//decides which world.time we should select another random event at.
-/datum/controller/event/proc/reschedule()
-	scheduled = world.time + rand(frequency_lower, max(frequency_lower,frequency_upper))
-
-//selects a random event based on whether it can occur and it's 'weight'(probability)
-/datum/controller/event/proc/spawnEvent()
-	if(!config.allow_random_events)
+/datum/event_manager/proc/event_complete(var/datum/event/E)
+	if(!E.event_meta || !E.severity)	// datum/event is used here and there for random reasons, maintaining "backwards compatibility"
+		log_debug("Event of '[E.type]' with missing meta-data has completed.")
 		return
 
-	var/sum_of_weights = 0
-	for(var/datum/round_event_control/E in control)
-		if(E.occurrences >= E.max_occurrences)	continue
-		if(E.earliest_start >= world.time)		continue
-		if(E.holidayID)
-			if(E.holidayID != holiday)			continue
-		if(E.weight < 0)						//for round-start events etc.
-			if(E.runEvent() == PROCESS_KILL)
-				E.max_occurrences = 0
-				continue
-			return
-		sum_of_weights += E.weight
+	finished_events += E
 
-	sum_of_weights = rand(0,sum_of_weights)	//reusing this variable. It now represents the 'weight' we want to select
+	// Add the event back to the list of available events
+	var/datum/event_container/EC = event_containers[E.severity]
+	var/datum/event_meta/EM = E.event_meta
+	EC.available_events += EM
 
-	for(var/datum/round_event_control/E in control)
-		if(E.occurrences >= E.max_occurrences)	continue
-		if(E.earliest_start >= world.time)		continue
-		if(E.holidayID)
-			if(E.holidayID != holiday)			continue
-		sum_of_weights -= E.weight
+	log_debug("Event '[EM.name]' has completed at [worldtime2text()].")
 
-		if(sum_of_weights <= 0)				//we've hit our goal
-			if(E.runEvent() == PROCESS_KILL)//we couldn't run this event for some reason, set its max_occurrences to 0
-				E.max_occurrences = 0
-				continue
-			return
+/datum/event_manager/proc/delay_events(var/severity, var/delay)
+	var/list/datum/event_container/EC = event_containers[severity]
+	EC.next_event_time += delay
 
+/datum/event_manager/proc/Interact(var/mob/living/user)
 
-/datum/round_event/proc/findEventArea() //Here's a nice proc to use to find an area for your event to land in!
-	var/list/safe_areas = list(
-	/area/turret_protected/ai,
-	/area/turret_protected/ai_upload,
-	/area/engine,
-	/area/solar,
-	/area/holodeck,
-	/area/shuttle/arrival,
-	/area/shuttle/escape/station,
-	/area/shuttle/escape_pod1/station,
-	/area/shuttle/escape_pod2/station,
-	/area/shuttle/escape_pod3/station,
-	/area/shuttle/escape_pod4/station,
-	/area/shuttle/mining/station,
-	/area/shuttle/transport1/station,
-	/area/shuttle/specops/station)
+	var/html = GetInteractWindow()
 
-	//These are needed because /area/engine has to be removed from the list, but we still want these areas to get fucked up.
-	var/list/danger_areas = list(
-	/area/engine/break_room,
-	/area/engine/chiefs_office)
-
-	//Need to locate() as it's just a list of paths.
-	return locate(pick((the_station_areas - safe_areas) + danger_areas))
-
-
-
-//allows a client to trigger an event
-//aka Badmin Central
-/client/proc/forceEvent()
-	set name = "Trigger Event"
-	set category = "Fun"
-
-	if(!holder ||!check_rights(R_FUN))
-		return
-
-	holder.forceEvent()
-
-/datum/admins/proc/forceEvent()
-	var/dat 	= ""
-	var/normal 	= ""
-	var/magic 	= ""
-	var/holiday = ""
-	for(var/datum/round_event_control/E in events.control)
-		dat = "<BR><A href='?src=\ref[src];forceevent=\ref[E]'>[E]</A>"
-		if(E.holidayID)
-			holiday	+= dat
-		else if(E.wizardevent)
-			magic 	+= dat
-		else
-			normal 	+= dat
-
-	dat = normal + "<BR>" + magic + "<BR>" + holiday
-
-	var/datum/browser/popup = new(usr, "forceevent", "Force Random Event", 300, 750)
-	popup.set_content(dat)
+	var/datum/browser/popup = new(user, "event_manager", "Event Manager", window_x, window_y)
+	popup.set_content(html)
 	popup.open()
 
+/datum/event_manager/proc/RoundEnd()
+	if(!report_at_round_end)
+		return
 
-/*
-//////////////
-// HOLIDAYS //
-//////////////
-//Uncommenting ALLOW_HOLIDAYS in config.txt will enable holidays
+	world << "<br><br><br><font size=3><b>Random Events This Round:</b></font>"
+	for(var/datum/event/E in active_events|finished_events)
+		var/datum/event_meta/EM = E.event_meta
+		if(EM.name == "Nothing")
+			continue
+		var/message = "'[EM.name]' began at [worldtime2text(E.startedAt)] "
+		if(E.isRunning)
+			message += "and is still running."
+		else
+			if(E.endedAt - E.startedAt > MinutesToTicks(5)) // Only mention end time if the entire duration was more than 5 minutes
+				message += "and ended at [worldtime2text(E.endedAt)]."
+			else
+				message += "and ran to completion."
 
-//It's easy to add stuff. Just modify getHoliday to set holiday to something using the switch for DD(#day) MM(#month) YY(#year).
-//You can then check if it's a special day in any code in the game by doing if(events.holiday == "MyHolidayID")
+		world << message
 
-//You can also make holiday random events easily thanks to Pete/Gia's system.
-//simply make a random event normally, then assign it a holidayID string which matches the one you gave it in getHolday.
-//Anything with a holidayID, which does not match the holiday string, will never occur.
+/datum/event_manager/proc/GetInteractWindow()
+	var/html = "<A align='right' href='?src=\ref[src];refresh=1'>Refresh</A>"
+	html += "<A align='right' href='?src=\ref[src];pause_all=[!config.allow_random_events]'>Pause All - [config.allow_random_events ? "Pause" : "Resume"]</A>"
 
-//Please, Don't spam stuff up with stupid stuff (key example being april-fools Pooh/ERP/etc),
-//And don't forget: CHECK YOUR CODE!!!! We don't want any zero-day bugs which happen only on holidays and never get found/fixed!
+	if(selected_event_container)
+		var/event_time = max(0, selected_event_container.next_event_time - world.time)
+		html += "<A align='right' href='?src=\ref[src];back=1'>Back</A><br>"
+		html += "Time till start: [round(event_time / 600, 0.1)]<br>"
+		html += "<div class='block'>"
+		html += "<h2>Available [severity_to_string[selected_event_container.severity]] Events (queued & running events will not be displayed)</h2>"
+		html += "<table[table_options]>"
+		html += "<tr><td[row_options2]>Name </td><td>Weight </td><td>MinWeight </td><td>MaxWeight </td><td>OneShot </td><td>Enabled </td><td><span class='alert'>CurrWeight </span></td><td>Remove</td></tr>"
+		var/list/active_with_role = number_active_with_role()
+		for(var/datum/event_meta/EM in selected_event_container.available_events)
+			html += "<tr>"
+			html += "<td>[EM.name]</td>"
+			html += "<td><A align='right' href='?src=\ref[src];set_weight=\ref[EM]'>[EM.weight]</A></td>"
+			html += "<td>[EM.min_weight]</td>"
+			html += "<td>[EM.max_weight]</td>"
+			html += "<td><A align='right' href='?src=\ref[src];toggle_oneshot=\ref[EM]'>[EM.one_shot]</A></td>"
+			html += "<td><A align='right' href='?src=\ref[src];toggle_enabled=\ref[EM]'>[EM.enabled]</A></td>"
+			html += "<td><span class='alert'>[selected_event_container.get_weight(EM, active_with_role)]</span></td>"
+			html += "<td><A align='right' href='?src=\ref[src];remove=\ref[EM];EC=\ref[selected_event_container]'>Remove</A></td>"
+			html += "</tr>"
+		html += "</table>"
+		html += "</div>"
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-//ALSO, MOST IMPORTANTLY: Don't add stupid stuff! Discuss bonus content with Project-Heads first please!//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////
-~Carn */
+		html += "<div class='block'>"
+		html += "<h2>Add Event</h2>"
+		html += "<table[table_options]>"
+		html += "<tr><td[row_options2]>Name</td><td[row_options2]>Type</td><td[row_options1]>Weight</td><td[row_options1]>OneShot</td></tr>"
+		html += "<tr>"
+		html += "<td><A align='right' href='?src=\ref[src];set_name=\ref[new_event]'>[new_event.name ? new_event.name : "Enter Event"]</A></td>"
+		html += "<td><A align='right' href='?src=\ref[src];set_type=\ref[new_event]'>[new_event.event_type ? new_event.event_type : "Select Type"]</A></td>"
+		html += "<td><A align='right' href='?src=\ref[src];set_weight=\ref[new_event]'>[new_event.weight ? new_event.weight : 0]</A></td>"
+		html += "<td><A align='right' href='?src=\ref[src];toggle_oneshot=\ref[new_event]'>[new_event.one_shot]</A></td>"
+		html += "</tr>"
+		html += "</table>"
+		html += "<A align='right' href='?src=\ref[src];add=\ref[selected_event_container]'>Add</A><br>"
+		html += "</div>"
+	else
+		html += "<A align='right' href='?src=\ref[src];toggle_report=1'>Round End Report: [report_at_round_end ? "On": "Off"]</A><br>"
+		html += "<div class='block'>"
+		html += "<h2>Event Start</h2>"
 
-//sets up the holiday string in the events manager.
-/datum/controller/event/proc/getHoliday()
-	if(!config.allow_holidays)	return		// Holiday stuff was not enabled in the config!
-	holiday = null
+		html += "<table[table_options]>"
+		html += "<tr><td[row_options1]>Severity</td><td[row_options1]>Starts At</td><td[row_options1]>Starts In</td><td[row_options3]>Adjust Start</td><td[row_options1]>Pause</td><td[row_options1]>Interval Mod</td></tr>"
+		for(var/severity = EVENT_LEVEL_MUNDANE to EVENT_LEVEL_MAJOR)
+			var/datum/event_container/EC = event_containers[severity]
+			var/next_event_at = max(0, EC.next_event_time - world.time)
+			html += "<tr>"
+			html += "<td>[severity_to_string[severity]]</td>"
+			html += "<td>[worldtime2text(max(EC.next_event_time, world.time))]</td>"
+			html += "<td>[round(next_event_at / 600, 0.1)]</td>"
+			html += "<td>"
+			html +=   "<A align='right' href='?src=\ref[src];dec_timer=2;event=\ref[EC]'>--</A>"
+			html +=   "<A align='right' href='?src=\ref[src];dec_timer=1;event=\ref[EC]'>-</A>"
+			html +=   "<A align='right' href='?src=\ref[src];inc_timer=1;event=\ref[EC]'>+</A>"
+			html +=   "<A align='right' href='?src=\ref[src];inc_timer=2;event=\ref[EC]'>++</A>"
+			html += "</td>"
+			html += "<td>"
+			html +=   "<A align='right' href='?src=\ref[src];pause=\ref[EC]'>[EC.delayed ? "Resume" : "Pause"]</A>"
+			html += "</td>"
+			html += "<td>"
+			html +=   "<A align='right' href='?src=\ref[src];interval=\ref[EC]'>[EC.delay_modifier]</A>"
+			html += "</td>"
+			html += "</tr>"
+		html += "</table>"
+		html += "</div>"
 
-	var/YY	=	text2num(time2text(world.timeofday, "YY")) 	// get the current year
-	var/MM	=	text2num(time2text(world.timeofday, "MM")) 	// get the current month
-	var/DD	=	text2num(time2text(world.timeofday, "DD")) 	// get the current day
+		html += "<div class='block'>"
+		html += "<h2>Next Event</h2>"
+		html += "<table[table_options]>"
+		html += "<tr><td[row_options1]>Severity</td><td[row_options2]>Name</td><td[row_options3]>Event Rotation</td><td>Clear</td></tr>"
+		for(var/severity = EVENT_LEVEL_MUNDANE to EVENT_LEVEL_MAJOR)
+			var/datum/event_container/EC = event_containers[severity]
+			var/datum/event_meta/EM = EC.next_event
+			html += "<tr>"
+			html += "<td>[severity_to_string[severity]]</td>"
+			html += "<td><A align='right' href='?src=\ref[src];select_event=\ref[EC]'>[EM ? EM.name : "Random"]</A></td>"
+			html += "<td><A align='right' href='?src=\ref[src];view_events=\ref[EC]'>View</A></td>"
+			html += "<td><A align='right' href='?src=\ref[src];clear=\ref[EC]'>Clear</A></td>"
+			html += "</tr>"
+		html += "</table>"
+		html += "</div>"
 
-	//Main switch. If any of these are too dumb/inappropriate, or you have better ones, feel free to change whatever
-	switch(MM)
-		if(1)	//Jan
-			switch(DD)
-				if(1)							holiday = "New Year"
+		html += "<div class='block'>"
+		html += "<h2>Running Events</h2>"
+		html += "Estimated times, affected by process scheduler delays."
+		html += "<table[table_options]>"
+		html += "<tr><td[row_options1]>Severity</td><td[row_options2]>Name</td><td[row_options1]>Ends At</td><td[row_options1]>Ends In</td><td[row_options3]>Stop</td></tr>"
+		for(var/datum/event/E in active_events)
+			if(!E.event_meta)
+				continue
+			var/datum/event_meta/EM = E.event_meta
+			var/ends_at = E.startedAt + (E.lastProcessAt() * 20)	// A best estimate, based on how often the alarm manager processes
+			var/ends_in = max(0, round((ends_at - world.time) / 600, 0.1))
+			html += "<tr>"
+			html += "<td>[severity_to_string[EM.severity]]</td>"
+			html += "<td>[EM.name]</td>"
+			html += "<td>[worldtime2text(ends_at)]</td>"
+			html += "<td>[ends_in]</td>"
+			html += "<td><A align='right' href='?src=\ref[src];stop=\ref[E]'>Stop</A></td>"
+			html += "</tr>"
+		html += "</table>"
+		html += "</div>"
 
-		if(2)	//Feb
-			switch(DD)
-				if(2)							holiday = "Groundhog Day"
-				if(14)							holiday = "Valentine's Day"
-				if(17)							holiday = "Random Acts of Kindness Day"
+	return html
 
-		if(3)	//Mar
-			switch(DD)
-				if(14)							holiday = "Pi Day"
-				if(17)							holiday = "St. Patrick's Day"
-				if(27)
-					if(YY == 16)
-						holiday = "Easter"
-				if(31)
-					if(YY == 13)
-						holiday = "Easter"
+/datum/event_manager/Topic(href, href_list)
+	if(..())
+		return
 
-		if(4)	//Apr
-			switch(DD)
-				if(1)
-					holiday = "April Fool's Day"
-					if(YY == 18 && prob(50)) 	holiday = "Easter"
-				if(5)
-					if(YY == 15)				holiday = "Easter"
-				if(16)
-					if(YY == 17)				holiday = "Easter"
-				if(20)
-					holiday = "Four-Twenty"
-					if(YY == 14 && prob(50))	holiday = "Easter"
-				if(22)							holiday = "Earth Day"
 
-		if(5)	//May
-			switch(DD)
-				if(1)							holiday = "Labour Day"
-				if(4)							holiday = "FireFighter's Day"
-				if(12)							holiday = "Owl and Pussycat Day"	//what a dumb day of observence...but we -do- have costumes already :3
+	if(href_list["toggle_report"])
+		report_at_round_end = !report_at_round_end
+		log_and_message_admins("has [report_at_round_end ? "enabled" : "disabled"] the round end event report.")
+	else if(href_list["dec_timer"])
+		var/datum/event_container/EC = locate(href_list["event"])
+		var/decrease = 60 * (10 ** text2num(href_list["dec_timer"]))
+		EC.next_event_time -= decrease
+		log_and_message_admins("decreased timer for [severity_to_string[EC.severity]] events by [decrease/600] minute(s).")
+	else if(href_list["inc_timer"])
+		var/datum/event_container/EC = locate(href_list["event"])
+		var/increase = 60 * (10 ** text2num(href_list["inc_timer"]))
+		EC.next_event_time += increase
+		log_and_message_admins("increased timer for [severity_to_string[EC.severity]] events by [increase/600] minute(s).")
+	else if(href_list["select_event"])
+		var/datum/event_container/EC = locate(href_list["select_event"])
+		var/datum/event_meta/EM = EC.SelectEvent()
+		if(EM)
+			log_and_message_admins("has queued the [severity_to_string[EC.severity]] event '[EM.name]'.")
+	else if(href_list["pause"])
+		var/datum/event_container/EC = locate(href_list["pause"])
+		EC.delayed = !EC.delayed
+		log_and_message_admins("has [EC.delayed ? "paused" : "resumed"] countdown for [severity_to_string[EC.severity]] events.")
+	else if(href_list["pause_all"])
+		config.allow_random_events = text2num(href_list["pause_all"])
+		log_and_message_admins("has [config.allow_random_events ? "resumed" : "paused"] countdown for all events.")
+	else if(href_list["interval"])
+		var/delay = input("Enter delay modifier. A value less than one means events fire more often, higher than one less often.", "Set Interval Modifier") as num|null
+		if(delay && delay > 0)
+			var/datum/event_container/EC = locate(href_list["interval"])
+			EC.delay_modifier = delay
+			log_and_message_admins("has set the interval modifier for [severity_to_string[EC.severity]] events to [EC.delay_modifier].")
+	else if(href_list["stop"])
+		if(alert("Stopping an event may have unintended side-effects. Continue?","Stopping Event!","Yes","No") != "Yes")
+			return
+		var/datum/event/E = locate(href_list["stop"])
+		var/datum/event_meta/EM = E.event_meta
+		log_and_message_admins("has stopped the [severity_to_string[EM.severity]] event '[EM.name]'.")
+		E.kill()
+	else if(href_list["view_events"])
+		selected_event_container = locate(href_list["view_events"])
+	else if(href_list["back"])
+		selected_event_container = null
+	else if(href_list["set_name"])
+		var/name = sanitize(input("Enter event name.", "Set Name") as text|null)
+		if(name)
+			var/datum/event_meta/EM = locate(href_list["set_name"])
+			EM.name = name
+	else if(href_list["set_type"])
+		var/type = input("Select event type.", "Select") as null|anything in allEvents
+		if(type)
+			var/datum/event_meta/EM = locate(href_list["set_type"])
+			EM.event_type = type
+	else if(href_list["set_weight"])
+		var/weight = input("Enter weight. A higher value means higher chance for the event of being selected.", "Set Weight") as num|null
+		if(weight && weight > 0)
+			var/datum/event_meta/EM = locate(href_list["set_weight"])
+			EM.weight = weight
+			if(EM != new_event)
+				log_and_message_admins("has changed the weight of the [severity_to_string[EM.severity]] event '[EM.name]' to [EM.weight].")
+	else if(href_list["toggle_oneshot"])
+		var/datum/event_meta/EM = locate(href_list["toggle_oneshot"])
+		EM.one_shot = !EM.one_shot
+		if(EM != new_event)
+			log_and_message_admins("has [EM.one_shot ? "set" : "unset"] the oneshot flag for the [severity_to_string[EM.severity]] event '[EM.name]'.")
+	else if(href_list["toggle_enabled"])
+		var/datum/event_meta/EM = locate(href_list["toggle_enabled"])
+		EM.enabled = !EM.enabled
+		log_and_message_admins("has [EM.enabled ? "enabled" : "disabled"] the [severity_to_string[EM.severity]] event '[EM.name]'.")
+	else if(href_list["remove"])
+		if(alert("This will remove the event from rotation. Continue?","Removing Event!","Yes","No") != "Yes")
+			return
+		var/datum/event_meta/EM = locate(href_list["remove"])
+		var/datum/event_container/EC = locate(href_list["EC"])
+		EC.available_events -= EM
+		log_and_message_admins("has removed the [severity_to_string[EM.severity]] event '[EM.name]'.")
+	else if(href_list["add"])
+		if(!new_event.name || !new_event.event_type)
+			return
+		if(alert("This will add a new event to the rotation. Continue?","Add Event!","Yes","No") != "Yes")
+			return
+		new_event.severity = selected_event_container.severity
+		selected_event_container.available_events += new_event
+		log_and_message_admins("has added \a [severity_to_string[new_event.severity]] event '[new_event.name]' of type [new_event.event_type] with weight [new_event.weight].")
+		new_event = new
+	else if(href_list["clear"])
+		var/datum/event_container/EC = locate(href_list["clear"])
+		if(EC.next_event)
+			log_and_message_admins("has dequeued the [severity_to_string[EC.severity]] event '[EC.next_event.name]'.")
+			EC.next_event = null
 
-		if(6)	//Jun
+	Interact(usr)
 
-		if(7)	//Jul
-			switch(DD)
-				if(1)							holiday = "Doctor's Day"
-				if(2)							holiday = "UFO Day"
-				if(8)							holiday = "Writer's Day"
-				if(30)							holiday = "Friendship Day"
+/client/proc/forceEvent(var/type in event_manager.allEvents)
+	set name = "Trigger Event (Debug Only)"
+	set category = "Debug"
 
-		if(8)	//Aug
-			switch(DD)
-				if(5)							holiday = "Beer Day"
+	if(!holder)
+		return
 
-		if(9)	//Sep
-			switch(DD)
-				if(19)							holiday = "Talk-Like-a-Pirate Day"
-				if(28)							holiday = "Stupid-Questions Day"
+	if(ispath(type))
+		new type(new /datum/event_meta(EVENT_LEVEL_MAJOR))
+		message_admins("[key_name_admin(usr)] has triggered an event. ([type])", 1)
 
-		if(10)	//Oct
-			switch(DD)
-				if(4)							holiday = "Animal's Day"
-				if(7)							holiday = "Smiling Day"
-				if(16)							holiday = "Boss' Day"
-				if(31)							holiday = "Halloween"
-
-		if(11)	//Nov
-			switch(DD)
-				if(1)							holiday = "Vegan Day"
-				if(13)							holiday = "Kindness Day"
-				if(19)							holiday = "Flowers Day"
-				if(21)							holiday = "Saying-'Hello' Day"
-
-		if(12)	//Dec
-			switch(DD)
-				if(10)							holiday = "Human-Rights Day"
-				if(14)							holiday = "Monkey Day"
-				if(21)							holiday = "Mayan Doomsday Anniversary"
-				if(22)							holiday = "Orgasming Day"		//lol. These all actually exist
-				if(24)							holiday = "Xmas"
-				if(25)							holiday = "Xmas"
-				if(26)							holiday = "Boxing Day"
-				if(31)							holiday = "New Year"
-
-	if(!holiday)
-		//Friday the 13th
-		if(DD == 13)
-			if(time2text(world.timeofday, "DDD") == "Fri")
-				holiday = "Friday the 13th"
-
-	world.update_status()
-
-/datum/controller/event/proc/toggleWizardmode()
-	wizardmode = !wizardmode
-	for(var/datum/round_event_control/E in control)
-		E.weight = initial(E.weight)
-		if((E.wizardevent && !wizardmode) || (!E.wizardevent && wizardmode))
-			E.weight = 0
-	message_admins("Summon Events has been [wizardmode ? "enabled, events will occur every [events.frequency_lower / 600] to [events.frequency_upper / 600] minutes" : "disabled"]!")
-	log_game("Summon Events was [wizardmode ? "enabled" : "disabled"]!")
-
-/datum/controller/event/proc/resetFrequency()
-	frequency_lower = initial(frequency_lower)
-	frequency_upper = initial(frequency_upper)
+/client/proc/event_manager_panel()
+	set name = "Event Manager Panel"
+	set category = "Admin"
+	if(event_manager)
+		event_manager.Interact(usr)
+	feedback_add_details("admin_verb","EMP") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
+	return

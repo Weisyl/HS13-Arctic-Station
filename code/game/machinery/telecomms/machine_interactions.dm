@@ -15,80 +15,88 @@
 	var/construct_op = 0
 
 
-/obj/machinery/telecomms/attackby(obj/item/P as obj, mob/user as mob, params)
+/obj/machinery/telecomms/attackby(obj/item/P as obj, mob/user as mob)
 
 	// Using a multitool lets you access the receiver's interface
 	if(istype(P, /obj/item/device/multitool))
 		attack_hand(user)
 
+
+	// REPAIRING: Use Nanopaste to repair 10-20 integrity points.
+	if(istype(P, /obj/item/stack/nanopaste))
+		var/obj/item/stack/nanopaste/T = P
+		if (integrity < 100)               								//Damaged, let's repair!
+			if (T.use(1))
+				integrity = between(0, integrity + rand(10,20), 100)
+				usr << "You apply the Nanopaste to [src], repairing some of the damage."
+		else
+			usr << "This machine is already in perfect condition."
+		return
+
+
 	switch(construct_op)
 		if(0)
 			if(istype(P, /obj/item/weapon/screwdriver))
-				user << "<span class='notice'>You unfasten the bolts.</span>"
+				user << "You unfasten the bolts."
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
 				construct_op ++
 		if(1)
 			if(istype(P, /obj/item/weapon/screwdriver))
-				user << "<span class='notice'>You fasten the bolts.</span>"
+				user << "You fasten the bolts."
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 50, 1)
 				construct_op --
 			if(istype(P, /obj/item/weapon/wrench))
-				user << "<span class='notice'>You dislodge the external plating.</span>"
+				user << "You dislodge the external plating."
 				playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
 				construct_op ++
 		if(2)
 			if(istype(P, /obj/item/weapon/wrench))
-				user << "<span class='notice'>You secure the external plating.</span>"
+				user << "You secure the external plating."
 				playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
 				construct_op --
 			if(istype(P, /obj/item/weapon/wirecutters))
 				playsound(src.loc, 'sound/items/Wirecutter.ogg', 50, 1)
-				user << "<span class='notice'>You remove the cables.</span>"
+				user << "You remove the cables."
 				construct_op ++
-				var/obj/item/stack/cable_coil/A = new /obj/item/stack/cable_coil(user.loc)
+				var/obj/item/stack/cable_coil/A = new /obj/item/stack/cable_coil( user.loc )
 				A.amount = 5
 				stat |= BROKEN // the machine's been borked!
 		if(3)
 			if(istype(P, /obj/item/stack/cable_coil))
 				var/obj/item/stack/cable_coil/A = P
-				if(A.use(5))
+				if (A.use(5))
 					user << "<span class='notice'>You insert the cables.</span>"
-					construct_op --
+					construct_op--
 					stat &= ~BROKEN // the machine's not borked anymore!
 				else
-					user << "<span class='danger'>You need five lengths of cable for this machine.</span>"
+					user << "<span class='warning'>You need five coils of wire for this.</span>"
 			if(istype(P, /obj/item/weapon/crowbar))
-				user << "<span class='notice'>You begin prying out the circuit board and components...</span>"
+				user << "You begin prying out the circuit board other components..."
 				playsound(src.loc, 'sound/items/Crowbar.ogg', 50, 1)
 				if(do_after(user,60))
-					user << "<span class='notice'>You finish prying out the components.</span>"
+					user << "You finish prying out the components."
 
 					// Drop all the component stuff
-					if(component_parts)
-						for(var/obj/item/I in component_parts)
-							if(I.reliability != 100 && crit_fail)
-								I.crit_fail = 1
-							I.loc = src.loc
-
+					if(contents.len > 0)
+						for(var/obj/x in src)
+							x.loc = user.loc
 					else
+
 						// If the machine wasn't made during runtime, probably doesn't have components:
 						// manually find the components and drop them!
 						var/newpath = text2path(circuitboard)
-						if(newpath)
-							var/obj/item/weapon/circuitboard/C = new newpath
-							for(var/I in C.req_components)
-								for(var/i = 1, i <= C.req_components[I], i++)
-									newpath = text2path(I)
-									if(newpath)
-										var/obj/item/s = new newpath
-										s.loc = src.loc
-										if(istype(s, /obj/item/stack/cable_coil))
-											var/obj/item/stack/cable_coil/A = s
-											A.amount = 1
-											A.update_icon()
+						var/obj/item/weapon/circuitboard/C = new newpath
+						for(var/I in C.req_components)
+							for(var/i = 1, i <= C.req_components[I], i++)
+								newpath = text2path(I)
+								var/obj/item/s = new newpath
+								s.loc = user.loc
+								if(istype(P, /obj/item/stack/cable_coil))
+									var/obj/item/stack/cable_coil/A = P
+									A.amount = 1
 
-							// Drop a circuit board too
-							C.loc = src.loc
+						// Drop a circuit board too
+						C.loc = user.loc
 
 					// Create a machine frame and delete the current machine
 					var/obj/machinery/constructable_frame/machine_frame/F = new
@@ -278,12 +286,13 @@
 
 
 /obj/machinery/telecomms/Topic(href, href_list)
-	if(..())
-		return
 
 	if(!issilicon(usr))
 		if(!istype(usr.get_active_hand(), /obj/item/device/multitool))
 			return
+
+	if(stat & (BROKEN|NOPOWER))
+		return
 
 	var/obj/item/device/multitool/P = get_multitool(usr)
 
@@ -309,7 +318,7 @@
 					temp = "<font color = #666633>-% New ID assigned: \"[id]\" %-</font color>"
 
 			if("network")
-				var/newnet = stripped_input(usr, "Specify the new network for this machine. This will break all current links.", src, network)
+				var/newnet = input(usr, "Specify the new network for this machine. This will break all current links.", src, network) as null|text
 				if(newnet && canAccess(usr))
 
 					if(length(newnet) > 15)
@@ -345,17 +354,13 @@
 
 		if(text2num(href_list["unlink"]) <= length(links))
 			var/obj/machinery/telecomms/T = links[text2num(href_list["unlink"])]
-			if(T)
-				temp = "<font color = #666633>-% Removed \ref[T] [T.name] from linked entities. %-</font color>"
+			temp = "<font color = #666633>-% Removed \ref[T] [T.name] from linked entities. %-</font color>"
 
-				// Remove link entries from both T and src.
+			// Remove link entries from both T and src.
 
-				if(T.links)
-					T.links.Remove(src)
-				links.Remove(T)
-
-			else
-				temp = "<font color = #666633>-% Unable to locate machine to unlink from, try again. %-</font color>"
+			if(src in T.links)
+				T.links.Remove(src)
+			links.Remove(T)
 
 	if(href_list["link"])
 
@@ -386,6 +391,7 @@
 	src.Options_Topic(href, href_list)
 
 	usr.set_machine(src)
+	src.add_fingerprint(usr)
 
 	updateUsrDialog()
 

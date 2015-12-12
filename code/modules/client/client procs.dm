@@ -1,7 +1,8 @@
 	////////////
 	//SECURITY//
 	////////////
-#define UPLOAD_LIMIT		2097152	//Restricts client uploads to the server to 1MB //Could probably do with being lower.
+#define TOPIC_SPAM_DELAY	2		//2 ticks is about 2/10ths of a second; it was 4 ticks, but that caused too many clicks to be lost due to lag
+#define UPLOAD_LIMIT		10485760	//Restricts client uploads to the server to 10MB //Boosted this thing. What's the worst that can happen?
 #define MIN_CLIENT_VERSION	0		//Just an ambiguously low version for now, I don't want to suddenly stop people playing.
 									//I would just like the code ready should it ever need to be used.
 	/*
@@ -23,22 +24,38 @@
 	if(!usr || usr != mob)	//stops us calling Topic for somebody else's client. Also helps prevent usr=null
 		return
 
+	//Reduces spamming of links by dropping calls that happen during the delay period
+	if(next_allowed_topic_time > world.time)
+		return
+	next_allowed_topic_time = world.time + TOPIC_SPAM_DELAY
+
+	//search the href for script injection
+	if( findtext(href,"<script",1,0) )
+		world.log << "Attempted use of scripts within a topic call, by [src]"
+		message_admins("Attempted use of scripts within a topic call, by [src]")
+		//del(usr)
+		return
+
 	//Admin PM
 	if(href_list["priv_msg"])
-		cmd_admin_pm(href_list["priv_msg"],null)
+		var/client/C = locate(href_list["priv_msg"])
+		if(ismob(C)) 		//Old stuff can feed-in mobs instead of clients
+			var/mob/M = C
+			C = M.client
+		cmd_admin_pm(C,null)
 		return
 
-	if(href_list["mentor_msg"])
-		cmd_mentor_pm(href_list["mentor_msg"],null)
+	if(href_list["irc_msg"])
+		if(!holder && received_irc_pm < world.time - 6000) //Worse they can do is spam IRC for 10 minutes
+			usr << "<span class='warning'>You are no longer able to use this, it's been more then 10 minutes since an admin on IRC has responded to you</span>"
+			return
+		if(mute_irc)
+			usr << "<span class='warning'You cannot use this as your client has been muted from sending messages to the admins on IRC</span>"
+			return
+		cmd_admin_irc_pm(href_list["irc_msg"])
 		return
 
-	if(href_list["mentor_follow"])
-		var/mob/living/M = locate(href_list["mentor_follow"])
 
-		if(istype(M))
-			mentor_follow(M)
-
-		return
 
 	//Logs all hrefs
 	if(config && config.log_hrefs && href_logfile)
@@ -52,21 +69,15 @@
 
 	..()	//redirect to hsrc.Topic()
 
-/client/proc/is_content_unlocked()
-	if(!prefs.unlock_content)
-		src << "Become a BYOND member to access member-perks and features, as well as support the engine that makes this game possible. <a href='http://www.byond.com/membership'>Click Here to find out more</a>."
-		return 0
-	return 1
-
 /client/proc/handle_spam_prevention(var/message, var/mute_type)
 	if(config.automute_on && !holder && src.last_message == message)
 		src.last_message_count++
 		if(src.last_message_count >= SPAM_TRIGGER_AUTOMUTE)
-			src << "<span class='danger'>You have exceeded the spam filter limit for identical messages. An auto-mute was applied.</span>"
-			cmd_admin_mute(src, mute_type, 1)
+			src << "\red You have exceeded the spam filter limit for identical messages. An auto-mute was applied."
+			cmd_admin_mute(src.mob, mute_type, 1)
 			return 1
 		if(src.last_message_count >= SPAM_TRIGGER_WARNING)
-			src << "<span class='danger'>You are nearing the spam filter limit for identical messages.</span>"
+			src << "\red You are nearing the spam filter limit for identical messages."
 			return 0
 	else
 		last_message = message
@@ -91,24 +102,26 @@
 	///////////
 	//CONNECT//
 	///////////
-#if (PRELOAD_RSC == 0)
-var/list/external_rsc_urls
-var/next_external_rsc = 0
-#endif
-
 /client/New(TopicData)
 	TopicData = null							//Prevent calls to client.Topic from connect
 
-	if(connection != "seeker" && connection != "web")//Invalid connection type.
+	if(!(connection in list("seeker", "web")))					//Invalid connection type.
 		return null
 	if(byond_version < MIN_CLIENT_VERSION)		//Out of date client.
 		return null
 
-#if (PRELOAD_RSC == 0)
-	if(external_rsc_urls && external_rsc_urls.len)
-		next_external_rsc = Wrap(next_external_rsc+1, 1, external_rsc_urls.len+1)
-		preload_rsc = external_rsc_urls[next_external_rsc]
-#endif
+	if(!config.guests_allowed && IsGuestKey(key))
+		alert(src,"This server doesn't allow guest accounts to play. Please go to http://www.byond.com/ and register for a key.","Guest","OK")
+		del(src)
+		return
+
+	// Change the way they should download resources.
+	if(config.resource_urls)
+		src.preload_rsc = pick(config.resource_urls)
+	else src.preload_rsc = 1 // If config.resource_urls is not set, preload like normal.
+
+	src << "\red If the title screen is black, resources are still downloading. Please be patient until the title screen appears."
+
 
 	clients += src
 	directory[ckey] = src
@@ -118,12 +131,6 @@ var/next_external_rsc = 0
 	if(holder)
 		admins += src
 		holder.owner = src
-
-	//Admin Authorisation
-	var/mentor = mentor_datums[ckey]
-	if(mentor)
-		verbs += /client/proc/cmd_mentor_say
-		mentors += src
 
 	//preferences datum - also holds some persistant data for the client (because we may as well keep these datums to a minimum)
 	prefs = preferences_datums[ckey]
@@ -135,6 +142,12 @@ var/next_external_rsc = 0
 
 	. = ..()	//calls mob.Login()
 
+	if(custom_event_msg && custom_event_msg != "")
+		src << "<h1 class='alert'>Custom Event</h1>"
+		src << "<h2 class='alert'>A custom event is taking place. OOC Info:</h2>"
+		src << "<span class='alert'>[custom_event_msg]</span>"
+		src << "<br>"
+
 	if( (world.address == address || !address) && !host )
 		host = key
 		world.update_status()
@@ -142,26 +155,27 @@ var/next_external_rsc = 0
 	if(holder)
 		add_admin_verbs()
 		admin_memo_show()
-		if((global.comms_key == "default_pwd" || length(global.comms_key) <= 6) && global.comms_allowed) //It's the default value or less than 6 characters long, but it somehow didn't disable comms.
-			src << "<span class='danger'>The server's API key is either too short or is the default value! Consider changing it immediately!</span>"
 
-	add_verbs_from_config()
-	set_client_age_from_db()
+	// Forcibly enable hardware-accelerated graphics, as we need them for the lighting overlays.
+	// (but turn them off first, since sometimes BYOND doesn't turn them on properly otherwise)
+	spawn(5) // And wait a half-second, since it sounds like you can do this too fast.
+		if(src)
+			winset(src, null, "command=\".configure graphics-hwmode off\"")
+			sleep(2) // wait a bit more, possibly fixes hardware mode not re-activating right
+			winset(src, null, "command=\".configure graphics-hwmode on\"")
 
-	if (!ticker || ticker.current_state == GAME_STATE_PREGAME)
-		spawn (rand(10,150))
-			if (src)
-				sync_client_with_db()
-	else
-		sync_client_with_db()
+	log_client_to_db()
 
 	send_resources()
+	nanomanager.send_resources(src)
 
 	if(prefs.lastchangelog != changelog_hash) //bolds the changelog button on the interface so we know there are updates.
-		changes()
+		src << "<span class='info'>You have unread updates in the changelog.</span>"
+		winset(src, "rpane.changelog", "background-color=#eaeaea;font-style=bold")
+		if(config.aggressive_changelog)
+			src.changes()
 
-	spawn()
-		goodcurity = src.mob.check_achievement("Goodcurity", src.key)
+
 
 	//////////////
 	//DISCONNECT//
@@ -175,80 +189,89 @@ var/next_external_rsc = 0
 	return ..()
 
 
-/client/proc/set_client_age_from_db()
-	if (IsGuestKey(src.key))
+// here because it's similar to below
+
+// Returns null if no DB connection can be established, or -1 if the requested key was not found in the database
+
+/proc/get_player_age(key)
+	establish_db_connection()
+	if(!dbcon.IsConnected())
+		return null
+
+	var/sql_ckey = sql_sanitize_text(ckey(key))
+
+	var/DBQuery/query = dbcon.NewQuery("SELECT datediff(Now(),firstseen) as age FROM erro_player WHERE ckey = '[sql_ckey]'")
+	query.Execute()
+
+	if(query.NextRow())
+		return text2num(query.item[1])
+	else
+		return -1
+
+
+/client/proc/log_client_to_db()
+
+	if ( IsGuestKey(src.key) )
 		return
 
 	establish_db_connection()
 	if(!dbcon.IsConnected())
 		return
 
-	var/sql_ckey = sanitizeSQL(src.ckey)
+	var/sql_ckey = sql_sanitize_text(src.ckey)
 
-	var/DBQuery/query = dbcon.NewQuery("SELECT id, datediff(Now(),firstseen) as age FROM [format_table_name("player")] WHERE ckey = '[sql_ckey]'")
+	var/DBQuery/query = dbcon.NewQuery("SELECT id, datediff(Now(),firstseen) as age FROM erro_player WHERE ckey = '[sql_ckey]'")
 	query.Execute()
-
-	while (query.NextRow())
+	var/sql_id = 0
+	player_age = 0	// New players won't have an entry so knowing we have a connection we set this to zero to be updated if their is a record.
+	while(query.NextRow())
+		sql_id = query.item[1]
 		player_age = text2num(query.item[2])
-		return
-	// player not found.
-	player_age = 0
-	message_admins("[key_name_admin(src)] is connecting here for the first time.")
+		break
 
-/client/proc/sync_client_with_db()
-	if (IsGuestKey(src.key))
-		return
-
-	establish_db_connection()
-	if (!dbcon.IsConnected())
-		return
-
-	var/sql_ckey = sanitizeSQL(src.ckey)
-
-	var/DBQuery/query_ip = dbcon.NewQuery("SELECT ckey FROM [format_table_name("player")] WHERE ip = '[address]' AND ckey != '[sql_ckey]'")
+	var/DBQuery/query_ip = dbcon.NewQuery("SELECT ckey FROM erro_player WHERE ip = '[address]'")
 	query_ip.Execute()
 	related_accounts_ip = ""
-
 	while(query_ip.NextRow())
-		var/DBQuery/query = dbcon.NewQuery("SELECT ckey, a_ckey, reason FROM [format_table_name("ban")] WHERE (ip = '[address]') AND (bantype = 'PERMABAN'  OR (bantype = 'TEMPBAN' AND expiration_time > Now())) AND isnull(unbanned)")
-		query.Execute()
-		while(query.NextRow())
-			message_admins("<font color='red'><B>Notice: </B><font color='blue'>User [src.key] has related account found via computer IP which is <bold>CURRENTLY</bold> banned: [query.item[1]] they were banned for <bold>[query.item[3]]</bold> by <bold>[query.item[2]]</font>")
+		related_accounts_ip += "[query_ip.item[1]], "
+		break
 
-		related_accounts_ip += "[query_ip.item[1]],"
-
-	var/DBQuery/query_cid = dbcon.NewQuery("SELECT ckey FROM [format_table_name("player")] WHERE computerid = '[computer_id]' AND ckey != '[sql_ckey]'")
+	var/DBQuery/query_cid = dbcon.NewQuery("SELECT ckey FROM erro_player WHERE computerid = '[computer_id]'")
 	query_cid.Execute()
 	related_accounts_cid = ""
+	while(query_cid.NextRow())
+		related_accounts_cid += "[query_cid.item[1]], "
+		break
 
-	while (query_cid.NextRow())
-		var/DBQuery/query = dbcon.NewQuery("SELECT a_ckey, reason FROM [format_table_name("ban")] WHERE (ckey = '[query_cid.item[1]]') AND (bantype = 'PERMABAN'  OR (bantype = 'TEMPBAN' AND expiration_time > Now())) AND isnull(unbanned)")
-		query.Execute()
-		while(query.NextRow())
-			message_admins("<font color='red'><B>Notice: </B><font color='blue'>User [src.key] has related account found via computer ID which is <bold>CURRENTLY</bold> banned: [query_cid.item[1]] they were banned for <bold>[query.item[2]]</bold> by <bold>[query.item[1]]</bold></font>")
-
-		related_accounts_cid += "[query_cid.item[1]],"
+	//Just the standard check to see if it's actually a number
+	if(sql_id)
+		if(istext(sql_id))
+			sql_id = text2num(sql_id)
+		if(!isnum(sql_id))
+			return
 
 	var/admin_rank = "Player"
-	if (src.holder && src.holder.rank)
-		admin_rank = src.holder.rank.name
+	if(src.holder)
+		admin_rank = src.holder.rank
 
-	var/sql_ip = sanitizeSQL(src.address)
-	var/sql_computerid = sanitizeSQL(src.computer_id)
-	var/sql_admin_rank = sanitizeSQL(admin_rank)
+	var/sql_ip = sql_sanitize_text(src.address)
+	var/sql_computerid = sql_sanitize_text(src.computer_id)
+	var/sql_admin_rank = sql_sanitize_text(admin_rank)
 
 
-	var/DBQuery/query_insert = dbcon.NewQuery("INSERT INTO [format_table_name("player")] (id, ckey, firstseen, lastseen, ip, computerid, lastadminrank) VALUES (null, '[sql_ckey]', Now(), Now(), '[sql_ip]', '[sql_computerid]', '[sql_admin_rank]') ON DUPLICATE KEY UPDATE lastseen = VALUES(lastseen), ip = VALUES(ip), computerid = VALUES(computerid), lastadminrank = VALUES(lastadminrank)")
-	query_insert.Execute()
+	if(sql_id)
+		//Player already identified previously, we need to just update the 'lastseen', 'ip' and 'computer_id' variables
+		var/DBQuery/query_update = dbcon.NewQuery("UPDATE erro_player SET lastseen = Now(), ip = '[sql_ip]', computerid = '[sql_computerid]', lastadminrank = '[sql_admin_rank]' WHERE id = [sql_id]")
+		query_update.Execute()
+	else
+		//New player!! Need to insert all the stuff
+		var/DBQuery/query_insert = dbcon.NewQuery("INSERT INTO erro_player (id, ckey, firstseen, lastseen, ip, computerid, lastadminrank) VALUES (null, '[sql_ckey]', Now(), Now(), '[sql_ip]', '[sql_computerid]', '[sql_admin_rank]')")
+		query_insert.Execute()
 
 	//Logging player access
 	var/serverip = "[world.internet_address]:[world.port]"
-	var/DBQuery/query_accesslog = dbcon.NewQuery("INSERT INTO `[format_table_name("connection_log")]` (`id`,`datetime`,`serverip`,`ckey`,`ip`,`computerid`) VALUES(null,Now(),'[serverip]','[sql_ckey]','[sql_ip]','[sql_computerid]');")
+	var/DBQuery/query_accesslog = dbcon.NewQuery("INSERT INTO `erro_connection_log`(`id`,`datetime`,`serverip`,`ckey`,`ip`,`computerid`) VALUES(null,Now(),'[serverip]','[sql_ckey]','[sql_ip]','[sql_computerid]');")
 	query_accesslog.Execute()
-
-/client/proc/add_verbs_from_config()
-	if(config.see_own_notes)
-		verbs += /client/proc/self_notes
 
 
 #undef TOPIC_SPAM_DELAY
@@ -264,45 +287,18 @@ var/next_external_rsc = 0
 //send resources to the client. It's here in its own proc so we can move it around easiliy if need be
 /client/proc/send_resources()
 
-	spawn
-		// Preload the HTML interface. This needs to be done due to BYOND bug http://www.byond.com/forum/?post=1487244
-		var/datum/html_interface/hi
-		for (var/type in typesof(/datum/html_interface))
-			hi = new type(null)
-			hi.sendResources(src)
-
 	getFiles(
-		'nano/js/libraries.min.js',
-		'nano/js/nano_update.js',
-		'nano/js/nano_config.js',
-		'nano/js/nano_base_helpers.js',
-		'nano/css/shared.css',
-		'nano/css/icons.css',
-		'nano/templates/chem_dispenser.tmpl',
-		'nano/templates/smes.tmpl',
-		'nano/templates/apc.tmpl',
-		'nano/templates/cryo.tmpl',
-		'nano/images/uiBackground.png',
-		'nano/images/uiIcons16.png',
-		'nano/images/uiIcons24.png',
-		'nano/images/uiLinkPendingIcon.gif',
-		'nano/images/uiNoticeBackground.jpg',
-		'nano/images/uiTitleFluff.png',
 		'html/search.js',
 		'html/panels.css',
-		'html/browser/common.css',
-		'html/browser/scannernew.css',
-		'html/browser/playeroptions.css',
+		'html/images/loading.gif',
+		'html/images/ntlogo.png',
+		'html/images/talisman.png',
 		'icons/pda_icons/pda_atmos.png',
 		'icons/pda_icons/pda_back.png',
 		'icons/pda_icons/pda_bell.png',
 		'icons/pda_icons/pda_blank.png',
 		'icons/pda_icons/pda_boom.png',
 		'icons/pda_icons/pda_bucket.png',
-		'icons/pda_icons/pda_chatroom.png',
-		'icons/pda_icons/pda_medbot.png',
-		'icons/pda_icons/pda_floorbot.png',
-		'icons/pda_icons/pda_cleanbot.png',
 		'icons/pda_icons/pda_crate.png',
 		'icons/pda_icons/pda_cuffs.png',
 		'icons/pda_icons/pda_eject.png',
@@ -334,16 +330,16 @@ var/next_external_rsc = 0
 		'icons/spideros_icons/sos_11.png',
 		'icons/spideros_icons/sos_12.png',
 		'icons/spideros_icons/sos_13.png',
-		'icons/spideros_icons/sos_14.png',
-		'icons/stamp_icons/large_stamp-clown.png',
-		'icons/stamp_icons/large_stamp-deny.png',
-		'icons/stamp_icons/large_stamp-ok.png',
-		'icons/stamp_icons/large_stamp-hop.png',
-		'icons/stamp_icons/large_stamp-cmo.png',
-		'icons/stamp_icons/large_stamp-ce.png',
-		'icons/stamp_icons/large_stamp-hos.png',
-		'icons/stamp_icons/large_stamp-rd.png',
-		'icons/stamp_icons/large_stamp-cap.png',
-		'icons/stamp_icons/large_stamp-qm.png',
-		'icons/stamp_icons/large_stamp-law.png'
+		'icons/spideros_icons/sos_14.png'
 		)
+
+
+mob/proc/MayRespawn()
+	return 0
+
+client/proc/MayRespawn()
+	if(mob)
+		return mob.MayRespawn()
+
+	// Something went wrong, client is usually kicked or transfered to a new mob at this point
+	return 0

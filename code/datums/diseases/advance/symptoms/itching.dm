@@ -24,7 +24,6 @@ BONUS
 	stage_speed = 3
 	transmittable = 1
 	level = 1
-	severity = 1
 
 /datum/symptom/itching/Activate(var/datum/disease/advance/A)
 	..()

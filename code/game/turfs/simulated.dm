@@ -8,88 +8,120 @@
 	nitrogen = MOLES_N2STANDARD
 	var/to_be_destroyed = 0 //Used for fire, if a melting temperature was reached, it will be destroyed
 	var/max_fire_temperature_sustained = 0 //The max temperature of the fire which it was subjected to
+	var/dirt = 0
 
 /turf/simulated/New()
 	..()
+	if(istype(loc, /area/chapel))
+		holy = 1
 	levelupdate()
 
-/turf/simulated/proc/MakeSlippery(var/wet_setting = 1) // 1 = Water, 2 = Lube
-	if(wet >= wet_setting)
-		return
-	wet = wet_setting
-	if(wet_setting == 1)
-		if(wet_overlay)
-			overlays -= wet_overlay
-			wet_overlay = null
-		wet_overlay = image('icons/effects/water.dmi', src, "wet_floor_static")
-		overlays += wet_overlay
-
-	spawn(rand(790, 820)) // Purely so for visual effect
-		if(!istype(src, /turf/simulated)) //Because turfs don't get deleted, they change, adapt, transform, evolve and deform. they are one and they are all.
-			return
-		if(wet > wet_setting) return
-		wet = 0
-		if(wet_overlay)
-			overlays -= wet_overlay
-
-/turf/simulated/Entered(atom/A, atom/OL)
-	..()
-	if (istype(A,/mob/living/carbon))
-		var/mob/living/carbon/M = A
-		if(M.lying)	return
-		if(istype(M, /mob/living/carbon/human))
-			var/mob/living/carbon/human/H = M
-
-			if(H.pinned_to) //Pinning removal on forced movement... please don't yell at me, this is the only way to reliably do it
-				H.do_pindown(H.pinned_to, 0)
-				H.pinned_to = null
-				H.anchored = 0
-				H.update_canmove()
-
-			var/bloodcolor
-			// Tracking blood
-			var/list/blood_DNA = list()
-			var/new_track_blood = 0
-			var/obj/item/clothing/shoes/S
-			if(H.shoes)
-				S = H.shoes
-				if(S.track_blood && S.blood_DNA)
-					blood_DNA |= S.blood_DNA.Copy()
-					bloodcolor = S.blood_color
-					new_track_blood = S.track_blood
-			else
-				if(H.track_blood && H.feet_blood_DNA)
-					blood_DNA |= H.feet_blood_DNA.Copy()
-					bloodcolor = H.feet_blood_color
-					new_track_blood = H.track_blood
-
-			if (blood_DNA.len)
-				src.AddTracks(/obj/effect/decal/cleanable/blood/trackss/footprints,blood_DNA,H.dir,0,new_track_blood,bloodcolor) // Coming
-				new_track_blood -= 0.5
-				var/turf/simulated/from = get_step(H,reverse_direction(H.dir))
-				if(istype(from) && from)
-					from.AddTracks(/obj/effect/decal/cleanable/blood/trackss/footprints,blood_DNA,0,H.dir,new_track_blood,bloodcolor) // Going
-					new_track_blood -= 0.5
-
-			if(S)
-				S.track_blood = new_track_blood
-			else
-				H.track_blood = new_track_blood
-
-			blood_DNA = null
-
-		switch (src.wet)
-			if(1) //wet floor
-				if(!M.slip(4, 2, null, (NO_SLIP_WHEN_WALKING|STEP)))
-					M.inertia_dir = 0
-				return
-
-			if(2) //lube
-				M.slip(0, 7, null, (STEP|SLIDE|GALOSHES_DONT_HELP))
-
-/turf/simulated/proc/AddTracks(var/typepath,var/bloodDNA,var/comingdir,var/goingdir,var/bloodamt,var/bloodcolor="#A10808")
-	// world.log << "Called AddTracks for turf"
-	var/obj/effect/decal/cleanable/blood/trackss/tracks = locate(typepath) in src
+/turf/simulated/proc/AddTracks(var/typepath,var/bloodDNA,var/comingdir,var/goingdir,var/bloodcolor="#A10808")
+	var/obj/effect/decal/cleanable/blood/tracks/tracks = locate(typepath) in src
 	if(!tracks)
 		tracks = new typepath(src)
-	tracks.AddTracks(bloodDNA,comingdir,goingdir,bloodamt, bloodcolor)
+	tracks.AddTracks(bloodDNA,comingdir,goingdir,bloodcolor)
+
+/turf/simulated/Entered(atom/A, atom/OL)
+	if(movement_disabled && usr.ckey != movement_disabled_exception)
+		usr << "\red Movement is admin-disabled." //This is to identify lag problems
+		return
+
+	if (istype(A,/mob/living))
+		var/mob/living/M = A
+		if(M.lying)
+			..()
+			return
+
+		// Ugly hack :( Should never have multiple plants in the same tile.
+		var/obj/effect/plant/plant = locate() in contents
+		if(plant) plant.trodden_on(M)
+
+		// Dirt overlays.
+		dirt++
+		var/obj/effect/decal/cleanable/dirt/dirtoverlay = locate(/obj/effect/decal/cleanable/dirt, src)
+		if (dirt >= 50)
+			if (!dirtoverlay)
+				dirtoverlay = new/obj/effect/decal/cleanable/dirt(src)
+				dirtoverlay.alpha = 15
+			else if (dirt > 50)
+				dirtoverlay.alpha = min(dirtoverlay.alpha+5, 255)
+
+		if(istype(M, /mob/living/carbon/human))
+			var/mob/living/carbon/human/H = M
+			// Tracking blood
+			var/list/bloodDNA = null
+			var/bloodcolor=""
+			if(H.shoes)
+				var/obj/item/clothing/shoes/S = H.shoes
+				if(istype(S))
+					S.handle_movement(src,(H.m_intent == "run" ? 1 : 0))
+					if(S.track_blood && S.blood_DNA)
+						bloodDNA = S.blood_DNA
+						bloodcolor=S.blood_color
+						S.track_blood--
+			else
+				if(H.track_blood && H.feet_blood_DNA)
+					bloodDNA = H.feet_blood_DNA
+					bloodcolor = H.feet_blood_color
+					H.track_blood--
+
+			if (bloodDNA)
+				src.AddTracks(/obj/effect/decal/cleanable/blood/tracks/footprints,bloodDNA,H.dir,0,bloodcolor) // Coming
+				var/turf/simulated/from = get_step(H,reverse_direction(H.dir))
+				if(istype(from) && from)
+					from.AddTracks(/obj/effect/decal/cleanable/blood/tracks/footprints,bloodDNA,0,H.dir,bloodcolor) // Going
+
+				bloodDNA = null
+
+		if(src.wet)
+
+			if(M.buckled || (src.wet == 1 && M.m_intent == "walk"))
+				return
+
+			var/slip_dist = 1
+			var/slip_stun = 6
+			var/floor_type = "wet"
+
+			switch(src.wet)
+				if(2) // Lube
+					floor_type = "slippery"
+					slip_dist = 4
+					slip_stun = 10
+				if(3) // Ice
+					floor_type = "icy"
+					slip_stun = 4
+
+			if(M.slip("the [floor_type] floor",slip_stun))
+				for(var/i = 0;i<slip_dist;i++)
+					step(M, M.dir)
+					sleep(1)
+			else
+				M.inertia_dir = 0
+		else
+			M.inertia_dir = 0
+
+	..()
+
+//returns 1 if made bloody, returns 0 otherwise
+/turf/simulated/add_blood(mob/living/carbon/human/M as mob)
+	if (!..())
+		return 0
+
+	if(istype(M))
+		for(var/obj/effect/decal/cleanable/blood/B in contents)
+			if(!B.blood_DNA[M.dna.unique_enzymes])
+				B.blood_DNA[M.dna.unique_enzymes] = M.dna.b_type
+				B.virus2 = virus_copylist(M.virus2)
+			return 1 //we bloodied the floor
+		blood_splatter(src,M.get_blood(M.vessel),1)
+		return 1 //we bloodied the floor
+	return 0
+
+// Only adds blood on the floor -- Skie
+/turf/simulated/proc/add_blood_floor(mob/living/carbon/M as mob)
+	if( istype(M, /mob/living/carbon/alien ))
+		var/obj/effect/decal/cleanable/blood/xeno/this = new /obj/effect/decal/cleanable/blood/xeno(src)
+		this.blood_DNA["UNKNOWN BLOOD"] = "X*"
+	else if( istype(M, /mob/living/silicon/robot ))
+		new /obj/effect/decal/cleanable/blood/oil(src)

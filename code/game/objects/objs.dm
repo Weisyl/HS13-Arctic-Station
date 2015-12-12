@@ -1,24 +1,52 @@
 /obj
-	languages = HUMAN
-	//var/datum/module/mod		//not used
+	//Used to store information about the contents of the object.
+	var/list/matter
+
+	var/origin_tech = null	//Used by R&D to determine what research bonuses it grants.
+	var/reliability = 100	//Used by SOME devices to determine how reliable they are.
 	var/crit_fail = 0
 	var/unacidable = 0 //universal "unacidabliness" var, here so you can use it in any obj.
 	animate_movement = 2
-	var/throwforce = 0
+	var/throwforce = 1
+	var/list/attack_verb = list() //Used in attackby() to say how something was attacked "[x] has been [z.attack_verb] by [y] with [z]"
+	var/sharp = 0		// whether this object cuts
+	var/edge = 0		// whether this object is more likely to dismember
 	var/in_use = 0 // If we have a user using us, this will be set on. We will check if the user has stopped using us, and thus stop updating and LAGGING EVERYTHING!
 
 	var/damtype = "brute"
 	var/force = 0
-	var/closet_exception = 0 //So you can put the movables like remains in closets/coffins.
+
+/obj/Destroy()
+	processing_objects -= src
+	nanomanager.close_uis(src)
+	return ..()
+
+/obj/Topic(href, href_list, var/nowindow = 0, var/datum/topic_state/state = default_state)
+	// Calling Topic without a corresponding window open causes runtime errors
+	if(!nowindow && ..())
+		return 1
+
+	// In the far future no checks are made in an overriding Topic() beyond if(..()) return
+	// Instead any such checks are made in CanUseTopic()
+	if(CanUseTopic(usr, state, href_list) == STATUS_INTERACTIVE)
+		CouldUseTopic(usr)
+		return 0
+
+	CouldNotUseTopic(usr)
+	return 1
+
+/obj/proc/CouldUseTopic(var/mob/user)
+	var/atom/host = nano_host()
+	host.add_fingerprint(user)
+
+/obj/proc/CouldNotUseTopic(var/mob/user)
+	// Nada
+
+/obj/item/proc/is_used_on(obj/O, mob/user)
 
 /obj/proc/process()
 	processing_objects.Remove(src)
 	return 0
-
-/obj/Destroy()
-	if(!istype(src, /obj/machinery))
-		processing_objects.Remove(src) // TODO: Have a processing bitflag to reduce on unnecessary loops through the processing lists
-	..()
 
 /obj/assume_air(datum/gas_mixture/giver)
 	if(loc)
@@ -38,22 +66,6 @@
 	else
 		return null
 
-/obj/proc/handle_internal_lifeform(mob/lifeform_inside_me, breath_request)
-	//Return: (NONSTANDARD)
-	//		null if object handles breathing logic for lifeform
-	//		datum/air_group to tell lifeform to process using that breath return
-	//DEFAULT: Take air from turf to give to have mob process
-
-	if(breath_request>0)
-		var/datum/gas_mixture/environment = return_air()
-		var/breath_percentage = BREATH_VOLUME / environment.return_volume()
-		return remove_air(environment.total_moles() * breath_percentage)
-	else
-		return null
-
-/atom/movable/proc/initialize()
-	return
-
 /obj/proc/updateUsrDialog()
 	if(in_use)
 		var/is_in_use = 0
@@ -70,11 +82,10 @@
 
 		// check for TK users
 
-		if(ishuman(usr))
-			var/mob/living/carbon/human/H = usr
-			if(!(usr in nearby))
-				if(usr.client && usr.machine==src)
-					if(TK in H.mutations)
+		if (istype(usr, /mob/living/carbon/human))
+			if(istype(usr.l_hand, /obj/item/tk_grab) || istype(usr.r_hand, /obj/item/tk_grab/))
+				if(!(usr in nearby))
+					if(usr.client && usr.machine==src)
 						is_in_use = 1
 						src.attack_hand(usr)
 		in_use = is_in_use
@@ -94,9 +105,6 @@
 			in_use = 0
 
 /obj/proc/interact(mob/user)
-	return
-
-/obj/proc/container_resist()
 	return
 
 /obj/proc/update_icon()
@@ -124,34 +132,17 @@
 /obj/proc/hide(h)
 	return
 
-/obj/ex_act(severity, target)
-	if(severity == 1 || target == src)
-		qdel(src)
-	else if(severity == 2)
-		if(prob(50))
-			qdel(src)
-	if(!gc_destroyed)
-		..()
 
-//If a mob logouts/logins in side of an object you can use this proc
-/obj/proc/on_log()
-	..()
-	if(isobj(loc))
-		var/obj/Loc=loc
-		Loc.on_log()
+/obj/proc/hear_talk(mob/M as mob, text, verb, datum/language/speaking)
+	if(talking_atom)
+		talking_atom.catchMessage(text, M)
+/*
+	var/mob/mo = locate(/mob) in src
+	if(mo)
+		var/rendered = "<span class='game say'><span class='name'>[M.name]: </span> <span class='message'>[text]</span></span>"
+		mo.show_message(rendered, 2)
+		*/
+	return
 
-/obj/singularity_act()
-	ex_act(1.0)
-	if(src && isnull(gc_destroyed))
-		qdel(src)
-	return 2
-
-/obj/singularity_pull(S, current_size)
-	if(anchored)
-		if(current_size >= STAGE_FIVE)
-			anchored = 0
-			step_towards(src,S)
-	else step_towards(src,S)
-
-/obj/proc/Deconstruct()
-	qdel(src)
+/obj/proc/see_emote(mob/M as mob, text, var/emote_type)
+	return

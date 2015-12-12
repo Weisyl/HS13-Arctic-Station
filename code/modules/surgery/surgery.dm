@@ -1,66 +1,137 @@
-/datum/surgery
-	var/name = "surgery"
-	var/status = 1
-	var/list/steps = list()										//Steps in a surgery
-	var/step_in_progress = 0									//Actively performing a Surgery
-	var/list/species = list(/mob/living/carbon/human)			//Acceptable Species
-	var/location = "chest"										//Surgery location
-	var/target_must_be_dead = 0									//Needs to be dead
-	var/target_must_be_fat = 0									//Needs to be fat
-	var/requires_organic_chest = 0								//Prevents you from performing an operation on Robotic chests***
-	var/has_multi_loc = 0 										//Multiple locations - RR
-	var/ignore_clothes = 0
+/* SURGERY STEPS */
 
-	var/user_species_restricted = 0								//Surgery only performable BY species
-	var/list/user_species_ids
+/datum/surgery_step
+	var/priority = 0	//steps with higher priority would be attempted first
 
-	// v This is broken atm. It only works for INITIATING surgery, doesn't actually work for PERFORMING it. v
-	// var/must_be_lying = 1										//Checks if the human/monkey must be lying down to perform surgery.
+	// type path referencing tools that can be used for this step, and how well are they suited for it
+	var/list/allowed_tools = null
+	// type paths referencing races that this step applies to.
+	var/list/allowed_species = null
+	var/list/disallowed_species = null
+
+	// duration of the step
+	var/min_duration = 0
+	var/max_duration = 0
+
+	// evil infection stuff that will make everyone hate me
+	var/can_infect = 0
+	//How much blood this step can get on surgeon. 1 - hands, 2 - full body.
+	var/blood_level = 0
+
+	//returns how well tool is suited for this step
+	proc/tool_quality(obj/item/tool)
+		for (var/T in allowed_tools)
+			if (istype(tool,T))
+				return allowed_tools[T]
+		return 0
+
+	// Checks if this step applies to the user mob at all
+	proc/is_valid_target(mob/living/carbon/human/target)
+		if(!hasorgans(target))
+			return 0
+
+		if(allowed_species)
+			for(var/species in allowed_species)
+				if(target.species.get_bodytype() == species)
+					return 1
+
+		if(disallowed_species)
+			for(var/species in disallowed_species)
+				if(target.species.get_bodytype() == species)
+					return 0
+
+		return 1
 
 
-/datum/surgery/proc/next_step(mob/user, mob/living/carbon/target)
-	if(step_in_progress)	return
+	// checks whether this step can be applied with the given user and target
+	proc/can_use(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
+		return 0
 
-	var/datum/surgery_step/S = get_surgery_step()
-	if(S)
-		if(S.try_op(user, target, user.zone_sel.selecting, user.get_active_hand(), src))
-			return 1
+	// does stuff to begin the step, usually just printing messages. Moved germs transfering and bloodying here too
+	proc/begin_step(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
+		var/obj/item/organ/external/affected = target.get_organ(target_zone)
+		if (can_infect && affected)
+			spread_germs_to_organ(affected, user)
+		if (ishuman(user) && prob(60))
+			var/mob/living/carbon/human/H = user
+			if (blood_level)
+				H.bloody_hands(target,0)
+			if (blood_level > 1)
+				H.bloody_body(target,0)
+		return
+
+	// does stuff to end the step, which is normally print a message + do whatever this step changes
+	proc/end_step(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
+		return
+
+	// stuff that happens when the step fails
+	proc/fail_step(mob/living/user, mob/living/carbon/human/target, target_zone, obj/item/tool)
+		return null
+
+proc/spread_germs_to_organ(var/obj/item/organ/external/E, var/mob/living/carbon/human/user)
+	if(!istype(user) || !istype(E)) return
+
+	var/germ_level = user.germ_level
+	if(user.gloves)
+		germ_level = user.gloves.germ_level
+
+	E.germ_level = max(germ_level,E.germ_level) //as funny as scrubbing microbes out with clean gloves is - no.
+
+proc/do_surgery(mob/living/carbon/M, mob/living/user, obj/item/tool)
+	if(!istype(M))
+		return 0
+	if (user.a_intent == I_HURT)	//check for Hippocratic Oath
+		return 0
+	var/zone = user.zone_sel.selecting
+	if(zone in M.op_stage.in_progress) //Can't operate on someone repeatedly.
+		user << "\red You can't operate on this area while surgery is already in progress."
+		return 1
+	for(var/datum/surgery_step/S in surgery_steps)
+		//check if tool is right or close enough and if this step is possible
+		if(S.tool_quality(tool))
+			var/step_is_valid = S.can_use(user, M, zone, tool)
+			if(step_is_valid && S.is_valid_target(M))
+				if(step_is_valid == 2) // This is a failure that already has a message for failing.
+					return 1
+				M.op_stage.in_progress += zone
+				S.begin_step(user, M, zone, tool)		//start on it
+				//We had proper tools! (or RNG smiled.) and user did not move or change hands.
+				if(prob(S.tool_quality(tool)) &&  do_mob(user, M, rand(S.min_duration, S.max_duration)))
+					S.end_step(user, M, zone, tool)		//finish successfully
+				else if ((tool in user.contents) && user.Adjacent(M))			//or
+					S.fail_step(user, M, zone, tool)		//malpractice~
+				else // This failing silently was a pain.
+					user << "\red You must remain close to your patient to conduct surgery."
+				M.op_stage.in_progress -= zone 									// Clear the in-progress flag.
+				if (ishuman(M))
+					var/mob/living/carbon/human/H = M
+					H.update_surgery()
+				return	1	  												//don't want to do weapony things after surgery
+
+	if (user.a_intent == I_HELP)
+		user << "\red You can't see any useful way to use [tool] on [M]."
+		return 1
 	return 0
 
-/datum/surgery/proc/get_surgery_step()
-	var/step_type = steps[status]
-	return new step_type
+proc/sort_surgeries()
+	var/gap = surgery_steps.len
+	var/swapped = 1
+	while (gap > 1 || swapped)
+		swapped = 0
+		if(gap > 1)
+			gap = round(gap / 1.247330950103979)
+		if(gap < 1)
+			gap = 1
+		for(var/i = 1; gap + i <= surgery_steps.len; i++)
+			var/datum/surgery_step/l = surgery_steps[i]		//Fucking hate
+			var/datum/surgery_step/r = surgery_steps[gap+i]	//how lists work here
+			if(l.priority < r.priority)
+				surgery_steps.Swap(i, gap + i)
+				swapped = 1
 
-
-/datum/surgery/proc/complete(mob/living/carbon/human/target)
-	target.surgeries -= src
-	src = null
-
-
-
-//INFO
-//Check /mob/living/carbon/attackby for how surgery progresses, and also /mob/living/carbon/attack_hand.
-//As of Feb 21 2013 they are in code/modules/mob/living/carbon/carbon.dm, lines 459 and 51 respectively.
-//Other important variables are var/list/surgeries (/mob/living) and var/list/internal_organs (/mob/living/carbon)
-// var/list/organs (/mob/living/carbon/human) is the LIMBS of a Mob.
-//Surgical procedures are initiated by attempt_initiate_surgery(), which is called by surgical drapes and bedsheets.
-// /code/modules/surgery/multiple_location_example.dm contains steps to setup a multiple location operation.
-
-
-//TODO
-//specific steps for some surgeries (fluff text)
-//R&D researching new surgeries (especially for non-humans)
-//more interesting failure options
-//randomised complications
-//more surgeries!
-//add a probability modifier for the state of the surgeon- health, twitching, etc. blindness, god forbid.
-//helper for converting a zone_sel.selecting to body part (for damage)
-
-
-//RESOLVED ISSUES //"Todo" jobs that have been completed
-//combine hands/feet into the arms - Hands/feet were removed - RR
-//surgeries (not steps) that can be initiated on any body part (corresponding with damage locations) - Call this one done, see multiple_location_example.dm - RR
-
-
-//*** This may seem entirely redundant because of Organic organs only having operations but you CAN circumvent that due to
-//all surgeries (except augmentation) not checking where the surgeon aims so this is just a double check, it IS needed - RR
+/datum/surgery_status/
+	var/eyes	=	0
+	var/face	=	0
+	var/head_reattach = 0
+	var/current_organ = "organ"
+	var/list/in_progress = list()

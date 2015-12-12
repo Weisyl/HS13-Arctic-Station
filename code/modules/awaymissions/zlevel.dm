@@ -3,8 +3,8 @@ proc/createRandomZlevel()
 		return
 
 	var/list/potentialRandomZlevels = list()
-	world << "<span class='userdanger'>Searching for away missions...</span>"
-	var/list/Lines = file2list("_maps/RandomZLevels/fileList.txt")
+	admin_notice("\red \b Searching for away missions...", R_DEBUG)
+	var/list/Lines = file2list("maps/RandomZLevels/fileList.txt")
 	if(!Lines.len)	return
 	for (var/t in Lines)
 		if (!t)
@@ -21,19 +21,21 @@ proc/createRandomZlevel()
 	//	var/value = null
 
 		if (pos)
-			name = lowertext(copytext(t, 1, pos))
+            // No, don't do lowertext here, that breaks paths on linux
+			name = copytext(t, 1, pos)
 		//	value = copytext(t, pos + 1)
 		else
-			name = lowertext(t)
+            // No, don't do lowertext here, that breaks paths on linux
+			name = t
 
 		if (!name)
 			continue
 
-		potentialRandomZlevels.Add(t)
+		potentialRandomZlevels.Add(name)
 
 
 	if(potentialRandomZlevels.len)
-		world << "<span class='userdanger'>Loading away mission...</span>"
+		admin_notice("\red \b Loading away mission...", R_DEBUG)
 
 		var/map = pick(potentialRandomZlevels)
 		var/file = file(map)
@@ -46,8 +48,8 @@ proc/createRandomZlevel()
 				continue
 			awaydestinations.Add(L)
 
-		world << "<span class='userdanger'>Away mission loaded.</span>"
+		admin_notice("\red \b Away mission loaded.", R_DEBUG)
 
 	else
-		world << "<span class='userdanger'>No away missions found.</span>"
+		admin_notice("\red \b No away missions found.", R_DEBUG)
 		return

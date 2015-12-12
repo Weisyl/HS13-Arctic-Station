@@ -1,5 +1,5 @@
 /obj/effect/mine
-	name = "mine"
+	name = "Mine"
 	desc = "I Better stay away from that thing."
 	density = 1
 	anchored = 1
@@ -19,70 +19,87 @@
 
 	if(triggered) return
 
-	if(istype(M, /mob/living/carbon/human) || istype(M, /mob/living/carbon/monkey))
+	if(istype(M, /mob/living/carbon/human))
 		for(var/mob/O in viewers(world.view, src.loc))
 			O << "<font color='red'>[M] triggered the \icon[src] [src]</font>"
 		triggered = 1
 		call(src,triggerproc)(M)
 
 /obj/effect/mine/proc/triggerrad(obj)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
+	var/datum/effect/effect/system/spark_spread/s = PoolOrNew(/datum/effect/effect/system/spark_spread)
 	s.set_up(3, 1, src)
 	s.start()
 	obj:radiation += 50
 	randmutb(obj)
 	domutcheck(obj,null)
-	qdel(src)
+	spawn(0)
+		qdel(src)
 
 /obj/effect/mine/proc/triggerstun(obj)
 	if(ismob(obj))
 		var/mob/M = obj
 		M.Stun(30)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
+	var/datum/effect/effect/system/spark_spread/s = PoolOrNew(/datum/effect/effect/system/spark_spread)
 	s.set_up(3, 1, src)
 	s.start()
-	qdel(src)
+	spawn(0)
+		qdel(src)
 
 /obj/effect/mine/proc/triggern2o(obj)
-	atmos_spawn_air("n2o", 360)
-	qdel(src)
+	//example: n2o triggerproc
+	//note: im lazy
 
-/obj/effect/mine/proc/triggerplasma(obj)
-	atmos_spawn_air(SPAWN_HEAT | SPAWN_TOXINS, 360)
-	qdel(src)
+	for (var/turf/simulated/floor/target in range(1,src))
+		if(!target.blocks_air)
+			target.assume_gas("sleeping_agent", 30)
+
+	spawn(0)
+		qdel(src)
+
+/obj/effect/mine/proc/triggerphoron(obj)
+	for (var/turf/simulated/floor/target in range(1,src))
+		if(!target.blocks_air)
+			target.assume_gas("phoron", 30)
+
+			target.hotspot_expose(1000, CELL_VOLUME)
+
+	spawn(0)
+		qdel(src)
 
 /obj/effect/mine/proc/triggerkick(obj)
-	var/datum/effect/effect/system/spark_spread/s = new /datum/effect/effect/system/spark_spread
+	var/datum/effect/effect/system/spark_spread/s = PoolOrNew(/datum/effect/effect/system/spark_spread)
 	s.set_up(3, 1, src)
 	s.start()
-	del(obj:client)
-	qdel(src)
+	qdel(obj:client)
+	spawn(0)
+		qdel(src)
 
 /obj/effect/mine/proc/explode(obj)
 	explosion(loc, 0, 1, 2, 3)
-	qdel(src)
+	spawn(0)
+		qdel(src)
 
 /obj/effect/mine/dnascramble
-	name = "radiation mine"
+	name = "Radiation Mine"
 	icon_state = "uglymine"
 	triggerproc = "triggerrad"
 
-/obj/effect/mine/plasma
-	name = "plasma mine"
+/obj/effect/mine/phoron
+	name = "Phoron Mine"
 	icon_state = "uglymine"
-	triggerproc = "triggerplasma"
+	triggerproc = "triggerphoron"
 
 /obj/effect/mine/kick
-	name = "kick mine"
+	name = "Kick Mine"
 	icon_state = "uglymine"
 	triggerproc = "triggerkick"
 
 /obj/effect/mine/n2o
-	name = "\improper N2O mine"
+	name = "N2O Mine"
 	icon_state = "uglymine"
 	triggerproc = "triggern2o"
 
 /obj/effect/mine/stun
-	name = "stun mine"
+	name = "Stun Mine"
 	icon_state = "uglymine"
 	triggerproc = "triggerstun"

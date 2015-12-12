@@ -5,7 +5,6 @@
 	icon_state = "off"
 	density = 1
 	anchored = 1
-	unacidable = 1
 	var/active = 0
 
 
@@ -119,16 +118,15 @@ obj/machinery/gateway/centerstation/process()
 	if(!ready)		return
 	if(!active)		return
 	if(!awaygate)	return
-
 	if(awaygate.calibrated)
 		M.loc = get_step(awaygate.loc, SOUTH)
-		M.dir = SOUTH
+		M.set_dir(SOUTH)
 		return
 	else
 		var/obj/effect/landmark/dest = pick(awaydestinations)
 		if(dest)
 			M.loc = dest.loc
-			M.dir = SOUTH
+			M.set_dir(SOUTH)
 			use_power(5000)
 		return
 
@@ -224,7 +222,7 @@ obj/machinery/gateway/centerstation/process()
 				M << "\black The station gate has detected your exile implant and is blocking your entry."
 				return
 	M.loc = get_step(stationgate.loc, SOUTH)
-	M.dir = SOUTH
+	M.set_dir(SOUTH)
 
 
 /obj/machinery/gateway/centeraway/attackby(obj/item/device/W as obj, mob/user as mob)
@@ -233,6 +231,6 @@ obj/machinery/gateway/centerstation/process()
 			user << "\black The gate is already calibrated, there is no work for you to do here."
 			return
 		else
-			user << "<span class='boldnotice'>Recalibration successful!</span>: \black This gate's systems have been fine tuned.  Travel to this gate will now be on target."
+			user << "\blue <b>Recalibration successful!</b>: \black This gate's systems have been fine tuned.  Travel to this gate will now be on target."
 			calibrated = 1
 			return

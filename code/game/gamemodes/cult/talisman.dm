@@ -2,6 +2,7 @@
 	icon_state = "paper_talisman"
 	var/imbue = null
 	var/uses = 0
+	info = "<center><img src='talisman.png'></center><br/><br/>"
 
 	attack_self(mob/living/user as mob)
 		if(iscultist(user))
@@ -27,14 +28,13 @@
 				if("blind")
 					call(/obj/effect/rune/proc/blind)()
 				if("runestun")
-					user << "<span class='danger'>To use this talisman, attack your target directly.</span>"
+					user << "\red To use this talisman, attack your target directly."
 					return
 				if("supply")
 					supply()
-//			user.take_organ_damage(5, 0)
+			user.take_organ_damage(5, 0)
 			if(src && src.imbue!="supply" && src.imbue!="runestun")
 				if(delete)
-					user.drop_item(src)
 					qdel(src)
 			return
 		else
@@ -45,9 +45,8 @@
 	attack(mob/living/carbon/T as mob, mob/living/user as mob)
 		if(iscultist(user))
 			if(imbue == "runestun")
-				user.take_organ_damage(10, 0)
+				user.take_organ_damage(5, 0)
 				call(/obj/effect/rune/proc/runestun)(T)
-				user.drop_item(src)
 				qdel(src)
 			else
 				..()   ///If its some other talisman, use the generic attack code, is this supposed to work this way?
@@ -69,6 +68,7 @@
 		dat += "<A href='?src=\ref[src];rune=conceal'>Kla'atu barada nikt'o!</A> - Allows you to conceal the runes you placed on the floor.<BR>"
 		dat += "<A href='?src=\ref[src];rune=communicate'>O bidai nabora se'sma!</A> - Allows you to coordinate with others of your cult.<BR>"
 		dat += "<A href='?src=\ref[src];rune=runestun'>Fuu ma'jin</A> - Allows you to stun a person by attacking them with the talisman.<BR>"
+		dat += "<A href='?src=\ref[src];rune=armor'>Sa tatha najin</A> - Allows you to summon armoured robes and an unholy blade<BR>"
 		dat += "<A href='?src=\ref[src];rune=soulstone'>Kal om neth</A> - Summons a soul stone<BR>"
 		dat += "<A href='?src=\ref[src];rune=construct'>Da A'ig Osk</A> - Summons a construct shell for use with captured souls. It is too large to carry on your person.<BR>"
 		usr << browse(dat, "window=id_com;size=350x200")
@@ -82,39 +82,31 @@
 		if (href_list["rune"])
 			switch(href_list["rune"])
 				if("newtome")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "newtome"
 				if("teleport")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "[pick("ire", "ego", "nahlizet", "certum", "veri", "jatkaa", "balaq", "mgar", "karazet", "geeri", "orkan", "allaq")]"
 					T.info = "[T.imbue]"
 				if("emp")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "emp"
 				if("conceal")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "conceal"
 				if("communicate")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "communicate"
 				if("runestun")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "runestun"
 				if("armor")
-					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(usr)
-					usr.put_in_hands(T)
+					var/obj/item/weapon/paper/talisman/T = new /obj/item/weapon/paper/talisman(get_turf(usr))
 					T.imbue = "armor"
 				if("soulstone")
-					var/obj/item/device/soulstone/T = new /obj/item/device/soulstone(usr)
-					usr.put_in_hands(T)
+					new /obj/item/device/soulstone(get_turf(usr))
 				if("construct")
-					new /obj/structure/constructshell(get_turf(usr))
+					new /obj/structure/constructshell/cult(get_turf(usr))
 			src.uses--
 			supply()
 		return
@@ -122,4 +114,4 @@
 
 /obj/item/weapon/paper/talisman/supply
 	imbue = "supply"
-	uses = 3
+	uses = 5

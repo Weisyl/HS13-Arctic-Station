@@ -1,94 +1,102 @@
-/mob/living/carbon/human/gib_animation(var/animate)
-	..(animate, "gibbed-h")
+/mob/living/carbon/human/gib()
 
-/mob/living/carbon/human/dust_animation(var/animate)
-	..(animate, "dust-h")
+	for(var/obj/item/organ/I in internal_organs)
+		I.removed()
+		if(istype(loc,/turf))
+			I.throw_at(get_edge_target_turf(src,pick(alldirs)),rand(1,3),30)
 
-/mob/living/carbon/human/dust(var/animation = 1)
-	..()
+	for(var/obj/item/organ/external/E in src.organs)
+		E.droplimb(0,DROPLIMB_EDGE,1)
 
-/mob/living/carbon/human/spawn_gibs()
-	if(dna)
-		hgibs(loc, viruses, dna)
+	sleep(1)
+
+	for(var/obj/item/I in src)
+		drop_from_inventory(I)
+		I.throw_at(get_edge_target_turf(src,pick(alldirs)), rand(1,3), round(30/I.w_class))
+
+	..(species.gibbed_anim)
+	gibs(loc, viruses, dna, null, species.flesh_color, species.blood_color)
+
+/mob/living/carbon/human/dust()
+	if(species)
+		..(species.dusted_anim, species.remains_type)
 	else
-		hgibs(loc, viruses, null)
-
-/mob/living/carbon/human/spawn_dust()
-	new /obj/effect/decal/remains/human(loc)
+		..()
 
 /mob/living/carbon/human/death(gibbed)
-	if(stat == DEAD)	return
-	if(healths)		healths.icon_state = "health5"
-	stat = DEAD
-	dizziness = 0
-	jitteriness = 0
 
-	if(istype(loc, /obj/mecha))
-		var/obj/mecha/M = loc
-		if(M.occupant == src)
-			M.go_out()
+	if(stat == DEAD) return
 
-	if(!gibbed)
-		emote("deathgasp") //let the world KNOW WE ARE DEAD
+	BITSET(hud_updateflag, HEALTH_HUD)
+	BITSET(hud_updateflag, STATUS_HUD)
+	BITSET(hud_updateflag, LIFE_HUD)
 
-		update_canmove()
-		if(client) blind.layer = 0
+	handle_hud_list()
 
-	if(dna)
-		dna.species.spec_death(gibbed,src)
+	//Handle species-specific deaths.
+	species.handle_death(src)
+	animate_tail_stop()
 
-	tod = worldtime2text()		//weasellos time of death patch
-	if(mind)	mind.store_memory("Time of death: [tod]", 0)
+	//Handle brain slugs.
+	var/obj/item/organ/external/head = get_organ("head")
+	var/mob/living/simple_animal/borer/B
+
+	for(var/I in head.implants)
+		if(istype(I,/mob/living/simple_animal/borer))
+			B = I
+	if(B)
+		if(!B.ckey && ckey && B.controlling)
+			B.ckey = ckey
+			B.controlling = 0
+		if(B.host_brain.ckey)
+			ckey = B.host_brain.ckey
+			B.host_brain.ckey = null
+			B.host_brain.name = "host brain"
+			B.host_brain.real_name = "host brain"
+
+		verbs -= /mob/living/carbon/proc/release_control
+
+	callHook("death", list(src, gibbed))
+
+	if(!gibbed && species.death_sound)
+		playsound(loc, species.death_sound, 80, 1, 1)
+
+
 	if(ticker && ticker.mode)
-//		world.log << "k"
 		sql_report_death(src)
-		ticker.mode.check_win()		//Calls the rounds wincheck, mainly for wizard, malf, and changeling now
-	return ..(gibbed)
+		ticker.mode.check_win()
 
-/mob/living/carbon/human/end_animation(var/animate) //This is the best place to handle this in
-	for(var/obj/item/organ/limb/L in organs)
-		if(L.embedded.len)
-			for(var/obj/item/I in L.embedded)
-				spawn(0) //Simultaneous
-					L.embedded -= I
-					I.loc = get_turf(src)
-					if(istype(I, /obj/item/weapon/paper))
-						var/obj/item/weapon/paper/P = I
-						P.attached = null
-						I.update_icon()
-					var/atom/target = get_edge_target_turf(I, get_dir(I, get_step_away(I, I)))
-					I.throw_at(target, rand(1, 3), 1)
-	if(l_hand)
-		var/obj/item/E = l_hand
-		if(unEquip(E))
-			var/atom/Ltarg = get_edge_target_turf(E, get_dir(E, get_step_away(E, E)))
-			E.throw_at(Ltarg, rand(1, 3), 1)
-	if(r_hand)
-		var/obj/item/R = r_hand
-		if(unEquip(R))
-			var/atom/Rtarg = get_edge_target_turf(R, get_dir(R, get_step_away(R, R)))
-			R.throw_at(Rtarg, rand(1, 3), 1)
-	..()
+	return ..(gibbed,species.death_message)
 
-/mob/living/carbon/human/proc/makeSkeleton()
-	if(!check_dna_integrity(src))	return
-	status_flags |= DISFIGURED
-	dna.species = new /datum/species/skeleton(src)
-	return 1
-
-/mob/living/carbon/proc/ChangeToHusk()
+/mob/living/carbon/human/proc/ChangeToHusk()
 	if(HUSK in mutations)	return
+
+	if(f_style)
+		f_style = "Shaved"		//we only change the icon_state of the hair datum, so it doesn't mess up their UI/UE
+	if(h_style)
+		h_style = "Bald"
+	update_hair(0)
+
 	mutations.Add(HUSK)
 	status_flags |= DISFIGURED	//makes them unknown without fucking up other stuff like admintools
-	return 1
+	update_body(1)
+	return
 
-/mob/living/carbon/human/ChangeToHusk()
-	. = ..()
-	if(.)
-		update_hair()
-		update_body()
-
-/mob/living/carbon/proc/Drain()
+/mob/living/carbon/human/proc/Drain()
 	ChangeToHusk()
-	mutations |= NOCLONE
-	return 1
+	mutations |= HUSK
+	return
+
+/mob/living/carbon/human/proc/ChangeToSkeleton()
+	if(SKELETON in src.mutations)	return
+
+	if(f_style)
+		f_style = "Shaved"
+	if(h_style)
+		h_style = "Bald"
+	update_hair(0)
+
+	mutations.Add(SKELETON)
+	status_flags |= DISFIGURED
+	update_body(0)
+	return

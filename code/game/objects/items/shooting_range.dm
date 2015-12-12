@@ -9,76 +9,75 @@
 	var/icon/virtualIcon
 	var/list/bulletholes = list()
 
-/obj/item/target/Destroy()
-	// if a target is deleted and associated with a stake, force stake to forget
-	for(var/obj/structure/target_stake/T in view(3,src))
-		if(T.pinned_target == src)
-			T.pinned_target = null
-			T.density = 1
-			break
-	..() // delete target
+	Destroy()
+		// if a target is deleted and associated with a stake, force stake to forget
+		for(var/obj/structure/target_stake/T in view(3,src))
+			if(T.pinned_target == src)
+				T.pinned_target = null
+				T.density = 1
+				break
+		..() // delete target
 
-/obj/item/target/Move()
-	..()
-	// After target moves, check for nearby stakes. If associated, move to target
-	for(var/obj/structure/target_stake/M in view(3,src))
-		if(M.density == 0 && M.pinned_target == src)
-			M.loc = loc
-
-	// This may seem a little counter-intuitive but I assure you that's for a purpose.
-	// Stakes are the ones that carry targets, yes, but in the stake code we set
-	// a stake's density to 0 meaning it can't be pushed anymore. Instead of pushing
-	// the stake now, we have to push the target.
-
-
-
-/obj/item/target/attackby(obj/item/W as obj, mob/user as mob, params)
-	if (istype(W, /obj/item/weapon/weldingtool))
-		var/obj/item/weapon/weldingtool/WT = W
-		if(WT.remove_fuel(0, user))
-			overlays.Cut()
-			usr << "You slice off [src]'s uneven chunks of aluminium and scorch marks."
-			return
-
-
-/obj/item/target/attack_hand(mob/user as mob)
-	// taking pinned targets off!
-	var/obj/structure/target_stake/stake
-	for(var/obj/structure/target_stake/T in view(3,src))
-		if(T.pinned_target == src)
-			stake = T
-			break
-
-	if(stake)
-		if(stake.pinned_target)
-			stake.density = 1
-			density = 0
-			layer = OBJ_LAYER
-
-			loc = user.loc
-			if(ishuman(user))
-				if(!user.get_active_hand())
-					user.put_in_hands(src)
-					user << "You take the target out of the stake."
-			else
-				src.loc = get_turf(user)
-				user << "You take the target out of the stake."
-
-			stake.pinned_target = null
-			return
-
-	else
+	Move()
 		..()
+		// After target moves, check for nearby stakes. If associated, move to target
+		for(var/obj/structure/target_stake/M in view(3,src))
+			if(M.density == 0 && M.pinned_target == src)
+				M.loc = loc
 
-/obj/item/target/syndicate
-	icon_state = "target_s"
-	desc = "A shooting target that looks like a syndicate scum."
-	hp = 2600 // i guess syndie targets are sturdier?
+		// This may seem a little counter-intuitive but I assure you that's for a purpose.
+		// Stakes are the ones that carry targets, yes, but in the stake code we set
+		// a stake's density to 0 meaning it can't be pushed anymore. Instead of pushing
+		// the stake now, we have to push the target.
 
-/obj/item/target/alien
-	icon_state = "target_q"
-	desc = "A shooting target that looks like a xenomorphic alien."
-	hp = 2350 // alium onest too kinda
+
+
+	attackby(obj/item/W as obj, mob/user as mob)
+		if (istype(W, /obj/item/weapon/weldingtool))
+			var/obj/item/weapon/weldingtool/WT = W
+			if(WT.remove_fuel(0, user))
+				overlays.Cut()
+				usr << "You slice off [src]'s uneven chunks of aluminum and scorch marks."
+				return
+
+
+	attack_hand(mob/user as mob)
+		// taking pinned targets off!
+		var/obj/structure/target_stake/stake
+		for(var/obj/structure/target_stake/T in view(3,src))
+			if(T.pinned_target == src)
+				stake = T
+				break
+
+		if(stake)
+			if(stake.pinned_target)
+				stake.density = 1
+				density = 0
+				layer = OBJ_LAYER
+
+				loc = user.loc
+				if(ishuman(user))
+					if(!user.get_active_hand())
+						user.put_in_hands(src)
+						user << "You take the target out of the stake."
+				else
+					src.loc = get_turf(user)
+					user << "You take the target out of the stake."
+
+				stake.pinned_target = null
+				return
+
+		else
+			..()
+
+	syndicate
+		icon_state = "target_s"
+		desc = "A shooting target that looks like a hostile agent."
+		hp = 2600 // i guess syndie targets are sturdier?
+	alien
+		icon_state = "target_q"
+		desc = "A shooting target with a threatening silhouette."
+		hp = 2350 // alium onest too kinda
 
 /obj/item/target/bullet_act(var/obj/item/projectile/Proj)
 	var/p_x = Proj.p_x + pick(0,0,0,0,0,-1,1) // really ugly way of coding "sometimes offset Proj.p_x!"
@@ -95,7 +94,9 @@
 
 		hp -= Proj.damage
 		if(hp <= 0)
-			visible_message("<span class='warning'>[src] breaks into tiny pieces and collapses!</span>")
+			for(var/mob/O in oviewers())
+				if ((O.client && !( O.blinded )))
+					O << "\red [src] breaks into tiny pieces and collapses!"
 			qdel(src)
 
 		// Create a temporary object to represent the damage
@@ -113,9 +114,9 @@
 			bmark.pixel_x--
 			bmark.pixel_y--
 
-			if(Proj.damage >= 20 || istype(Proj, /obj/item/projectile/practice))
+			if(Proj.damage >= 20 || istype(Proj, /obj/item/projectile/beam/practice))
 				bmark.icon_state = "scorch"
-				bmark.dir = pick(NORTH,SOUTH,EAST,WEST) // random scorch design
+				bmark.set_dir(pick(NORTH,SOUTH,EAST,WEST)) // random scorch design
 
 
 			else
@@ -145,7 +146,7 @@
 
 		return
 
-	return -1 // the bullet/projectile goes through the target! Ie, you missed
+	return PROJECTILE_CONTINUE // the bullet/projectile goes through the target!
 
 
 // Small memory holder entity for transparent bullet holes
@@ -160,21 +161,21 @@
 	var/b2y1 = 0
 	var/b2y2 = 0
 
-/datum/bullethole/New(var/obj/item/target/Target, var/pixel_x = 0, var/pixel_y = 0)
-	if(!Target) return
+	New(var/obj/item/target/Target, var/pixel_x = 0, var/pixel_y = 0)
+		if(!Target) return
 
-	// Randomize the first box
-	b1x1 = pixel_x - pick(1,1,1,1,2,2,3,3,4)
-	b1x2 = pixel_x + pick(1,1,1,1,2,2,3,3,4)
-	b1y = pixel_y
-	if(prob(35))
-		b1y += rand(-4,4)
+		// Randomize the first box
+		b1x1 = pixel_x - pick(1,1,1,1,2,2,3,3,4)
+		b1x2 = pixel_x + pick(1,1,1,1,2,2,3,3,4)
+		b1y = pixel_y
+		if(prob(35))
+			b1y += rand(-4,4)
 
-	// Randomize the second box
-	b2x = pixel_x
-	if(prob(35))
-		b2x += rand(-4,4)
-	b2y1 = pixel_y + pick(1,1,1,1,2,2,3,3,4)
-	b2y2 = pixel_y - pick(1,1,1,1,2,2,3,3,4)
+		// Randomize the second box
+		b2x = pixel_x
+		if(prob(35))
+			b2x += rand(-4,4)
+		b2y1 = pixel_y + pick(1,1,1,1,2,2,3,3,4)
+		b2y2 = pixel_y - pick(1,1,1,1,2,2,3,3,4)
 
-	Target.bulletholes.Add(src)
+		Target.bulletholes.Add(src)

@@ -1,247 +1,254 @@
-//This file was auto-corrected by findeclaration.exe on 25.5.2012 20:42:31
 
-// Controls the emergency shuttle
+var/global/datum/shuttle_controller/shuttle_controller
 
-
-// these define the time taken for the shuttle to get to SS13
-// and the time before it leaves again
-
-#define SHUTTLEARRIVETIME 600		// 10 minutes = 600 seconds
-#define SHUTTLELEAVETIME 180		// 3 minutes = 180 seconds
-#define SHUTTLETRANSITTIME 120		// 2 minutes = 120 seconds
-#define SHUTTLEAUTOCALLTIMER 2.5   	// 25 minutes
-
-#define UNDOCKED 0 //Shuttle is always this until the shuttle has reached the station.
-#define DOCKED -1 //Shuttle is at the station
-#define TRANSIT 1 //Shuttle is coming to centcom from the station
-#define ENDGAME 2 //It's what game tickers check for for the purposes of round completion, I'm not touching it.
-
-var/global/datum/shuttle_controller/emergency_shuttle/emergency_shuttle
 
 /datum/shuttle_controller
-	var/location = UNDOCKED //
-	var/online = 0
-	var/direction = 1 //-1 = going back to central command, 1 = going to SS13.  Only important for recalling
-	var/recall_count = 0
-	var/area/last_call_loc = null // Stores where the last shuttle call/recall was made from
-
-	var/endtime			// timeofday that shuttle arrives
-	var/timelimit //important when the shuttle gets called for more than shuttlearrivetime
-		//timeleft = 360 //600
-	var/fake_recall = 0 //Used in rounds to prevent "ON NOES, IT MUST [INSERT ROUND] BECAUSE SHUTTLE CAN'T BE CALLED"
-	var/always_fake_recall = 0
-
-	var/pods = list("escape", "pod1", "pod2", "pod3", "pod4")
-
-
-	// call the shuttle
-	// if not called before, set the endtime to T+600 seconds
-	// otherwise if outgoing, switch to incoming
-/datum/shuttle_controller/proc/incall(coeff = 1, var/signal_origin, var/emergency_reason, var/red_alert)
-
-	if(endtime)
-		if(direction == -1)
-			setdirection(1)
-	else
-		if(recall_count > 2 && signal_origin && prob(70)) //30% chance the signal tracing will fail
-			last_call_loc = signal_origin
-		else
-			last_call_loc = null
-
-		settimeleft(SHUTTLEARRIVETIME*coeff)
-		online = 1
-
-		priority_announce("The emergency shuttle has been called. [red_alert ? "Red Alert state confirmed: Dispatching priority shuttle. " : "" ]It will arrive in [round(emergency_shuttle.timeleft()/60)] minutes.[emergency_reason][emergency_shuttle.last_call_loc ? "\n\nCall signal traced. Results can be viewed on any communcations console." : "" ]", null, 'sound/AI/shuttlecalled.ogg', "Priority")
-
-		if(always_fake_recall)
-
-			if ((seclevel2num(get_security_level()) == SEC_LEVEL_RED))
-				fake_recall = rand(SHUTTLEARRIVETIME / 4, SHUTTLEARRIVETIME - 100 / 2)
-			else
-				fake_recall = rand(SHUTTLEARRIVETIME / 2, SHUTTLEARRIVETIME - 100)
-
-/datum/shuttle_controller/proc/recall(var/signal_origin)
-	if(direction == 1)
-		var/timeleft = timeleft()
-		if(timeleft >= SHUTTLEARRIVETIME)
-			online = 0
-			direction = 1
-			endtime = null
-			return
-
-		recall_count ++
-
-		if(recall_count > 2 && signal_origin && prob(70)) //30% chance the signal tracing will fail
-			last_call_loc = signal_origin
-		else
-			last_call_loc = null
-
-		if(recall_count == 2)
-			priority_announce("The emergency shuttle has been recalled.\n\nExcessive number of emergency shuttle calls detected. We will attempt to trace all future calls and recalls to their source. Tracing results may be viewed on any communications console.", null, 'sound/AI/shuttlerecalled.ogg')
-		else
-			priority_announce("The emergency shuttle has been recalled.[last_call_loc ? " Recall signal traced. Results can be viewed on any communcations console." : "" ]", null, 'sound/AI/shuttlerecalled.ogg', "Priority")
-		setdirection(-1)
-		online = 1
-
-
-// returns the time (in seconds) before shuttle arrival
-// note if direction = -1, gives a count-up to SHUTTLEARRIVETIME
-/datum/shuttle_controller/proc/timeleft()
-	if(online)
-		var/timeleft = round((endtime - world.timeofday)/10 ,1)
-		if(timeleft > (MIDNIGHT_ROLLOVER/10)) // midnight rollover protection
-			endtime -= MIDNIGHT_ROLLOVER // subtract 24 hours from endtime
-			timeleft = round((endtime - world.timeofday)/10 ,1) // recalculate timeleft
-		if(direction == 1)
-			return timeleft
-		else
-			return SHUTTLEARRIVETIME-timeleft
-	else
-		return SHUTTLEARRIVETIME
-
-// sets the time left to a given delay (in seconds)
-/datum/shuttle_controller/proc/settimeleft(var/delay)
-	endtime = world.timeofday + delay * 10
-	timelimit = delay
-
-// sets the shuttle direction
-// 1 = towards SS13, -1 = back to centcom
-/datum/shuttle_controller/proc/setdirection(var/dirn)
-	if(direction == dirn)
-		return
-	direction = dirn
-	// if changing direction, flip the timeleft by SHUTTLEARRIVETIME
-	var/ticksleft = endtime - world.timeofday
-	endtime = world.timeofday + (SHUTTLEARRIVETIME*10 - ticksleft)
-	return
-
-//calls the shuttle if there's no live active AI or powered non broken comms console,
-/datum/shuttle_controller/proc/autoshuttlecall()
-	var/callshuttle = 1
-
-	for(var/SC in shuttle_caller_list)
-		if(istype(SC,/mob/living/silicon/ai))
-			var/mob/living/silicon/ai/AI = SC
-			if(AI.stat || !AI.client)
-				continue
-		if(istype(SC,/obj/machinery/computer/communications))
-			var/obj/machinery/computer/communications/C = SC
-			if(C.stat & BROKEN)
-				continue
-		var/turf/T = get_turf(SC)
-		if(T && T.z == 1)
-			callshuttle = 0 //if there's an alive AI or a powered non broken communication console on the station z level, we don't call the shuttle
-			break
-
-	if(callshuttle)
-		if(!online && direction == 1) //we don't call the shuttle if it's already coming
-			incall(SHUTTLEAUTOCALLTIMER) //X minutes! If they want to recall, they have X-(X-5) minutes to do so
-			log_game("All the communications consoles were destroyed and all AIs are inactive. Shuttle called.")
-			message_admins("All the communications consoles were destroyed and all AIs are inactive. Shuttle called.")
-
-/datum/shuttle_controller/proc/move_shuttles()
-	var/datum/shuttle_manager/s
-	for(var/t in pods)
-		s = shuttles[t]
-		s.move_shuttle()
+	var/list/shuttles	//maps shuttle tags to shuttle datums, so that they can be looked up.
+	var/list/process_shuttles	//simple list of shuttles, for processing
 
 /datum/shuttle_controller/proc/process()
-
-/datum/shuttle_controller/emergency_shuttle/process()
-	if(!online)
-		return
-	var/timeleft = timeleft()
-	if(location == UNDOCKED)
-		if(direction == -1)
-			if(timeleft >= timelimit) // Shuttle reaches CentCom after being recalled.
-				online = 0
-				direction = 1
-				endtime = null
-				return 0
-		else if(fake_recall && (timeleft <= fake_recall))
-			recall()
-			fake_recall = 0
-			return 0
-		else if(timeleft <= 0)
-			var/datum/shuttle_manager/s = shuttles["escape"]
-			s.move_shuttle()
-			location = DOCKED
-			settimeleft(SHUTTLELEAVETIME)
-			send2irc("Server", "The Emergency Shuttle has docked with the station.")
-			priority_announce("The Emergency Shuttle has docked with the station. You have [round(timeleft()/60,1)] minutes to board the Emergency Shuttle.", null, 'sound/AI/shuttledock.ogg', "Priority")
-	else if(timeleft <= 0) //Nothing happens if time's not up and the ship's docked or later
-		if(location == DOCKED)
-			move_shuttles()
-			location = TRANSIT
-			settimeleft(SHUTTLETRANSITTIME)
-			priority_announce("The Emergency Shuttle has left the station. Estimate [round(timeleft()/60,1)] minutes until the shuttle docks at Central Command.", null, null, "Priority")
-		else if(location == TRANSIT)
-			move_shuttles()
-			//message_admins("Shuttles have attempted to move to Centcom")
-			location = ENDGAME
-			online = 0
-			endtime = null
-		return 1
-	return 0
-
-/*
-	Some slapped-together star effects for maximum spess immershuns. Basically consists of a
-	spawner, an ender, and bgstar. Spawners create bgstars, bgstars shoot off into a direction
-	until they reach a starender.
-*/
-
-/obj/effect/bgstar
-	name = "star"
-	var/speed = 10
-	var/direction = SOUTH
-	layer = 2 // TURF_LAYER
-
-/obj/effect/bgstar/New()
-	..()
-	pixel_x += rand(-2,30)
-	pixel_y += rand(-2,30)
-	var/starnum = pick("1", "1", "1", "2", "3", "4")
-
-	icon_state = "star"+starnum
-
-	speed = rand(2, 5)
-
-/obj/effect/bgstar/proc/startmove()
-
-	while(src)
-		sleep(speed)
-		step(src, direction)
-		for(var/obj/effect/starender/E in loc)
-			qdel(src)
+	//process ferry shuttles
+	for (var/datum/shuttle/ferry/shuttle in process_shuttles)
+		if (shuttle.process_state)
+			shuttle.process()
 
 
-/obj/effect/starender
-	invisibility = 101
+//This is called by gameticker after all the machines and radio frequencies have been properly initialized
+/datum/shuttle_controller/proc/setup_shuttle_docks()
+	for(var/shuttle_tag in shuttles)
+		var/datum/shuttle/shuttle = shuttles[shuttle_tag]
+		shuttle.init_docking_controllers()
+		shuttle.dock() //makes all shuttles docked to something at round start go into the docked state
+	
+	for(var/obj/machinery/embedded_controller/C in machines)
+		if(istype(C.program, /datum/computer/file/embedded_program/docking))
+			C.program.tag = null //clear the tags, 'cause we don't need 'em anymore
 
-/obj/effect/starspawner
-	invisibility = 101
-	var/spawndir = SOUTH
-	var/spawning = 0
+/datum/shuttle_controller/New()
+	shuttles = list()
+	process_shuttles = list()
 
-/obj/effect/starspawner/West
-	spawndir = WEST
+	var/datum/shuttle/ferry/shuttle
 
-/obj/effect/starspawner/proc/startspawn()
-	spawning = 1
-	while(spawning)
-		sleep(rand(2, 30))
-		var/obj/effect/bgstar/S = new/obj/effect/bgstar(locate(x,y,z))
-		S.direction = spawndir
-		spawn()
-			S.startmove()
+	// Escape shuttle and pods
+	shuttle = new/datum/shuttle/ferry/emergency()
+	shuttle.location = 1
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/shuttle/escape/centcom)
+	shuttle.area_station = locate(/area/shuttle/escape/station)
+	shuttle.area_transition = locate(/area/shuttle/escape/transit)
+	shuttle.docking_controller_tag = "escape_shuttle"
+	shuttle.dock_target_station = "escape_dock"
+	shuttle.dock_target_offsite = "centcom_dock"
+	shuttle.transit_direction = NORTH
+	shuttle.move_time = SHUTTLE_TRANSIT_DURATION_RETURN
+	//shuttle.docking_controller_tag = "supply_shuttle"
+	//shuttle.dock_target_station = "cargo_bay"
+	shuttles["Escape"] = shuttle
+	process_shuttles += shuttle
 
+	shuttle = new/datum/shuttle/ferry/escape_pod()
+	shuttle.location = 0
+	shuttle.warmup_time = 0
+	shuttle.area_station = locate(/area/shuttle/escape_pod1/station)
+	shuttle.area_offsite = locate(/area/shuttle/escape_pod1/centcom)
+	shuttle.area_transition = locate(/area/shuttle/escape_pod1/transit)
+	shuttle.docking_controller_tag = "escape_pod_1"
+	shuttle.dock_target_station = "escape_pod_1_berth"
+	shuttle.dock_target_offsite = "escape_pod_1_recovery"
+	shuttle.transit_direction = NORTH
+	shuttle.move_time = SHUTTLE_TRANSIT_DURATION_RETURN + rand(-30, 60)	//randomize this so it seems like the pods are being picked up one by one
+	process_shuttles += shuttle
+	shuttles["Escape Pod 1"] = shuttle
 
-/proc/push_mob_back(var/mob/living/L, var/dir)
-	if(iscarbon(L) && isturf(L.loc))
-		if(prob(88))
-			var/turf/T = get_step(L, dir)
-			if(T)
-				for(var/obj/O in T) // For doors and such (kinda ugly but we can't have people opening doors)
-					if(!O.CanPass(L, L.loc, 1))
-						return
-				L.Move(get_step(L, dir), dir)
+	shuttle = new/datum/shuttle/ferry/escape_pod()
+	shuttle.location = 0
+	shuttle.warmup_time = 0
+	shuttle.area_station = locate(/area/shuttle/escape_pod2/station)
+	shuttle.area_offsite = locate(/area/shuttle/escape_pod2/centcom)
+	shuttle.area_transition = locate(/area/shuttle/escape_pod2/transit)
+	shuttle.docking_controller_tag = "escape_pod_2"
+	shuttle.dock_target_station = "escape_pod_2_berth"
+	shuttle.dock_target_offsite = "escape_pod_2_recovery"
+	shuttle.transit_direction = NORTH
+	shuttle.move_time = SHUTTLE_TRANSIT_DURATION_RETURN + rand(-30, 60)	//randomize this so it seems like the pods are being picked up one by one
+	process_shuttles += shuttle
+	shuttles["Escape Pod 2"] = shuttle
+
+	shuttle = new/datum/shuttle/ferry/escape_pod()
+	shuttle.location = 0
+	shuttle.warmup_time = 0
+	shuttle.area_station = locate(/area/shuttle/escape_pod3/station)
+	shuttle.area_offsite = locate(/area/shuttle/escape_pod3/centcom)
+	shuttle.area_transition = locate(/area/shuttle/escape_pod3/transit)
+	shuttle.docking_controller_tag = "escape_pod_3"
+	shuttle.dock_target_station = "escape_pod_3_berth"
+	shuttle.dock_target_offsite = "escape_pod_3_recovery"
+	shuttle.transit_direction = EAST
+	shuttle.move_time = SHUTTLE_TRANSIT_DURATION_RETURN + rand(-30, 60)	//randomize this so it seems like the pods are being picked up one by one
+	process_shuttles += shuttle
+	shuttles["Escape Pod 3"] = shuttle
+
+	//There is no pod 4, apparently.
+
+	shuttle = new/datum/shuttle/ferry/escape_pod()
+	shuttle.location = 0
+	shuttle.warmup_time = 0
+	shuttle.area_station = locate(/area/shuttle/escape_pod5/station)
+	shuttle.area_offsite = locate(/area/shuttle/escape_pod5/centcom)
+	shuttle.area_transition = locate(/area/shuttle/escape_pod5/transit)
+	shuttle.docking_controller_tag = "escape_pod_5"
+	shuttle.dock_target_station = "escape_pod_5_berth"
+	shuttle.dock_target_offsite = "escape_pod_5_recovery"
+	shuttle.transit_direction = EAST //should this be WEST? I have no idea.
+	shuttle.move_time = SHUTTLE_TRANSIT_DURATION_RETURN + rand(-30, 60)	//randomize this so it seems like the pods are being picked up one by one
+	process_shuttles += shuttle
+	shuttles["Escape Pod 5"] = shuttle
+
+	//give the emergency shuttle controller it's shuttles
+	emergency_shuttle.shuttle = shuttles["Escape"]
+	emergency_shuttle.escape_pods = list(
+		shuttles["Escape Pod 1"],
+		shuttles["Escape Pod 2"],
+		shuttles["Escape Pod 3"],
+		shuttles["Escape Pod 5"],
+	)
+
+	// Supply shuttle
+	shuttle = new/datum/shuttle/ferry/supply()
+	shuttle.location = 1
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/supply/dock)
+	shuttle.area_station = locate(/area/supply/station)
+	shuttle.docking_controller_tag = "supply_shuttle"
+	shuttle.dock_target_station = "cargo_bay"
+	shuttles["Supply"] = shuttle
+	process_shuttles += shuttle
+
+	supply_controller.shuttle = shuttle
+
+	// Admin shuttles.
+	shuttle = new()
+	shuttle.location = 1
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/shuttle/transport1/centcom)
+	shuttle.area_station = locate(/area/shuttle/transport1/station)
+	shuttle.docking_controller_tag = "centcom_shuttle"
+	shuttle.dock_target_station = "centcom_shuttle_dock_airlock"
+	shuttle.dock_target_offsite = "centcom_shuttle_bay"
+	shuttles["Centcom"] = shuttle
+	process_shuttles += shuttle
+
+	shuttle = new()
+	shuttle.location = 1
+	shuttle.warmup_time = 10	//want some warmup time so people can cancel.
+	shuttle.area_offsite = locate(/area/shuttle/administration/centcom)
+	shuttle.area_station = locate(/area/shuttle/administration/station)
+	shuttle.docking_controller_tag = "admin_shuttle"
+	shuttle.dock_target_station = "admin_shuttle_dock_airlock"
+	shuttle.dock_target_offsite = "admin_shuttle_bay"
+	shuttles["Administration"] = shuttle
+	process_shuttles += shuttle
+
+	shuttle = new()
+	shuttle.area_offsite = locate(/area/shuttle/alien/base)
+	shuttle.area_station = locate(/area/shuttle/alien/mine)
+	shuttles["Alien"] = shuttle
+	//process_shuttles += shuttle	//don't need to process this. It can only be moved using admin magic anyways.
+
+	// Public shuttles
+	shuttle = new()
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/shuttle/constructionsite/site)
+	shuttle.area_station = locate(/area/shuttle/constructionsite/station)
+	shuttle.docking_controller_tag = "engineering_shuttle"
+	shuttle.dock_target_station = "engineering_dock_airlock"
+	shuttle.dock_target_offsite = "edock_airlock"
+	shuttles["Engineering"] = shuttle
+	process_shuttles += shuttle
+
+	shuttle = new()
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/shuttle/mining/outpost)
+	shuttle.area_station = locate(/area/shuttle/mining/station)
+	shuttle.docking_controller_tag = "mining_shuttle"
+	shuttle.dock_target_station = "mining_dock_airlock"
+	shuttle.dock_target_offsite = "mining_outpost_airlock"
+	shuttles["Mining"] = shuttle
+	process_shuttles += shuttle
+
+	shuttle = new()
+	shuttle.warmup_time = 10
+	shuttle.area_offsite = locate(/area/shuttle/research/outpost)
+	shuttle.area_station = locate(/area/shuttle/research/station)
+	shuttle.docking_controller_tag = "research_shuttle"
+	shuttle.dock_target_station = "research_dock_airlock"
+	shuttle.dock_target_offsite = "research_outpost_dock"
+	shuttles["Research"] = shuttle
+	process_shuttles += shuttle
+
+	// ERT Shuttle
+	var/datum/shuttle/ferry/multidock/specops/ERT = new()
+	ERT.location = 0
+	ERT.warmup_time = 10
+	ERT.area_offsite = locate(/area/shuttle/specops/station)	//centcom is the home station, the Exodus is offsite
+	ERT.area_station = locate(/area/shuttle/specops/centcom)
+	ERT.docking_controller_tag = "specops_shuttle_port"
+	ERT.docking_controller_tag_station = "specops_shuttle_port"
+	ERT.docking_controller_tag_offsite = "specops_shuttle_fore"
+	ERT.dock_target_station = "specops_centcom_dock"
+	ERT.dock_target_offsite = "specops_dock_airlock"
+	shuttles["Special Operations"] = ERT
+	process_shuttles += ERT
+
+	//Skipjack.
+	var/datum/shuttle/multi_shuttle/VS = new/datum/shuttle/multi_shuttle()
+	VS.origin = locate(/area/skipjack_station/start)
+
+	VS.destinations = list(
+		"Fore Starboard Solars" = locate(/area/skipjack_station/northeast_solars),
+		"Fore Port Solars" = locate(/area/skipjack_station/northwest_solars),
+		"Aft Starboard Solars" = locate(/area/skipjack_station/southeast_solars),
+		"Aft Port Solars" = locate(/area/skipjack_station/southwest_solars),
+		"Mining asteroid" = locate(/area/skipjack_station/mining)
+		)
+
+	VS.announcer = "NDV Icarus"
+	VS.arrival_message = "Attention, Exodus, we just tracked a small target bypassing our defensive perimeter. Can't fire on it without hitting the station - you've got incoming visitors, like it or not."
+	VS.departure_message = "Your guests are pulling away, Exodus - moving too fast for us to draw a bead on them. Looks like they're heading out of the system at a rapid clip."
+	VS.interim = locate(/area/skipjack_station/transit)
+
+	VS.warmup_time = 0
+	shuttles["Skipjack"] = VS
+
+	//Nuke Ops shuttle.
+	var/datum/shuttle/multi_shuttle/MS = new/datum/shuttle/multi_shuttle()
+	MS.origin = locate(/area/syndicate_station/start)
+	MS.start_location = "Mercenary Base"
+
+	MS.destinations = list(
+		"Northwest of the station" = locate(/area/syndicate_station/northwest),
+		"North of the station" = locate(/area/syndicate_station/north),
+		"Northeast of the station" = locate(/area/syndicate_station/northeast),
+		"Southwest of the station" = locate(/area/syndicate_station/southwest),
+		"South of the station" = locate(/area/syndicate_station/south),
+		"Southeast of the station" = locate(/area/syndicate_station/southeast),
+		"Telecomms Satellite" = locate(/area/syndicate_station/commssat),
+		"Mining Asteroid" = locate(/area/syndicate_station/mining),
+		"Arrivals dock" = locate(/area/syndicate_station/arrivals_dock),
+		)
+	
+	MS.docking_controller_tag = "merc_shuttle"
+	MS.destination_dock_targets = list(
+		"Mercenary Base" = "merc_base",
+		"Arrivals dock" = "nuke_shuttle_dock_airlock",
+		)
+
+	MS.announcer = "NDV Icarus"
+	MS.arrival_message = "Attention, Exodus, you have a large signature approaching the station - looks unarmed to surface scans. We're too far out to intercept - brace for visitors."
+	MS.departure_message = "Your visitors are on their way out of the system, Exodus, burning delta-v like it's nothing. Good riddance."
+	MS.interim = locate(/area/syndicate_station/transit)
+
+	MS.warmup_time = 0
+	shuttles["Mercenary"] = MS
+

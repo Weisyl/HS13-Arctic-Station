@@ -58,6 +58,9 @@ var/savefile/Banlist
 	CMinutes = (world.realtime / 10) / 60
 	return 1
 
+/hook/startup/proc/loadBans()
+	return LoadBans()
+
 /proc/LoadBans()
 
 	Banlist = new("data/banlist.bdb")
@@ -103,7 +106,7 @@ var/savefile/Banlist
 
 	Banlist.cd = "/base"
 	if ( Banlist.dir.Find("[ckey][computerid]") )
-		usr << text("<span class='danger'>Ban already exists.</span>")
+		usr << text("\red Ban already exists.")
 		return 0
 	else
 		Banlist.dir.Add("[ckey][computerid]")
@@ -116,7 +119,6 @@ var/savefile/Banlist
 		Banlist["temp"] << temp
 		if (temp)
 			Banlist["minutes"] << bantimestamp
-		notes_add(ckey, "Banned for [minutes] minutes - [reason]")
 	return 1
 
 /proc/RemoveBan(foldername)
@@ -134,8 +136,8 @@ var/savefile/Banlist
 		log_admin("Ban Expired: [key]")
 		message_admins("Ban Expired: [key]")
 	else
-		ban_unban_log_save("[key_name(usr)] unbanned [key]")
-		log_admin("[key_name(usr)] unbanned [key]")
+		ban_unban_log_save("[key_name_admin(usr)] unbanned [key]")
+		log_admin("[key_name_admin(usr)] unbanned [key]")
 		message_admins("[key_name_admin(usr)] unbanned: [key]")
 		feedback_inc("ban_unban",1)
 		usr.client.holder.DB_ban_unban( ckey(key), BANTYPE_ANY_FULLBAN)

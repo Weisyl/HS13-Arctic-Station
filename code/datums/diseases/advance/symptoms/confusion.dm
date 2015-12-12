@@ -23,7 +23,6 @@ Bonus
 	stage_speed = -3
 	transmittable = 0
 	level = 4
-	severity = 2
 
 
 /datum/symptom/confusion/Activate(var/datum/disease/advance/A)

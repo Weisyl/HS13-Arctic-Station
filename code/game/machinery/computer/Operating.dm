@@ -1,71 +1,83 @@
+//This file was auto-corrected by findeclaration.exe on 25.5.2012 20:42:31
+
 /obj/machinery/computer/operating
-	name = "operating computer"
-	desc = "Used to monitor the vitals of a patient during surgery."
-	icon_state = "operating"
+	name = "patient monitoring console"
 	density = 1
 	anchored = 1.0
-	circuit = /obj/item/weapon/circuitboard/operating
-	var/mob/living/carbon/human/patient = null
-	var/obj/structure/optable/table = null
-
+	icon_state = "operating"
+	light_color = "#315ab4"
+	circuit = "/obj/item/weapon/circuitboard/operating"
+	var/mob/living/carbon/human/victim = null
+	var/obj/machinery/optable/table = null
 
 /obj/machinery/computer/operating/New()
 	..()
-	if(ticker)
-		find_table()
-
-/obj/machinery/computer/operating/initialize()
-	find_table()
-
-/obj/machinery/computer/operating/proc/find_table()
-	for(var/dir in cardinal)
-		table = locate(/obj/structure/optable, get_step(src, dir))
-		if(table)
+	for(dir in list(NORTH,EAST,SOUTH,WEST))
+		table = locate(/obj/machinery/optable, get_step(src, dir))
+		if (table)
 			table.computer = src
 			break
 
-
-/obj/machinery/computer/operating/attack_hand(mob/user)
-	if(..())
+/obj/machinery/computer/operating/attack_ai(mob/user)
+	add_fingerprint(user)
+	if(stat & (BROKEN|NOPOWER))
 		return
 	interact(user)
 
+
+/obj/machinery/computer/operating/attack_hand(mob/user)
+	add_fingerprint(user)
+	if(stat & (BROKEN|NOPOWER))
+		return
+	interact(user)
+
+
 /obj/machinery/computer/operating/interact(mob/user)
-	var/dat = ""
-	if(table)
-		dat += "<B>Patient information:</B><BR>"
-		if(table.check_patient())
-			patient = table.patient
-			dat += get_patient_info()
-		else
-			patient = null
-			dat += "<B>No patient detected</B>"
+	if ( (get_dist(src, user) > 1 ) || (stat & (BROKEN|NOPOWER)) )
+		if (!istype(user, /mob/living/silicon))
+			user.unset_machine()
+			user << browse(null, "window=op")
+			return
+
+	user.set_machine(src)
+	var/dat = "<HEAD><TITLE>Operating Computer</TITLE><META HTTP-EQUIV='Refresh' CONTENT='10'></HEAD><BODY>\n"
+	dat += "<A HREF='?src=\ref[user];mach_close=op'>Close</A><br><br>" //| <A HREF='?src=\ref[user];update=1'>Update</A>"
+	if(src.table && (src.table.check_victim()))
+		src.victim = src.table.victim
+		dat += {"
+<B>Patient Information:</B><BR>
+<BR>
+<B>Name:</B> [src.victim.real_name]<BR>
+<B>Age:</B> [src.victim.age]<BR>
+<B>Blood Type:</B> [src.victim.b_type]<BR>
+<BR>
+<B>Health:</B> [src.victim.health]<BR>
+<B>Brute Damage:</B> [src.victim.getBruteLoss()]<BR>
+<B>Toxins Damage:</B> [src.victim.getToxLoss()]<BR>
+<B>Fire Damage:</B> [src.victim.getFireLoss()]<BR>
+<B>Suffocation Damage:</B> [src.victim.getOxyLoss()]<BR>
+<B>Patient Status:</B> [src.victim.stat ? "Non-Responsive" : "Stable"]<BR>
+<B>Heartbeat rate:</B> [victim.get_pulse(GETPULSE_TOOL)]<BR>
+"}
 	else
-		dat += "<B>Operating table not found.</B>"
+		src.victim = null
+		dat += {"
+<B>Patient Information:</B><BR>
+<BR>
+<B>No Patient Detected</B>
+"}
+	user << browse(dat, "window=op")
+	onclose(user, "op")
 
-	var/datum/browser/popup = new(user, "op", "Operating Computer", 400, 500)
-	popup.set_content(dat)
-	popup.open()
 
-/obj/machinery/computer/operating/proc/get_patient_info()
-	var/dat = {"
-				<div class='statusLabel'>Patient:</div> [patient.stat ? "<span class='bad'>Non-Responsive</span>" : "<span class='good'>Stable</span>"]<BR>
-				<div class='statusLabel'>Blood Type:</div> [patient.blood_type]
+/obj/machinery/computer/operating/Topic(href, href_list)
+	if(..())
+		return 1
+	if ((usr.contents.Find(src) || (in_range(src, usr) && istype(src.loc, /turf))) || (istype(usr, /mob/living/silicon)))
+		usr.set_machine(src)
+	return
 
-				<BR>
-				<div class='line'><div class='statusLabel'>Health:</div><div class='progressBar'><div style='width: [max(patient.health, 0)]%;' class='progressFill good'></div></div><div class='statusValue'>[patient.health]%</div></div>
-				<div class='line'><div class='statusLabel'>\> Brute Damage:</div><div class='progressBar'><div style='width: [max(patient.getBruteLoss(), 0)]%;' class='progressFill bad'></div></div><div class='statusValue'>[patient.getBruteLoss()]%</div></div>
-				<div class='line'><div class='statusLabel'>\> Resp. Damage:</div><div class='progressBar'><div style='width: [max(patient.getOxyLoss(), 0)]%;' class='progressFill bad'></div></div><div class='statusValue'>[patient.getOxyLoss()]%</div></div>
-				<div class='line'><div class='statusLabel'>\> Toxin Content:</div><div class='progressBar'><div style='width: [max(patient.getToxLoss(), 0)]%;' class='progressFill bad'></div></div><div class='statusValue'>[patient.getToxLoss()]%</div></div>
-				<div class='line'><div class='statusLabel'>\> Burn Severity:</div><div class='progressBar'><div style='width: [max(patient.getFireLoss(), 0)]%;' class='progressFill bad'></div></div><div class='statusValue'>[patient.getFireLoss()]%</div></div>
-				<div class='line'><div class='statusLabel'>\> Bloodloss Severity:</div><div class='progressBar'><div style='width: [max(round(patient.getBloodLoss(1)), 0)]%;' class='progressFill bad'></div></div><div class='statusValue'>[round(patient.getBloodLoss(1))]%</div></div>
 
-				"}
-	if(patient.surgeries.len)
-		dat += "<BR><B>Initiated Procedures</B><div class='statusDisplay'>"
-		for(var/datum/surgery/procedure in patient.surgeries)
-			dat += "[capitalize(procedure.name)]<BR>"
-			dat += "   current step: [procedure.status]<BR>"
-			dat += "   targeted limb: [procedure.location]<BR>"
-		dat += "</div>"
-	return dat
+/obj/machinery/computer/operating/process()
+	if(..())
+		src.updateDialog()

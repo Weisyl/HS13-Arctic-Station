@@ -2,18 +2,16 @@
 	name = "muzzle"
 	desc = "To stop that awful noise."
 	icon_state = "muzzle"
-	item_state = "blindfold"
+	item_state = "muzzle"
 	flags = MASKCOVERSMOUTH
+	body_parts_covered = 0
 	w_class = 2
 	gas_transfer_coefficient = 0.90
-	put_on_delay = 20
 
-/obj/item/clothing/mask/muzzle/attack_paw(mob/user)
-	if(iscarbon(user))
-		var/mob/living/carbon/C = user
-		if(src == C.wear_mask)
-			user << "<span class='notice'>You need help taking this off!</span>"
-			return
+// Clumsy folks can't take the mask off themselves.
+/obj/item/clothing/mask/muzzle/attack_hand(mob/user as mob)
+	if(user.wear_mask == src && !user.IsAdvancedToolUser())
+		return 0
 	..()
 
 /obj/item/clothing/mask/surgical
@@ -21,25 +19,65 @@
 	desc = "A sterile mask designed to help prevent the spread of diseases."
 	icon_state = "sterile"
 	item_state = "sterile"
-	w_class = 1
+	w_class = 2
 	flags = MASKCOVERSMOUTH
-	flags_inv = HIDEFACE
-	visor_flags = MASKCOVERSMOUTH
-	visor_flags_inv = HIDEFACE
+	body_parts_covered = 0
 	gas_transfer_coefficient = 0.90
 	permeability_coefficient = 0.01
-	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 25, rad = 0)
-	action_button_name = "Adjust Sterile Mask"
-	ignore_maskadjust = 0
-
-/obj/item/clothing/mask/surgical/attack_self(var/mob/user)
-	adjustmask(user)
+	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 60, rad = 0)
 
 /obj/item/clothing/mask/fakemoustache
 	name = "fake moustache"
 	desc = "Warning: moustache is fake."
 	icon_state = "fake-moustache"
 	flags_inv = HIDEFACE
+	body_parts_covered = 0
+
+/obj/item/clothing/mask/snorkel
+	name = "Snorkel"
+	desc = "For the Swimming Savant."
+	icon_state = "snorkel"
+	flags_inv = HIDEFACE
+	body_parts_covered = 0
+
+//scarves (fit in in mask slot)
+
+/obj/item/clothing/mask/bluescarf
+	name = "blue neck scarf"
+	desc = "A blue neck scarf."
+	icon_state = "blueneckscarf"
+	item_state = "blueneckscarf"
+	flags = MASKCOVERSMOUTH
+	w_class = 2
+	gas_transfer_coefficient = 0.90
+
+/obj/item/clothing/mask/redscarf
+	name = "red scarf"
+	desc = "A red and white checkered neck scarf."
+	icon_state = "redwhite_scarf"
+	item_state = "redwhite_scarf"
+	flags = MASKCOVERSMOUTH
+	w_class = 2
+	gas_transfer_coefficient = 0.90
+
+/obj/item/clothing/mask/greenscarf
+	name = "green scarf"
+	desc = "A green neck scarf."
+	icon_state = "green_scarf"
+	item_state = "green_scarf"
+	flags = MASKCOVERSMOUTH
+	w_class = 2
+	gas_transfer_coefficient = 0.90
+
+/obj/item/clothing/mask/ninjascarf
+	name = "ninja scarf"
+	desc = "A stealthy, dark scarf."
+	icon_state = "ninja_scarf"
+	item_state = "ninja_scarf"
+	flags = MASKCOVERSMOUTH
+	w_class = 2
+	gas_transfer_coefficient = 0.90
+	siemens_coefficient = 0
 
 /obj/item/clothing/mask/pig
 	name = "pig mask"
@@ -49,6 +87,8 @@
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
 	w_class = 2
+	siemens_coefficient = 0.9
+	body_parts_covered = HEAD|FACE|EYES
 
 /obj/item/clothing/mask/horsehead
 	name = "horse head mask"
@@ -57,108 +97,38 @@
 	item_state = "horsehead"
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
+	body_parts_covered = HEAD|FACE|EYES
 	w_class = 2
 	var/voicechange = 0
+	siemens_coefficient = 0.9
 
-/obj/item/clothing/mask/horsehead/speechModification(message)
-	if(voicechange)
-		message = pick("NEEIIGGGHHHH!", "NEEEIIIIGHH!", "NEIIIGGHH!", "HAAWWWWW!", "HAAAWWW!")
-	return message
+/obj/item/clothing/mask/ai
+	name = "camera MIU"
+	desc = "Allows for direct mental connection to accessible camera networks."
+	icon_state = "s-ninja"
+	item_state = "s-ninja"
+	flags_inv = HIDEFACE
+	body_parts_covered = 0
+	var/mob/eye/aiEye/eye
 
-/obj/item/clothing/mask/beecowl
-	name = "Bee Cowl"
-	desc = "JUST YOUR AVERAGE WASP-THEMED SUPER HERO BY DAY!"
-	icon_state = "beecowl"
-	item_state = "beecowl"
-	flags = BLOCKHAIR | MASKCOVERSEYES | BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
-	w_class = 2
+/obj/item/clothing/mask/ai/New()
+	eye = new(src)
 
-/obj/item/clothing/mask/beecowl/beehailer
-	name = "Dr. Bee's Cowl"
-	desc = "A cowl with a built in cassette deck! It appears to be preloaded with a unremovable cassette however."
-	action_button_name = "BEES"
-	icon_state = "beecowl"
-	var/cooldown = 0
-	var/aggressiveness = 2
-	ignore_maskadjust = 0
-	flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS | BLOCKHAIR
-	visor_flags = BLOCK_GAS_SMOKE_EFFECT | MASKINTERNALS
+/obj/item/clothing/mask/ai/equipped(var/mob/user, var/slot)
+	..(user, slot)
+	if(slot == slot_wear_mask)
+		eye.owner = user
+		user.eyeobj = eye
 
-/obj/item/clothing/mask/beecowl/beehailer/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
-	if(istype(W, /obj/item/weapon/screwdriver))
-		switch(aggressiveness)
-			if(1)
-				user << "<span class='notice'>You set the restrictor to the middle position, but all the settings are marked BEES.</span>"
-				aggressiveness = 2
-			if(2)
-				user << "<span class='notice'>You set the restrictor to the last position, but all the settings are marked BEES.</span>"
-				aggressiveness = 3
-			if(3)
-				user << "<span class='notice'>You set the restrictor to the first position, but all the settings are marked BEES.</span>"
-				aggressiveness = 1
-			if(4)
-				user << "<span class='danger'>You adjust the restrictor but nothing happens, probably because its broken.</span>"
-	else if(istype(W, /obj/item/weapon/wirecutters))
-		if(aggressiveness != 4)
-			user << "<span class='danger'>You broke it!</span>"
-			aggressiveness = 4
-	else
-		..()
+		for(var/datum/chunk/c in eye.visibleChunks)
+			c.remove(eye)
+		eye.setLoc(user)
 
-/obj/item/clothing/mask/beecowl/beehailer/attack_self()
-	bees()
+/obj/item/clothing/mask/ai/dropped(var/mob/user)
+	..()
+	if(eye.owner == user)
+		for(var/datum/chunk/c in eye.visibleChunks)
+			c.remove(eye)
 
-/obj/item/clothing/mask/beecowl/beehailer/verb/bees()
-	set category = "Object"
-	set name = "BEES"
-	set src in usr
-	if(!istype(usr, /mob/living))
-		return
-	if(!can_use(usr))
-		return
-
-	var/phrase = 0	//selects which phrase to use
-	var/phrase_text = null
-	var/phrase_sound = null
-
-
-	if(cooldown < world.time - 50) // Modified Sechailer code, doesn't need the aggressiveness, but will leave it for compatability reasons
-		switch(aggressiveness)
-			if(1)
-				phrase = rand(1,7)
-			if(2)
-				phrase = rand(1,7)
-			if(3)
-				phrase = rand(1,7)
-			if(4)
-				phrase = rand(8,8)
-
-		switch(phrase)	//sets the properties of the chosen phrase
-			if(1)
-				phrase_text = "Dr. BEEEES"
-				phrase_sound = "drbees"
-			if(2)
-				phrase_text = "A large influx of bees ought to put a stop to that!"
-				phrase_sound = "alargeinflux"
-			if(3)
-				phrase_text = "My briefcase full of bees ought to put a stop to that!"
-				phrase_sound = "briefcasefullofbees"
-			if(4)
-				phrase_text = "On International bring a shit ton of bees to work day!"
-				phrase_sound = "shittonofbees"
-			if(5)
-				phrase_text = "LATER THAT VERY SAME BEE"
-				phrase_sound = "laterthatverysamebee"
-			if(6)
-				phrase_text = "BEES ARE MY ART"
-				phrase_sound = "Beearemyart"
-			if(7)
-				phrase_text = "IF PEOPLE DONT LIKE MY BEES, THEY CAN VOICE THEIR OPINION OR VOTE WITH THEIR WALLETS"
-				phrase_sound = "votewithwallet"
-			if(8)
-				phrase_text = "AGH NO, NOT THE BEES, NOT THE BEES, AHHHHHHGAHAGHAGH"
-				phrase_sound = "notthebees"
-
-		usr.visible_message("[usr]'s Cowl: <font color='black' size='4'><b>[phrase_text]</b></font>")
-		playsound(src.loc, "sound/voice/complionator/bees/[phrase_sound].ogg", 100, 0, 4)
-		cooldown = world.time
+		eye.owner.eyeobj = null
+		eye.owner = null

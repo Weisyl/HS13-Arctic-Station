@@ -16,8 +16,16 @@ macro "borghotkeymode"
 		command = ".southeast"
 		is-disabled = false
 	elem 
+		name = "SOUTHWEST"
+		command = ".southwest"
+		is-disabled = false
+	elem 
 		name = "NORTHWEST"
-		command = "unequip-module"
+		command = ".northwest"
+		is-disabled = false
+	elem 
+		name = "ALT+WEST"
+		command = "westfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+WEST"
@@ -28,6 +36,10 @@ macro "borghotkeymode"
 		command = ".west"
 		is-disabled = false
 	elem 
+		name = "ALT+NORTH"
+		command = "northfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+NORTH"
 		command = "northface"
 		is-disabled = false
@@ -36,12 +48,20 @@ macro "borghotkeymode"
 		command = ".north"
 		is-disabled = false
 	elem 
+		name = "ALT+EAST"
+		command = "eastfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+EAST"
 		command = "eastface"
 		is-disabled = false
 	elem 
 		name = "EAST+REP"
 		command = ".east"
+		is-disabled = false
+	elem 
+		name = "ALT+SOUTH"
+		command = "southfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+SOUTH"
@@ -92,6 +112,10 @@ macro "borghotkeymode"
 		command = "a-intent left"
 		is-disabled = false
 	elem 
+		name = "5"
+		command = ".me"
+		is-disabled = false
+	elem 
 		name = "A+REP"
 		command = ".west"
 		is-disabled = false
@@ -124,12 +148,28 @@ macro "borghotkeymode"
 		command = "a-intent right"
 		is-disabled = false
 	elem 
+		name = "J"
+		command = "toggle-gun-mode"
+		is-disabled = false
+	elem 
+		name = "CTRL+J"
+		command = "toggle-gun-mode"
+		is-disabled = false
+	elem 
 		name = "Q"
 		command = "unequip-module"
 		is-disabled = false
 	elem 
 		name = "CTRL+Q"
 		command = "unequip-module"
+		is-disabled = false
+	elem 
+		name = "R"
+		command = ".southwest"
+		is-disabled = false
+	elem 
+		name = "CTRL+R"
+		command = ".southwest"
 		is-disabled = false
 	elem "s_key"
 		name = "S+REP"
@@ -141,7 +181,7 @@ macro "borghotkeymode"
 		is-disabled = false
 	elem 
 		name = "T"
-		command = "say"
+		command = ".say"
 		is-disabled = false
 	elem "w_key"
 		name = "W+REP"
@@ -184,6 +224,10 @@ macro "borghotkeymode"
 		command = ".options"
 		is-disabled = false
 	elem 
+		name = "F2"
+		command = "ooc"
+		is-disabled = false
+	elem 
 		name = "F2+REP"
 		command = ".screenshot auto"
 		is-disabled = false
@@ -193,15 +237,15 @@ macro "borghotkeymode"
 		is-disabled = false
 	elem 
 		name = "F3"
-		command = "asay"
+		command = ".say"
 		is-disabled = false
 	elem 
 		name = "F4"
-		command = "Msay"
+		command = ".me"
 		is-disabled = false
 	elem 
 		name = "F5"
-		command = "Aghost"
+		command = "asay"
 		is-disabled = false
 	elem 
 		name = "F6"
@@ -223,7 +267,7 @@ macro "borghotkeymode"
 macro "macro"
 	elem 
 		name = "TAB"
-		command = ".winset \"mainwindow.macro=hotkeymode hotkey_toggle.is-checked=true mapwindow.map.focus=true input.background-color=#F0F0F0\""
+		command = ".winset \"mainwindow.macro=hotkeymode hotkey_toggle.is-checked=true mapwindow.map.focus=true\""
 		is-disabled = false
 	elem 
 		name = "CENTER+REP"
@@ -246,12 +290,20 @@ macro "macro"
 		command = ".northwest"
 		is-disabled = false
 	elem 
+		name = "ALT+WEST"
+		command = "westfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+WEST"
 		command = "westface"
 		is-disabled = false
 	elem 
 		name = "WEST+REP"
 		command = ".west"
+		is-disabled = false
+	elem 
+		name = "ALT+NORTH"
+		command = "northfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+NORTH"
@@ -262,12 +314,20 @@ macro "macro"
 		command = ".north"
 		is-disabled = false
 	elem 
+		name = "ALT+EAST"
+		command = "eastfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+EAST"
 		command = "eastface"
 		is-disabled = false
 	elem 
 		name = "EAST+REP"
 		command = ".east"
+		is-disabled = false
+	elem 
+		name = "ALT+SOUTH"
+		command = "southfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+SOUTH"
@@ -315,7 +375,7 @@ macro "macro"
 		is-disabled = false
 	elem 
 		name = "CTRL+F"
-		command = "say *fart"
+		command = "a-intent left"
 		is-disabled = false
 	elem 
 		name = "CTRL+G"
@@ -328,10 +388,6 @@ macro "macro"
 	elem 
 		name = "CTRL+R"
 		command = ".southwest"
-		is-disabled = false
-	elem 
-		name = "CTRL+S"
-		command = "say *scream"
 		is-disabled = false
 	elem 
 		name = "CTRL+S+REP"
@@ -362,6 +418,10 @@ macro "macro"
 		command = ".options"
 		is-disabled = false
 	elem 
+		name = "F2"
+		command = "ooc"
+		is-disabled = false
+	elem 
 		name = "F2+REP"
 		command = ".screenshot auto"
 		is-disabled = false
@@ -371,15 +431,15 @@ macro "macro"
 		is-disabled = false
 	elem 
 		name = "F3"
-		command = "asay"
+		command = ".say"
 		is-disabled = false
 	elem 
 		name = "F4"
-		command = "Msay"
+		command = ".me"
 		is-disabled = false
 	elem 
 		name = "F5"
-		command = "Aghost"
+		command = "asay"
 		is-disabled = false
 	elem 
 		name = "F6"
@@ -401,7 +461,7 @@ macro "macro"
 macro "hotkeymode"
 	elem 
 		name = "TAB"
-		command = ".winset \"mainwindow.macro=macro hotkey_toggle.is-checked=false input.focus=true input.background-color=#D3B5B5\""
+		command = ".winset \"mainwindow.macro=macro hotkey_toggle.is-checked=false input.focus=true\""
 		is-disabled = false
 	elem 
 		name = "CENTER+REP"
@@ -424,12 +484,20 @@ macro "hotkeymode"
 		command = ".northwest"
 		is-disabled = false
 	elem 
+		name = "ALT+WEST"
+		command = "westfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+WEST"
 		command = "westface"
 		is-disabled = false
 	elem 
 		name = "WEST+REP"
 		command = ".west"
+		is-disabled = false
+	elem 
+		name = "ALT+NORTH"
+		command = "northfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+NORTH"
@@ -440,12 +508,20 @@ macro "hotkeymode"
 		command = ".north"
 		is-disabled = false
 	elem 
+		name = "ALT+EAST"
+		command = "eastfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+EAST"
 		command = "eastface"
 		is-disabled = false
 	elem 
 		name = "EAST+REP"
 		command = ".east"
+		is-disabled = false
+	elem 
+		name = "ALT+SOUTH"
+		command = "southfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+SOUTH"
@@ -494,6 +570,10 @@ macro "hotkeymode"
 	elem 
 		name = "CTRL+4"
 		command = "a-intent harm"
+		is-disabled = false
+	elem 
+		name = "5"
+		command = ".me"
 		is-disabled = false
 	elem 
 		name = "A+REP"
@@ -525,7 +605,7 @@ macro "hotkeymode"
 		is-disabled = false
 	elem 
 		name = "CTRL+F"
-		command = "say *fart"
+		command = "a-intent left"
 		is-disabled = false
 	elem 
 		name = "G"
@@ -534,6 +614,22 @@ macro "hotkeymode"
 	elem 
 		name = "CTRL+G"
 		command = "a-intent right"
+		is-disabled = false
+	elem 
+		name = "H"
+		command = "holster"
+		is-disabled = false
+	elem 
+		name = "CTRL+H"
+		command = "holster"
+		is-disabled = false
+	elem 
+		name = "J"
+		command = "toggle-gun-mode"
+		is-disabled = false
+	elem 
+		name = "CTRL+J"
+		command = "toggle-gun-mode"
 		is-disabled = false
 	elem 
 		name = "Q"
@@ -551,10 +647,6 @@ macro "hotkeymode"
 		name = "CTRL+R"
 		command = ".southwest"
 		is-disabled = false
-	elem 
-		name = "CTRL+S"
-		command = "say *scream"
-		is-disabled = false
 	elem "s_key"
 		name = "S+REP"
 		command = ".south"
@@ -565,7 +657,7 @@ macro "hotkeymode"
 		is-disabled = false
 	elem 
 		name = "T"
-		command = "say"
+		command = ".say"
 		is-disabled = false
 	elem "w_key"
 		name = "W+REP"
@@ -608,6 +700,10 @@ macro "hotkeymode"
 		command = ".options"
 		is-disabled = false
 	elem 
+		name = "F2"
+		command = "ooc"
+		is-disabled = false
+	elem 
 		name = "F2+REP"
 		command = ".screenshot auto"
 		is-disabled = false
@@ -617,15 +713,15 @@ macro "hotkeymode"
 		is-disabled = false
 	elem 
 		name = "F3"
-		command = "asay"
+		command = ".say"
 		is-disabled = false
 	elem 
 		name = "F4"
-		command = "Msay"
+		command = ".me"
 		is-disabled = false
 	elem 
 		name = "F5"
-		command = "Aghost"
+		command = "asay"
 		is-disabled = false
 	elem 
 		name = "F6"
@@ -662,8 +758,16 @@ macro "borgmacro"
 		command = ".southeast"
 		is-disabled = false
 	elem 
+		name = "SOUTHWEST"
+		command = ".southwest"
+		is-disabled = false
+	elem 
 		name = "NORTHWEST"
-		command = "unequip-module"
+		command = ".northwest"
+		is-disabled = false
+	elem 
+		name = "ALT+WEST"
+		command = "westfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+WEST"
@@ -674,6 +778,10 @@ macro "borgmacro"
 		command = ".west"
 		is-disabled = false
 	elem 
+		name = "ALT+NORTH"
+		command = "northfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+NORTH"
 		command = "northface"
 		is-disabled = false
@@ -682,12 +790,20 @@ macro "borgmacro"
 		command = ".north"
 		is-disabled = false
 	elem 
+		name = "ALT+EAST"
+		command = "eastfaceperm"
+		is-disabled = false
+	elem 
 		name = "CTRL+EAST"
 		command = "eastface"
 		is-disabled = false
 	elem 
 		name = "EAST+REP"
 		command = ".east"
+		is-disabled = false
+	elem 
+		name = "ALT+SOUTH"
+		command = "southfaceperm"
 		is-disabled = false
 	elem 
 		name = "CTRL+SOUTH"
@@ -739,7 +855,11 @@ macro "borgmacro"
 		is-disabled = false
 	elem 
 		name = "CTRL+Q"
-		command = "unequip-module"
+		command = ".northwest"
+		is-disabled = false
+	elem 
+		name = "CTRL+R"
+		command = ".southwest"
 		is-disabled = false
 	elem 
 		name = "CTRL+S+REP"
@@ -770,6 +890,10 @@ macro "borgmacro"
 		command = ".options"
 		is-disabled = false
 	elem 
+		name = "F2"
+		command = "ooc"
+		is-disabled = false
+	elem 
 		name = "F2+REP"
 		command = ".screenshot auto"
 		is-disabled = false
@@ -779,15 +903,15 @@ macro "borgmacro"
 		is-disabled = false
 	elem 
 		name = "F3"
-		command = "asay"
+		command = ".say"
 		is-disabled = false
 	elem 
 		name = "F4"
-		command = "Msay"
+		command = ".me"
 		is-disabled = false
 	elem 
 		name = "F5"
-		command = "Aghost"
+		command = "asay"
 		is-disabled = false
 	elem 
 		name = "F6"
@@ -917,17 +1041,8 @@ menu "menu"
 		is-disabled = false
 		saved-params = "is-checked"
 	elem 
-		name = "&Admin help"
+		name = "&Admin help\tF1"
 		command = "adminhelp"
-		category = "&Help"
-		is-checked = false
-		can-check = false
-		group = ""
-		is-disabled = false
-		saved-params = "is-checked"
-	elem 
-		name = "&Mentor help"
-		command = "mentorhelp"
 		category = "&Help"
 		is-checked = false
 		can-check = false
@@ -1143,7 +1258,7 @@ window "Telecomms IDE"
 		right-click = false
 		saved-params = "is-checked"
 		on-size = ""
-		text = "Save"
+		text = "Apply"
 		image = ""
 		command = "tcssave"
 		is-flat = false
@@ -1592,7 +1707,7 @@ window "mainwindow"
 		on-size = ""
 		text = "Hotkey Toggle"
 		image = ""
-		command = ".winset \"mainwindow.macro!=macro ? mainwindow.macro=macro hotkey_toggle.is-checked=false input.background-color=#D3B5B5 : mainwindow.macro=hotkeymode hotkey_toggle.is-checked=true mapwindow.map.focus=true input.background-color=#F0F0F0\""
+		command = ".winset \"mainwindow.macro!=macro ? mainwindow.macro=macro hotkey_toggle.is-checked=false input.focus=true : mainwindow.macro=hotkeymode hotkey_toggle.is-checked=true mapwindow.map.focus=true\""
 		is-flat = false
 		stretch = false
 		is-checked = false
@@ -1723,7 +1838,7 @@ window "mapwindow"
 		size = 640x480
 		anchor1 = 0,0
 		anchor2 = 100,100
-		font-family = "Arial"
+		font-family = "Arial Rounded MT Bold,Arial Black,Arial,sans-serif"
 		font-size = 7
 		font-style = ""
 		text-color = none
@@ -1809,7 +1924,7 @@ window "outputwindow"
 		visited-color = #ff00ff
 		style = ".system {color:#ff0000;}"
 		enable-http-images = false
-		max-lines = 1000
+		max-lines = 0
 		image = ""
 
 window "rpane"
@@ -1878,65 +1993,9 @@ window "rpane"
 		splitter = 50
 		show-splitter = true
 		lock = none
-	elem "reportissueb"
-		type = BUTTON
-		pos = 408,0
-		size = 67x16
-		anchor1 = none
-		anchor2 = none
-		font-family = ""
-		font-size = 0
-		font-style = ""
-		text-color = #000000
-		background-color = none
-		is-visible = true
-		is-disabled = false
-		is-transparent = false
-		is-default = false
-		border = none
-		drop-zone = false
-		right-click = false
-		saved-params = "is-checked"
-		on-size = ""
-		text = "Report Issue"
-		image = ""
-		command = "report-issue"
-		is-flat = false
-		stretch = false
-		is-checked = false
-		group = "rpanemode"
-		button-type = pushbutton
-	elem "changelogb"
-		type = BUTTON
-		pos = 336,0
-		size = 67x16
-		anchor1 = none
-		anchor2 = none
-		font-family = ""
-		font-size = 0
-		font-style = ""
-		text-color = #000000
-		background-color = none
-		is-visible = true
-		is-disabled = false
-		is-transparent = false
-		is-default = false
-		border = none
-		drop-zone = false
-		right-click = false
-		saved-params = "is-checked"
-		on-size = ""
-		text = "Changelog"
-		image = ""
-		command = "Changelog"
-		is-flat = false
-		stretch = false
-		is-checked = false
-		group = "rpanemode"
-		button-type = pushbutton
 	elem "rulesb"
 		type = BUTTON
-		pos = 272,0
+		pos = 278,0
 		size = 60x16
 		anchor1 = none
 		anchor2 = none
@@ -1962,9 +2021,37 @@ window "rpane"
 		is-checked = false
 		group = "rpanemode"
 		button-type = pushbutton
+	elem "changelog"
+		type = BUTTON
+		pos = 341,0
+		size = 67x16
+		anchor1 = none
+		anchor2 = none
+		font-family = ""
+		font-size = 0
+		font-style = ""
+		text-color = #000000
+		background-color = none
+		is-visible = true
+		is-disabled = false
+		is-transparent = false
+		is-default = false
+		border = none
+		drop-zone = false
+		right-click = false
+		saved-params = "is-checked"
+		on-size = ""
+		text = "Changelog"
+		image = ""
+		command = "Changelog"
+		is-flat = false
+		stretch = false
+		is-checked = false
+		group = "rpanemode"
+		button-type = pushbutton
 	elem "forumb"
 		type = BUTTON
-		pos = 208,0
+		pos = 215,0
 		size = 60x16
 		anchor1 = none
 		anchor2 = none
@@ -1992,7 +2079,7 @@ window "rpane"
 		button-type = pushbutton
 	elem "wikib"
 		type = BUTTON
-		pos = 144,0
+		pos = 152,0
 		size = 60x16
 		anchor1 = none
 		anchor2 = none
@@ -2048,7 +2135,7 @@ window "rpane"
 		button-type = pushbox
 	elem "browseb"
 		type = BUTTON
-		pos = 552,0
+		pos = 464,0
 		size = 60x16
 		anchor1 = none
 		anchor2 = none
@@ -2170,71 +2257,6 @@ window "browserwindow"
 		on-show = ".winset\"rpane.infob.is-visible=true?rpane.infob.pos=130,0;rpane.textb.is-visible=true;rpane.browseb.is-visible=true;rpane.browseb.is-checked=true;rpane.rpanewindow.pos=0,30;rpane.rpanewindow.size=0x0;rpane.rpanewindow.left=browserwindow\""
 		on-hide = ".winset\"rpane.infob.is-visible=true?rpane.infob.is-checked=true rpane.infob.pos=65,0 rpane.rpanewindow.left=infowindow:rpane.rpanewindow.left=textwindow rpane.textb.is-visible=true rpane.rpanewindow.pos=0,30 rpane.rpanewindow.size=0x0\""
 
-window "say_window"
-	elem "say_window"
-		type = MAIN
-		pos = 1313,470
-		size = 350x48
-		anchor1 = none
-		anchor2 = none
-		font-family = ""
-		font-size = 0
-		font-style = ""
-		text-color = #000000
-		background-color = none
-		is-visible = false
-		is-disabled = false
-		is-transparent = false
-		is-default = false
-		border = none
-		drop-zone = false
-		right-click = false
-		saved-params = "pos;size;is-minimized;is-maximized"
-		on-size = ""
-		title = "Say"
-		titlebar = true
-		statusbar = false
-		can-close = true
-		can-minimize = false
-		can-resize = false
-		is-pane = false
-		is-minimized = false
-		is-maximized = false
-		can-scroll = none
-		icon = ""
-		image = ""
-		image-mode = stretch
-		keep-aspect = false
-		transparent-color = none
-		alpha = 255
-		macro = ""
-		menu = ""
-		on-close = ""
-	elem "say_input"
-		type = INPUT
-		pos = 8,16
-		size = 330x20
-		anchor1 = none
-		anchor2 = none
-		font-family = ""
-		font-size = 0
-		font-style = ""
-		text-color = #000000
-		background-color = #ffffff
-		is-visible = true
-		is-disabled = false
-		is-transparent = false
-		is-default = false
-		border = sunken
-		drop-zone = false
-		right-click = false
-		saved-params = ""
-		on-size = ""
-		command = "say"
-		multi-line = false
-		is-password = false
-		no-command = false
-
 window "infowindow"
 	elem "infowindow"
 		type = MAIN
@@ -2278,7 +2300,7 @@ window "infowindow"
 	elem "info"
 		type = INFO
 		pos = 0,0
-		size = 638x475
+		size = 638x477
 		anchor1 = 0,0
 		anchor2 = 100,100
 		font-family = ""
@@ -2301,7 +2323,7 @@ window "infowindow"
 		tab-font-family = ""
 		tab-font-size = 0
 		tab-font-style = ""
-		allow-html = false
+		allow-html = true
 		multi-line = true
 		on-show = ".winset\"rpane.infob.is-visible=true;rpane.browseb.is-visible=true?rpane.infob.pos=130,0:rpane.infob.pos=65,0 rpane.textb.is-visible=true rpane.infob.is-checked=true rpane.rpanewindow.pos=0,30 rpane.rpanewindow.size=0x0 rpane.rpanewindow.left=infowindow\""
 		on-hide = ".winset\"rpane.infob.is-visible=false;rpane.browseb.is-visible=true?rpane.browseb.is-checked=true rpane.rpanewindow.left=browserwindow:rpane.textb.is-visible=true rpane.rpanewindow.pos=0,30 rpane.rpanewindow.size=0x0 rpane.rpanewindow.left=\""

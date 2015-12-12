@@ -23,7 +23,6 @@ Bonus
 	stage_speed = 2
 	transmittable = 2
 	level = 2
-	severity = 2
 
 /datum/symptom/shivering/Activate(var/datum/disease/advance/A)
 	..()

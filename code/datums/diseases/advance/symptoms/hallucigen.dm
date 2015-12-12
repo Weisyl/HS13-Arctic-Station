@@ -23,7 +23,6 @@ Bonus
 	stage_speed = -3
 	transmittable = -1
 	level = 5
-	severity = 3
 
 /datum/symptom/hallucigen/Activate(var/datum/disease/advance/A)
 	..()

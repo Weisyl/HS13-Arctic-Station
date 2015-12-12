@@ -1,5 +1,5 @@
 /mob/living/simple_animal/hostile/russian
-	name = "Russian"
+	name = "russian"
 	desc = "For the Motherland!"
 	icon_state = "russianmelee"
 	icon_living = "russianmelee"
@@ -10,17 +10,17 @@
 	response_help = "pokes"
 	response_disarm = "shoves"
 	response_harm = "hits"
-	speed = 0
+	speed = 4
 	stop_automated_movement_when_pulled = 0
 	maxHealth = 100
 	health = 100
 	harm_intent_damage = 5
 	melee_damage_lower = 15
 	melee_damage_upper = 15
-	attacktext = "punches"
-	a_intent = "harm"
+	attacktext = "punched"
+	a_intent = I_HURT
 	var/corpse = /obj/effect/landmark/mobcorpse/russian
-	var/weapon1 = /obj/item/weapon/kitchenknife
+	var/weapon1 = /obj/item/weapon/material/knife
 	min_oxy = 5
 	max_oxy = 0
 	min_tox = 0
@@ -29,8 +29,8 @@
 	max_co2 = 5
 	min_n2 = 0
 	max_n2 = 0
-	unsuitable_atmos_damage = 15
-	faction = list("russian")
+	unsuitable_atoms_damage = 15
+	faction = "russian"
 	status_flags = CANPUSH
 
 
@@ -40,40 +40,12 @@
 	corpse = /obj/effect/landmark/mobcorpse/russian/ranged
 	weapon1 = /obj/item/weapon/gun/projectile/revolver/mateba
 	ranged = 1
-	retreat_distance = 5
-	minimum_distance = 5
 	projectiletype = /obj/item/projectile/bullet
 	projectilesound = 'sound/weapons/Gunshot.ogg'
-	casingtype = /obj/item/ammo_casing/a357{empty = 1} //Spawns it as empty
+	casingtype = /obj/item/ammo_casing/a357
 
 
-/mob/living/simple_animal/hostile/russian/Die()
-	..()
-	if(corpse)
-		new corpse (src.loc)
-	if(weapon1)
-		new weapon1 (src.loc)
-	qdel(src)
-	return
-
-/mob/living/simple_animal/hostile/russian/ranged/spetsnaz
-	name = "Russian Spetsnaz"
-	icon_state = "spetsnaz"
-	icon_living = "spetsnaz"
-	corpse = /obj/effect/landmark/mobcorpse/russian/ranged/spetsnaz
-	weapon1 = /obj/item/weapon/gun/projectile/automatic/ak922
-	ranged = 1
-	rapid = 1
-	retreat_distance = 5
-	minimum_distance = 5
-	maxHealth = 150		//They got some serious armor on
-	health = 150
-	projectiletype = /obj/item/projectile/bullet/heavybullet
-	projectilesound = 'sound/weapons/handcannon.ogg'
-	casingtype = /obj/item/ammo_casing/a762x39{empty = 1} //Spawns it as empty
-
-
-/mob/living/simple_animal/hostile/russian/Die()
+/mob/living/simple_animal/hostile/russian/death()
 	..()
 	if(corpse)
 		new corpse (src.loc)

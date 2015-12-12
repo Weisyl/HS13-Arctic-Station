@@ -1,51 +1,53 @@
-/obj/item/stack/tile/plasteel
+/obj/item/stack/tile/steel
 	name = "floor tile"
 	singular_name = "floor tile"
-	desc = "Those could work as a pretty decent throwing weapon"
+	desc = "Those could work as a pretty decent throwing weapon" //why?
 	icon_state = "tile"
-	w_class = 3.0
 	force = 6.0
-	m_amt = 937.5
-	throwforce = 10.0
-	throw_speed = 3
-	throw_range = 7
+	matter = list(DEFAULT_WALL_MATERIAL = 937.5)
+	throwforce = 15.0
+	throw_speed = 5
+	throw_range = 20
 	flags = CONDUCT
-	max_amount = 60
-	turf_type = /turf/simulated/floor/plasteel
 
-/obj/item/stack/tile/plasteel/cyborg
-	desc = "The ground you walk on" //Not the usual floor tile desc as that refers to throwing, Cyborgs can't do that - RR
-	m_amt = 0 // All other Borg versions of items have no Metal or Glass - RR
-	is_cyborg = 1
-	cost = 125
-
-/obj/item/stack/tile/plasteel/New(var/loc, var/amount=null)
+/obj/item/stack/tile/steel/New(var/loc, var/amount=null)
 	..()
 	src.pixel_x = rand(1, 14)
 	src.pixel_y = rand(1, 14)
 	return
 
-/obj/item/stack/tile/plasteel/attackby(obj/item/W as obj, mob/user as mob, params)
+/obj/item/stack/tile/steel/cyborg
+	name = "floor tile synthesizer"
+	desc = "A device that makes floor tiles."
+	gender = NEUTER
+	matter = null
+	uses_charge = 1
+	charge_costs = list(250)
+	stacktype = /obj/item/stack/tile/steel
+	build_type = /obj/item/stack/tile/steel
 
-	if (istype(W, /obj/item/weapon/weldingtool))
-		var/obj/item/weapon/weldingtool/WT = W
-
-		if(get_amount() < 4)
-			user << "<span class='warning'>You need at least four tiles to do this.</span>"
-			return
-
-		if(WT.remove_fuel(0,user))
-			var/obj/item/stack/sheet/metal/new_item = new(usr.loc)
-			new_item.add_to_stacks(usr)
-			user.visible_message("<span class='warning'>[user.name] shaped [src] into metal with the weldingtool.</span>", \
-						 "<span class='notice'>You shaped [src] into metal with the weldingtool.</span>", \
-						 "<span class='warning'>You hear welding.</span>")
-			var/obj/item/stack/rods/R = src
-			src = null
-			var/replace = (user.get_inactive_hand()==R)
-			R.use(4)
-			if (!R && replace)
-				user.put_in_hands(new_item)
+/*
+/obj/item/stack/tile/steel/attack_self(mob/user as mob)
+	if (usr.stat)
 		return
+	var/T = user.loc
+	if (!( istype(T, /turf) ))
+		user << "\red You must be on the ground!"
+		return
+	if (!( istype(T, /turf/space) ))
+		user << "\red You cannot build on or repair this turf!"
+		return
+	src.build(T)
+	src.add_fingerprint(user)
+	use(1)
+	return
+*/
+
+/obj/item/stack/tile/steel/proc/build(turf/S as turf)
+	if (istype(S,/turf/space))
+		S.ChangeTurf(/turf/simulated/floor/plating/airless)
 	else
-		..()
+		S.ChangeTurf(/turf/simulated/floor/plating)
+//	var/turf/simulated/floor/W = S.ReplaceWithFloor()
+//	W.make_plating()
+	return

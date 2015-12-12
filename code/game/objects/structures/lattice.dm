@@ -1,22 +1,22 @@
 /obj/structure/lattice
-	desc = "A lightweight support lattice."
 	name = "lattice"
+	desc = "A lightweight support lattice."
 	icon = 'icons/obj/structures.dmi'
 	icon_state = "latticefull"
 	density = 0
 	anchored = 1.0
 	layer = 2.3 //under pipes
-	var/obj/item/stack/rods/stored
 	//	flags = CONDUCT
 
 /obj/structure/lattice/New()
 	..()
-	if(!(istype(src.loc, /turf/space)))
+///// Z-Level Stuff
+	if(!(istype(src.loc, /turf/space) || istype(src.loc, /turf/simulated/floor/open)))
+///// Z-Level Stuff
 		qdel(src)
 	for(var/obj/structure/lattice/LAT in src.loc)
 		if(LAT != src)
 			qdel(LAT)
-	stored = new/obj/item/stack/rods(src)
 	icon = 'icons/obj/smoothlattice.dmi'
 	icon_state = "latticeblank"
 	updateOverlays()
@@ -38,7 +38,7 @@
 	qdel(src)
 	return
 
-/obj/structure/lattice/ex_act(severity, target)
+/obj/structure/lattice/ex_act(severity)
 	switch(severity)
 		if(1.0)
 			qdel(src)
@@ -53,39 +53,33 @@
 
 /obj/structure/lattice/attackby(obj/item/C as obj, mob/user as mob)
 
-	if (istype(C, /obj/item/stack/tile/plasteel))
+	if (istype(C, /obj/item/stack/tile/steel))
 		var/turf/T = get_turf(src)
 		T.attackby(C, user) //BubbleWrap - hand this off to the underlying turf instead
 		return
 	if (istype(C, /obj/item/weapon/weldingtool))
 		var/obj/item/weapon/weldingtool/WT = C
 		if(WT.remove_fuel(0, user))
-			user << "<span class='notice'>Slicing lattice joints ...</span>"
-			Deconstruct()
+			user << "\blue Slicing lattice joints ..."
+		PoolOrNew(/obj/item/stack/rods, src.loc)
+		qdel(src)
+
 	return
 
 /obj/structure/lattice/proc/updateOverlays()
 	//if(!(istype(src.loc, /turf/space)))
 	//	qdel(src)
-	overlays.Cut()
+	spawn(1)
+		overlays = list()
 
-	var/dir_sum = 0
+		var/dir_sum = 0
 
-	for (var/direction in cardinal)
-		if(locate(/obj/structure/lattice, get_step(src, direction)))
-			dir_sum += direction
-		else
-			if(!(istype(get_step(src, direction), /turf/space)))
+		for (var/direction in cardinal)
+			if(locate(/obj/structure/lattice, get_step(src, direction)))
 				dir_sum += direction
+			else
+				if(!(istype(get_step(src, direction), /turf/space)))
+					dir_sum += direction
 
-	icon_state = "lattice[dir_sum]"
-	return
-
-/obj/structure/lattice/Deconstruct()
-	var/turf/T = loc
-	stored.loc = T
-	..()
-
-/obj/structure/lattice/singularity_pull(S, current_size)
-	if(current_size >= STAGE_FOUR)
-		Deconstruct()
+		icon_state = "lattice[dir_sum]"
+		return

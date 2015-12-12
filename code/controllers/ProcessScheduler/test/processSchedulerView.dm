@@ -8,19 +8,13 @@
 		if ("kill")
 			var/toKill = href_list["name"]
 			processScheduler.killProcess(toKill)
-			log_admin("[usr.client.ckey] has killed the [toKill] process")
-			message_admins("[usr.client.ckey] has killed the [toKill] process")
 			refreshProcessTable()
 		if ("enable")
 			var/toEnable = href_list["name"]
-			log_admin("[usr.client.ckey] has enabled the [toEnable] process")
-			message_admins("[usr.client.ckey] has enabled the [toEnable] process")
 			processScheduler.enableProcess(toEnable)
 			refreshProcessTable()
 		if ("disable")
 			var/toDisable = href_list["name"]
-			log_admin("[usr.client.ckey] has disabled the [toDisable] process")
-			message_admins("[usr.client.ckey] has disabled the [toDisable] process")
 			processScheduler.disableProcess(toDisable)
 			refreshProcessTable()
 		if ("refresh")
@@ -44,11 +38,11 @@
 		text += "<td>[num2text(data["ticks"],4)]</td>"
 		text += "<td>[data["schedule"]]</td>"
 		text += "<td>[data["status"]]</td>"
-		text += "<td><button class=\"btn kill-btn btn-danger\" data-process-name=\"[data["name"]]\" id=\"kill-[data["name"]]\">Kill</button>"
+		text += "<td><button class=\"btn kill-btn\" data-process-name=\"[data["name"]]\" id=\"kill-[data["name"]]\">Kill</button>"
 		if (data["disabled"])
-			text += "<button class=\"btn enable-btn btn-success\" data-process-name=\"[data["name"]]\" id=\"enable-[data["name"]]\">Enable</button>"
+			text += "<button class=\"btn enable-btn\" data-process-name=\"[data["name"]]\" id=\"enable-[data["name"]]\">Enable</button>"
 		else
-			text += "<button class=\"btn disable-btn btn-warning\" data-process-name=\"[data["name"]]\" id=\"disable-[data["name"]]\">Disable</button>"
+			text += "<button class=\"btn disable-btn\" data-process-name=\"[data["name"]]\" id=\"disable-[data["name"]]\">Disable</button>"
 		text += "</td>"
 		text += "</tr>"
 
@@ -84,12 +78,12 @@
 	usr << browse(text, "window=processSchedulerContext;size=800x600")
 
 /datum/processSchedulerView/proc/bootstrap_browse()
-	usr << browse('procRes/jquery.min.js', "file=jquery.min.js;display=0")
-	usr << browse('procRes/bootstrap/js/bootstrap.min.js', "file=bootstrap.min.js;display=0")
-	usr << browse('procRes/bootstrap/css/bootstrap.min.css', "file=bootstrap.min.css;display=0")
-	usr << browse('procRes/bootstrap/img/glyphicons-halflings-white.png', "file=glyphicons-halflings-white.png;display=0")
-	usr << browse('procRes/bootstrap/img/glyphicons-halflings.png', "file=glyphicons-halflings.png;display=0")
-	usr << browse('procRes/json2.js', "file=json2.js;display=0")
+	usr << browse('bower_components/jquery/dist/jquery.min.js', "file=jquery.min.js;display=0")
+	usr << browse('bower_components/bootstrap2.3.2/bootstrap/js/bootstrap.min.js', "file=bootstrap.min.js;display=0")
+	usr << browse('bower_components/bootstrap2.3.2/bootstrap/css/bootstrap.min.css', "file=bootstrap.min.css;display=0")
+	usr << browse('bower_components/bootstrap2.3.2/bootstrap/img/glyphicons-halflings-white.png', "file=glyphicons-halflings-white.png;display=0")
+	usr << browse('bower_components/bootstrap2.3.2/bootstrap/img/glyphicons-halflings.png', "file=glyphicons-halflings.png;display=0")
+	usr << browse('bower_components/json2/json2.js', "file=json2.js;display=0")
 
 /datum/processSchedulerView/proc/bootstrap_includes()
 	return {"

@@ -1,35 +1,60 @@
 /obj/machinery/pipedispenser
-	name = "pipe dispenser"
+	name = "Pipe Dispenser"
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "pipe_d"
 	density = 1
 	anchored = 1
+	var/unwrenched = 0
 	var/wait = 0
-
-/obj/machinery/pipedispenser/attack_paw(user as mob)
-	return src.attack_hand(user)
 
 /obj/machinery/pipedispenser/attack_hand(user as mob)
 	if(..())
-		return 1
+		return
+///// Z-Level stuff
 	var/dat = {"
 <b>Regular pipes:</b><BR>
 <A href='?src=\ref[src];make=0;dir=1'>Pipe</A><BR>
 <A href='?src=\ref[src];make=1;dir=5'>Bent Pipe</A><BR>
 <A href='?src=\ref[src];make=5;dir=1'>Manifold</A><BR>
-<A href='?src=\ref[src];make=19;dir=1'>4-Way Manifold</A><BR>
 <A href='?src=\ref[src];make=8;dir=1'>Manual Valve</A><BR>
-<A href='?src=\ref[src];make=18;dir=1'>Digital Valve</A><BR>
+<A href='?src=\ref[src];make=20;dir=1'>Pipe Cap</A><BR>
+<A href='?src=\ref[src];make=19;dir=1'>4-Way Manifold</A><BR>
+<A href='?src=\ref[src];make=18;dir=1'>Manual T-Valve</A><BR>
+<A href='?src=\ref[src];make=43;dir=1'>Manual T-Valve - Mirrored</A><BR>
+<A href='?src=\ref[src];make=21;dir=1'>Upward Pipe</A><BR>
+<A href='?src=\ref[src];make=22;dir=1'>Downward Pipe</A><BR>
+<b>Supply pipes:</b><BR>
+<A href='?src=\ref[src];make=29;dir=1'>Pipe</A><BR>
+<A href='?src=\ref[src];make=30;dir=5'>Bent Pipe</A><BR>
+<A href='?src=\ref[src];make=33;dir=1'>Manifold</A><BR>
+<A href='?src=\ref[src];make=41;dir=1'>Pipe Cap</A><BR>
+<A href='?src=\ref[src];make=35;dir=1'>4-Way Manifold</A><BR>
+<A href='?src=\ref[src];make=37;dir=1'>Upward Pipe</A><BR>
+<A href='?src=\ref[src];make=39;dir=1'>Downward Pipe</A><BR>
+<b>Scrubbers pipes:</b><BR>
+<A href='?src=\ref[src];make=31;dir=1'>Pipe</A><BR>
+<A href='?src=\ref[src];make=32;dir=5'>Bent Pipe</A><BR>
+<A href='?src=\ref[src];make=34;dir=1'>Manifold</A><BR>
+<A href='?src=\ref[src];make=42;dir=1'>Pipe Cap</A><BR>
+<A href='?src=\ref[src];make=36;dir=1'>4-Way Manifold</A><BR>
+<A href='?src=\ref[src];make=38;dir=1'>Upward Pipe</A><BR>
+<A href='?src=\ref[src];make=40;dir=1'>Downward Pipe</A><BR>
 <b>Devices:</b><BR>
+<A href='?src=\ref[src];make=28;dir=1'>Universal pipe adapter</A><BR>
 <A href='?src=\ref[src];make=4;dir=1'>Connector</A><BR>
-<A href='?src=\ref[src];make=7;dir=1'>Vent</A><BR>
+<A href='?src=\ref[src];make=7;dir=1'>Unary Vent</A><BR>
 <A href='?src=\ref[src];make=9;dir=1'>Gas Pump</A><BR>
-<A href='?src=\ref[src];make=15;dir=1'>Passive Gate</A><BR>
-<A href='?src=\ref[src];make=16;dir=1'>Volume Pump</A><BR>
+<A href='?src=\ref[src];make=15;dir=1'>Pressure Regulator</A><BR>
+<A href='?src=\ref[src];make=16;dir=1'>High Power Gas Pump</A><BR>
 <A href='?src=\ref[src];make=10;dir=1'>Scrubber</A><BR>
 <A href='?src=\ref[src];makemeter=1'>Meter</A><BR>
 <A href='?src=\ref[src];make=13;dir=1'>Gas Filter</A><BR>
+<A href='?src=\ref[src];make=23;dir=1'>Gas Filter - Mirrored</A><BR>
 <A href='?src=\ref[src];make=14;dir=1'>Gas Mixer</A><BR>
+<A href='?src=\ref[src];make=25;dir=1'>Gas Mixer - Mirrored</A><BR>
+<A href='?src=\ref[src];make=24;dir=1'>Gas Mixer - T</A><BR>
+<A href='?src=\ref[src];make=26;dir=1'>Omni Gas Mixer</A><BR>
+<A href='?src=\ref[src];make=27;dir=1'>Omni Gas Filter</A><BR>
 <b>Heat exchange:</b><BR>
 <A href='?src=\ref[src];make=2;dir=1'>Pipe</A><BR>
 <A href='?src=\ref[src];make=3;dir=5'>Bent Pipe</A><BR>
@@ -38,8 +63,10 @@
 <b>Insulated pipes:</b><BR>
 <A href='?src=\ref[src];make=11;dir=1'>Pipe</A><BR>
 <A href='?src=\ref[src];make=12;dir=5'>Bent Pipe</A><BR>
-"}
 
+"}
+///// Z-Level stuff
+//What number the make points to is in the define # at the top of construction.dm in same folder
 
 	user << browse("<HEAD><TITLE>[src]</TITLE></HEAD><TT>[dat]</TT>", "window=pipedispenser")
 	onclose(user, "pipedispenser")
@@ -47,10 +74,10 @@
 
 /obj/machinery/pipedispenser/Topic(href, href_list)
 	if(..())
-		return 1
-	if(!anchored|| !usr.canmove || usr.stat || usr.restrained() || !in_range(loc, usr))
+		return
+	if(unwrenched || !usr.canmove || usr.stat || usr.restrained() || !in_range(loc, usr))
 		usr << browse(null, "window=pipedispenser")
-		return 1
+		return
 	usr.set_machine(src)
 	src.add_fingerprint(usr)
 	if(href_list["make"])
@@ -72,44 +99,43 @@
 	return
 
 /obj/machinery/pipedispenser/attackby(var/obj/item/W as obj, var/mob/user as mob)
-	add_fingerprint(user)
+	src.add_fingerprint(usr)
 	if (istype(W, /obj/item/pipe) || istype(W, /obj/item/pipe_meter))
-		usr << "<span class='notice'>You put [W] back into [src].</span>"
+		usr << "\blue You put [W] back to [src]."
 		user.drop_item()
 		qdel(W)
 		return
 	else if (istype(W, /obj/item/weapon/wrench))
-		if (!anchored && !isinspace())
+		if (unwrenched==0)
 			playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
-			user << "<span class='notice'>You begin to fasten \the [src] to the floor...</span>"
+			user << "\blue You begin to unfasten \the [src] from the floor..."
 			if (do_after(user, 40))
-				add_fingerprint(user)
-				user.visible_message( \
-					"[user] fastens \the [src].", \
-					"<span class='notice'>You have fastened \the [src]. Now it can dispense pipes.</span>", \
-					"You hear ratchet.")
-				anchored = 1
-				stat &= MAINT
-				if (usr.machine==src)
-					usr << browse(null, "window=pipedispenser")
-		else if(anchored)
-			playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
-			user << "<span class='notice'>You begin to unfasten \the [src] from the floor...</span>"
-			if (do_after(user, 20))
-				add_fingerprint(user)
 				user.visible_message( \
 					"[user] unfastens \the [src].", \
-					"<span class='notice'>You have unfastened \the [src]. Now it can be pulled somewhere else.</span>", \
+					"\blue You have unfastened \the [src]. Now it can be pulled somewhere else.", \
 					"You hear ratchet.")
-				anchored = 0
-				stat |= ~MAINT
+				src.anchored = 0
+				src.stat |= MAINT
+				src.unwrenched = 1
+				if (usr.machine==src)
+					usr << browse(null, "window=pipedispenser")
+		else /*if (unwrenched==1)*/
+			playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
+			user << "\blue You begin to fasten \the [src] to the floor..."
+			if (do_after(user, 20))
+				user.visible_message( \
+					"[user] fastens \the [src].", \
+					"\blue You have fastened \the [src]. Now it can dispense pipes.", \
+					"You hear ratchet.")
+				src.anchored = 1
+				src.stat &= ~MAINT
+				src.unwrenched = 0
 				power_change()
 	else
 		return ..()
 
-
 /obj/machinery/pipedispenser/disposal
-	name = "disposal pipe dispenser"
+	name = "Disposal Pipe Dispenser"
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "pipe_d"
 	density = 1
@@ -124,15 +150,12 @@
 Nah
 */
 
-//Allow you to drag-drop disposal pipes and transit tubes into it
-/obj/machinery/pipedispenser/disposal/MouseDrop_T(var/obj/structure/pipe as obj, mob/usr as mob)
+//Allow you to drag-drop disposal pipes into it
+/obj/machinery/pipedispenser/disposal/MouseDrop_T(var/obj/structure/disposalconstruct/pipe as obj, mob/usr as mob)
 	if(!usr.canmove || usr.stat || usr.restrained())
 		return
 
-	if (!istype(pipe, /obj/structure/disposalconstruct) && !istype(pipe, /obj/structure/c_transit_tube) && !istype(pipe, /obj/structure/c_transit_tube_pod))
-		return
-
-	if (get_dist(usr, src) > 1 || get_dist(src,pipe) > 1 )
+	if (!istype(pipe) || get_dist(usr, src) > 1 || get_dist(src,pipe) > 1 )
 		return
 
 	if (pipe.anchored)
@@ -142,8 +165,9 @@ Nah
 
 /obj/machinery/pipedispenser/disposal/attack_hand(user as mob)
 	if(..())
-		return 1
+		return
 
+///// Z-Level stuff
 	var/dat = {"<b>Disposal Pipes</b><br><br>
 <A href='?src=\ref[src];dmake=0'>Pipe</A><BR>
 <A href='?src=\ref[src];dmake=1'>Bent Pipe</A><BR>
@@ -153,8 +177,15 @@ Nah
 <A href='?src=\ref[src];dmake=5'>Bin</A><BR>
 <A href='?src=\ref[src];dmake=6'>Outlet</A><BR>
 <A href='?src=\ref[src];dmake=7'>Chute</A><BR>
-<A href='?src=\ref[src];dmake=8'>Sort Junction</A><BR>
+<A href='?src=\ref[src];dmake=21'>Upwards</A><BR>
+<A href='?src=\ref[src];dmake=22'>Downwards</A><BR>
+<A href='?src=\ref[src];dmake=8'>Sorting</A><BR>
+<A href='?src=\ref[src];dmake=9'>Sorting (Wildcard)</A><BR>
+<A href='?src=\ref[src];dmake=10'>Sorting (Untagged)</A><BR>
+<A href='?src=\ref[src];dmake=11'>Tagger</A><BR>
+<A href='?src=\ref[src];dmake=12'>Tagger (Partial)</A><BR>
 "}
+///// Z-Level stuff
 
 	user << browse("<HEAD><TITLE>[src]</TITLE></HEAD><TT>[dat]</TT>", "window=pipedispenser")
 	return
@@ -164,10 +195,13 @@ Nah
 
 /obj/machinery/pipedispenser/disposal/Topic(href, href_list)
 	if(..())
-		return 1
+		return
 	usr.set_machine(src)
 	src.add_fingerprint(usr)
 	if(href_list["dmake"])
+		if(unwrenched || !usr.canmove || usr.stat || usr.restrained() || !in_range(loc, usr))
+			usr << browse(null, "window=pipedispenser")
+			return
 		if(!wait)
 			var/p_type = text2num(href_list["dmake"])
 			var/obj/structure/disposalconstruct/C = new (src.loc)
@@ -193,6 +227,23 @@ Nah
 					C.density = 1
 				if(8)
 					C.ptype = 9
+					C.subtype = 0
+				if(9)
+					C.ptype = 9
+					C.subtype = 1
+				if(10)
+					C.ptype = 9
+					C.subtype = 2
+				if(11)
+					C.ptype = 13
+				if(12)
+					C.ptype = 14
+///// Z-Level stuff
+				if(21)
+					C.ptype = 11
+				if(22)
+					C.ptype = 12
+///// Z-Level stuff
 			C.add_fingerprint(usr)
 			C.update()
 			wait = 1
@@ -200,73 +251,11 @@ Nah
 				wait = 0
 	return
 
-//transit tube dispenser
-//inherit disposal for the dragging proc
-/obj/machinery/pipedispenser/disposal/transit_tube
-	name = "transit tube dispenser"
-	icon = 'icons/obj/stationobjs.dmi'
-	icon_state = "pipe_d"
-	density = 1
-	anchored = 1.0
+// adding a pipe dispensers that spawn unhooked from the ground
+/obj/machinery/pipedispenser/orderable
+	anchored = 0
+	unwrenched = 1
 
-/obj/machinery/pipedispenser/disposal/transit_tube/attack_hand(user as mob)
-	if(..())
-		return 1
-
-	var/dat = {"<B>Transit Tubes:</B><BR>
-<A href='?src=\ref[src];tube=0'>Straight Tube</A><BR>
-<A href='?src=\ref[src];tube=1'>Straight Tube with Crossing</A><BR>
-<A href='?src=\ref[src];tube=2'>Curved Tube</A><BR>
-<A href='?src=\ref[src];tube=3'>Diagonal Tube</A><BR>
-<A href='?src=\ref[src];tube=4'>Junction</A><BR>
-<b>Station Equipment:</b><BR>
-<A href='?src=\ref[src];tube=5'>Through Tube Station</A><BR>
-<A href='?src=\ref[src];tube=6'>Terminus Tube Station</A><BR>
-<A href='?src=\ref[src];tube=7'>Tube Blocker</A><BR>
-<A href='?src=\ref[src];tube=8'>Transit Tube Pod</A><BR>
-"}
-
-	user << browse("<HEAD><TITLE>[src]</TITLE></HEAD><TT>[dat]</TT>", "window=pipedispenser")
-	return
-
-
-/obj/machinery/pipedispenser/disposal/transit_tube/Topic(href, href_list)
-	if(..())
-		return 1
-	usr.set_machine(src)
-	src.add_fingerprint(usr)
-	if(!wait)
-		if(href_list["tube"])
-			var/tube_type = text2num(href_list["tube"])
-			if(tube_type <= 4)
-				var/obj/structure/c_transit_tube/C = new/obj/structure/c_transit_tube(src.loc)
-				switch(tube_type)
-					if(0)
-						C.icon_state = "E-W"
-					if(1)
-						C.icon_state = "E-W-Pass"
-					if(2)
-						C.icon_state = "S-NE"
-					if(3)
-						C.icon_state = "NE-SW"
-					if(4)
-						C.icon_state = "W-NE-SE"
-				C.add_fingerprint(usr)
-			else
-				switch(tube_type)
-					if(5)
-						var/obj/structure/c_transit_tube/station/C = new/obj/structure/c_transit_tube/station(src.loc)
-						C.add_fingerprint(usr)
-					if(6)
-						var/obj/structure/c_transit_tube/station/reverse/C = new/obj/structure/c_transit_tube/station/reverse(src.loc)
-						C.add_fingerprint(usr)
-					if(7)
-						var/obj/structure/c_transit_tube/station/block/C = new/obj/structure/c_transit_tube/station/block(src.loc)
-						C.add_fingerprint(usr)
-					if(8)
-						var/obj/structure/c_transit_tube_pod/C = new/obj/structure/c_transit_tube_pod(src.loc)
-						C.add_fingerprint(usr)
-			wait = 1
-			spawn(15)
-				wait = 0
-	return
+/obj/machinery/pipedispenser/disposal/orderable
+	anchored = 0
+	unwrenched = 1

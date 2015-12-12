@@ -6,13 +6,13 @@
 	w_class = 3.0
 	throw_speed = 2
 	throw_range = 4
-	flags = CONDUCT
+	flags = CONDUCT //Copied this from old code, so this may or may not be necessary
 	var/status = 0   //0 - not readied //1 - bomb finished with welder
 	var/obj/item/device/assembly_holder/bombassembly = null   //The first part of the bomb is an assembly holder, holding an igniter+some device
-	var/obj/item/weapon/tank/bombtank = null //the second part of the bomb is a plasma tank
+	var/obj/item/weapon/tank/bombtank = null //the second part of the bomb is a phoron tank
 
 /obj/item/device/onetankbomb/examine(mob/user)
-	..()
+	..(user)
 	user.examinate(bombtank)
 
 /obj/item/device/onetankbomb/update_icon()
@@ -23,7 +23,7 @@
 		overlays += bombassembly.overlays
 		overlays += "bomb_assembly"
 
-/obj/item/device/onetankbomb/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
+/obj/item/device/onetankbomb/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	if(istype(W, /obj/item/device/analyzer))
 		bombtank.attackby(W, user)
 		return
@@ -73,20 +73,13 @@
 	if(bombassembly)
 		bombassembly.HasProximity(AM)
 
-/obj/item/device/onetankbomb/Crossed(atom/movable/AM as mob|obj) //for mousetraps
-	if(bombassembly)
-		bombassembly.Crossed(AM)
-
-/obj/item/device/onetankbomb/on_found(mob/finder as mob) //for mousetraps
-	if(bombassembly)
-		bombassembly.on_found(finder)
-
-
 // ---------- Procs below are for tanks that are used exclusively in 1-tank bombs ----------
 
 /obj/item/weapon/tank/proc/bomb_assemble(W,user)	//Bomb assembly proc. This turns assembly+tank into a bomb
 	var/obj/item/device/assembly_holder/S = W
 	var/mob/M = user
+	if(!S.secured)										//Check if the assembly is secured
+		return
 	if(isigniter(S.a_left) == isigniter(S.a_right))		//Check if either part of the assembly has an igniter, but if both parts are igniters, then fuck it
 		return
 
@@ -107,7 +100,7 @@
 	return
 
 /obj/item/weapon/tank/proc/ignite()	//This happens when a bomb is told to explode
-	var/fuel_moles = air_contents.toxins + air_contents.oxygen/6
+	var/fuel_moles = air_contents.gas["phoron"] + air_contents.gas["oxygen"] / 6
 	var/strength = 1
 
 	var/turf/ground_zero = get_turf(loc)
@@ -150,15 +143,13 @@
 		ground_zero.assume_air(air_contents)
 		ground_zero.hotspot_expose(1000, 125)
 
-	air_update_turf()
 	if(master)
 		qdel(master)
 	qdel(src)
 
 /obj/item/weapon/tank/proc/release()	//This happens when the bomb is not welded. Tank contents are just spat out.
-	var/datum/gas_mixture/removed = air_contents.remove(air_contents.total_moles())
+	var/datum/gas_mixture/removed = air_contents.remove(air_contents.total_moles)
 	var/turf/simulated/T = get_turf(src)
 	if(!T)
 		return
 	T.assume_air(removed)
-	air_update_turf()

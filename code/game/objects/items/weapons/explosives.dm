@@ -1,7 +1,5 @@
-//In this file: C4
-
-/obj/item/weapon/c4
-	name = "C-4"
+/obj/item/weapon/plastique
+	name = "plastic explosives"
 	desc = "Used to put holes in specific areas without too much extra hole."
 	gender = PLURAL
 	icon = 'icons/obj/assemblies.dmi'
@@ -16,34 +14,12 @@
 	var/open_panel = 0
 	var/image_overlay = null
 
-/obj/item/weapon/c4/New()
+/obj/item/weapon/plastique/New()
 	wires = new(src)
 	image_overlay = image('icons/obj/assemblies.dmi', "plastic-explosive2")
 	..()
 
-/obj/item/weapon/c4/suicide_act(var/mob/user)
-	. = BRUTELOSS
-	user.visible_message("<span class='suicide'>[user] activates the [src.name] and holds it above his head! It looks like \he's going out with a bang!</span>")
-	var/message_say = "FOR NO RAISIN!"
-	if(user.mind)
-		if(user.mind.special_role)
-			var/role = lowertext(user.mind.special_role)
-			if(role == "traitor" || role == "syndicate")
-				message_say = "FOR THE SYNDICATE!"
-			else if(role == "changeling")
-				message_say = "FOR THE HIVE!"
-			else if(role == "cultist")
-				message_say = "FOR NARSIE!"
-	user.say(message_say)
-	target = user
-	message_admins("[key_name(user, user.client)](<A HREF='?_src_=holder;adminmoreinfo=\ref[user]'>?</A>) suicided with [src.name] at ([x],[y],[z] - <A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)",0,1)
-	explode(get_turf(user))
-	if(istype(user, /mob/living))
-		var/mob/living/L = user
-		L.gib() //Since we'll be still alive when going boom, let's just gib ourselves here
-	return .
-
-/obj/item/weapon/c4/attackby(var/obj/item/I, var/mob/user, params)
+/obj/item/weapon/plastique/attackby(var/obj/item/I, var/mob/user)
 	if(istype(I, /obj/item/weapon/screwdriver))
 		open_panel = !open_panel
 		user << "<span class='notice'>You [open_panel ? "open" : "close"] the wire panel.</span>"
@@ -52,17 +28,17 @@
 	else
 		..()
 
-/obj/item/weapon/c4/attack_self(mob/user as mob)
+/obj/item/weapon/plastique/attack_self(mob/user as mob)
 	var/newtime = input(usr, "Please set the timer.", "Timer", 10) as num
 	if(user.get_active_hand() == src)
 		newtime = Clamp(newtime, 10, 60000)
 		timer = newtime
 		user << "Timer set for [timer] seconds."
 
-/obj/item/weapon/c4/afterattack(atom/movable/target, mob/user, flag)
+/obj/item/weapon/plastique/afterattack(atom/movable/target, mob/user, flag)
 	if (!flag)
 		return
-	if (istype(target, /turf/unsimulated) || istype(target, /turf/simulated/shuttle) || istype(target, /obj/item/weapon/storage/))
+	if (ismob(target) || istype(target, /turf/unsimulated) || istype(target, /turf/simulated/shuttle) || istype(target, /obj/item/weapon/storage/) || istype(target, /obj/item/clothing/accessory/storage/) || istype(target, /obj/item/clothing/under))
 		return
 	user << "Planting explosives..."
 
@@ -84,21 +60,27 @@
 		target.overlays += image_overlay
 		user << "Bomb has been planted. Timer counting down from [timer]."
 		spawn(timer*10)
-			if(target && !target.gc_destroyed)
-				explode(get_turf(target))
-			else
-				qdel(src)
+			explode(get_turf(target))
 
-/obj/item/weapon/c4/proc/explode(var/turf/location)
-	location.ex_act(2, target)
-	explosion(location,0,0,3)
+/obj/item/weapon/plastique/proc/explode(var/location)
+	if(!target)
+		target = get_atom_on_turf(src)
+	if(!target)
+		target = src
+	if(location)
+		explosion(location, -1, -1, 2, 3)
+
+	if(target)
+		if (istype(target, /turf/simulated/wall))
+			var/turf/simulated/wall/W = target
+			W.dismantle_wall(1)
+		else if(istype(target, /mob/living))
+			target.ex_act(2) // c4 can't gib mobs anymore.
+		else
+			target.ex_act(1)
 	if(target)
 		target.overlays -= image_overlay
-		if(istype(target, /mob/living))
-			var/mob/living/L = target
-			if(L.stat == DEAD)
-				L.gib()
 	qdel(src)
 
-/obj/item/weapon/c4/attack(mob/M as mob, mob/user as mob, def_zone)
+/obj/item/weapon/plastique/attack(mob/M as mob, mob/user as mob, def_zone)
 	return

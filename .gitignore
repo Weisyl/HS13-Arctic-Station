@@ -1,11 +1,11 @@
-data/**/*
-config/**/*
-
-*.dmb
-*.rsc
-*.lk
+#ignore misc BYOND files
+Thumbs.db
+*.log
 *.int
-*.db
+*.rsc
+*.dmb
+*.lk
+*.backup
+data/
+cfg/
 
-tools/Runtime\ Condenser/Output.txt
-tools/Runtime\ Condenser/Input.txt

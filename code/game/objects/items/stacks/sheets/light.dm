@@ -6,31 +6,28 @@
 	w_class = 3.0
 	force = 3.0
 	throwforce = 5.0
-	throw_speed = 3
-	throw_range = 7
+	throw_speed = 5
+	throw_range = 20
 	flags = CONDUCT
 	max_amount = 60
 
-/obj/item/stack/light_w/attackby(var/obj/item/O as obj, var/mob/user as mob, params)
+/obj/item/stack/light_w/attackby(var/obj/item/O as obj, var/mob/user as mob)
 	..()
 	if(istype(O,/obj/item/weapon/wirecutters))
-		var/obj/item/stack/cable_coil/CC = new (user.loc)
+		var/obj/item/stack/cable_coil/CC = new/obj/item/stack/cable_coil(user.loc)
 		CC.amount = 5
-		CC.add_fingerprint(user)
 		amount--
-		var/obj/item/stack/sheet/glass/G = new (user.loc)
-		G.add_fingerprint(user)
+		new/obj/item/stack/material/glass(user.loc)
 		if(amount <= 0)
-			user.unEquip(src, 1)
+			user.drop_from_inventory(src)
 			qdel(src)
 
-	if(istype(O, /obj/item/stack/sheet/metal))
-		var/obj/item/stack/sheet/metal/M = O
+	if(istype(O,/obj/item/stack/material) && O.get_material_name() == DEFAULT_WALL_MATERIAL)
+		var/obj/item/stack/M = O
 		if (M.use(1))
 			use(1)
-			var/obj/item/stack/tile/light/L = new (user.loc)
+			new/obj/item/stack/tile/light(get_turf(user))
 			user << "<span class='notice'>You make a light tile.</span>"
-			L.add_fingerprint(user)
 		else
 			user << "<span class='warning'>You need one metal sheet to finish the light tile.</span>"
-			return
+		return

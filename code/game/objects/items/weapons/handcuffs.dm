@@ -1,5 +1,3 @@
-//Handcuffs
-
 /obj/item/weapon/handcuffs
 	name = "handcuffs"
 	desc = "Use this to keep prisoners in line."
@@ -8,194 +6,152 @@
 	icon_state = "handcuff"
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
-	throwforce = 0
+	throwforce = 5
 	w_class = 2.0
-	throw_speed = 3
+	throw_speed = 2
 	throw_range = 5
-	m_amt = 500
+	matter = list(DEFAULT_WALL_MATERIAL = 500)
 	origin_tech = "materials=1"
-	var/breakouttime = 600 //Deciseconds = 60s = 1 minute
-	var/cuffsound = 'sound/weapons/handcuffs.ogg'
-	var/trashtype = null //for disposable cuffs
-	var/icon_overlay = "handcuff" //So you can override the overlay for HUD + Mob with custom icon names.
+	var/dispenser = 0
+	var/breakouttime = 1200 //Deciseconds = 120s = 2 minutes
+	var/cuff_sound = 'sound/weapons/handcuffs.ogg'
+	var/cuff_type = "handcuffs"
 
-/obj/item/weapon/handcuffs/attack(mob/living/carbon/C, mob/user)
-	if(CLUMSY in user.mutations && prob(50))
-		user << "<span class='warning'>Uh... how do those things work?!</span>"
-		apply_cuffs(user,user)
+/obj/item/weapon/handcuffs/attack(var/mob/living/carbon/C, var/mob/living/user)
+
+	if(!user.IsAdvancedToolUser())
+		return
+
+	if ((CLUMSY in user.mutations) && prob(50))
+		user << "<span class='warning'>Uh ... how do those things work?!</span>"
+		place_handcuffs(user, user)
+		return
 
 	if(!C.handcuffed)
-		C.visible_message("<span class='danger'>[user] is trying to put [src.name] on [C]!</span>", \
-							"<span class='userdanger'>[user] is trying to put [src.name] on [C]!</span>")
+		if (C == user)
+			place_handcuffs(user, user)
+			return
 
-		playsound(loc, cuffsound, 30, 1, -2)
-		if(do_mob(user, C, 30))
-			apply_cuffs(C,user)
-			user << "<span class='notice'>You handcuff [C].</span>"
-			if(istype(src, /obj/item/weapon/handcuffs/cable))
-				feedback_add_details("handcuffs","C")
-			else
-				feedback_add_details("handcuffs","H")
-
-			add_logs(user, C, "handcuffed")
+		//check for an aggressive grab (or robutts)
+		var/can_place
+		if(istype(user, /mob/living/silicon/robot))
+			can_place = 1
 		else
-			user << "<span class='warning'>You fail to handcuff [C].</span>"
+			for (var/obj/item/weapon/grab/G in C.grabbed_by)
+				if (G.loc == user && G.state >= GRAB_AGGRESSIVE)
+					can_place = 1
+					break
 
-/obj/item/weapon/handcuffs/proc/apply_cuffs(mob/living/carbon/target, mob/user)
-	if(!target.handcuffed)
-		user.drop_item()
-		if(trashtype)
-			target.handcuffed = new trashtype(target)
-			qdel(src)
+		if(can_place)
+			place_handcuffs(C, user)
 		else
-			loc = target
-			target.handcuffed = src
-		target.update_inv_handcuffed(0)
+			user << "<span class='danger'>You need to have a firm grip on [C] before you can put \the [src] on!</span>"
+
+/obj/item/weapon/handcuffs/proc/place_handcuffs(var/mob/living/carbon/target, var/mob/user)
+	playsound(src.loc, cuff_sound, 30, 1, -2)
+
+	var/mob/living/carbon/human/H = target
+	if(!istype(H))
 		return
+
+	if (!H.has_organ_for_slot(slot_handcuffed))
+		user << "<span class='danger'>\The [H] needs at least two wrists before you can cuff them together!</span>"
+		return
+
+	if(istype(H.gloves,/obj/item/clothing/gloves/rig)) // Can't cuff someone who's in a deployed hardsuit.
+		user << "<span class='danger'>The cuffs won't fit around \the [H.gloves]!</span>"
+		return
+
+	user.visible_message("<span class='danger'>\The [user] is attempting to put [cuff_type] on \the [H]!</span>")
+
+	if(!do_after(user,30))
+		return
+
+	H.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been handcuffed (attempt) by [user.name] ([user.ckey])</font>")
+	user.attack_log += text("\[[time_stamp()]\] <font color='red'>Attempted to handcuff [H.name] ([H.ckey])</font>")
+	msg_admin_attack("[key_name(user)] attempted to handcuff [key_name(H)]")
+	feedback_add_details("handcuffs","H")
+
+	user.visible_message("<span class='danger'>\The [user] has put [cuff_type] on \the [H]!</span>")
+
+	// Apply cuffs.
+	var/obj/item/weapon/handcuffs/cuffs = src
+	if(dispenser)
+		cuffs = new(get_turf(user))
+	else
+		user.drop_from_inventory(cuffs)
+	cuffs.loc = target
+	target.handcuffed = cuffs
+	target.update_inv_handcuffed()
+	return
+
+var/last_chew = 0
+/mob/living/carbon/human/RestrainedClickOn(var/atom/A)
+	if (A != src) return ..()
+	if (last_chew + 26 > world.time) return
+
+	var/mob/living/carbon/human/H = A
+	if (!H.handcuffed) return
+	if (H.a_intent != I_HURT) return
+	if (H.zone_sel.selecting != "mouth") return
+	if (H.wear_mask) return
+	if (istype(H.wear_suit, /obj/item/clothing/suit/straight_jacket)) return
+
+	var/obj/item/organ/external/O = H.organs_by_name[H.hand?"l_hand":"r_hand"]
+	if (!O) return
+
+	var/s = "\red [H.name] chews on \his [O.name]!"
+	H.visible_message(s, "\red You chew on your [O.name]!")
+	H.attack_log += text("\[[time_stamp()]\] <font color='red'>[s] ([H.ckey])</font>")
+	log_attack("[s] ([H.ckey])")
+
+	if(O.take_damage(3,0,1,1,"teeth marks"))
+		H:UpdateDamageIcon()
+
+	last_chew = world.time
 
 /obj/item/weapon/handcuffs/cable
 	name = "cable restraints"
 	desc = "Looks like some cables tied together. Could be used to tie something up."
-	icon_state = "cuff_red"
-	item_state = "coil_red"
+	icon_state = "cuff_white"
 	breakouttime = 300 //Deciseconds = 30s
-	cuffsound = 'sound/weapons/cablecuff.ogg'
-
-/obj/item/weapon/handcuffs/cable/attack_self(mob/user as mob)
-	..()
-	if(ishuman(user) && !user.stat && !user.restrained())
-		new /obj/item/stack/cable_coil(user.loc, 15, item_color)
-		user << "You unwrap the [src]."
-		qdel(src)
-
-//Isn't defining new subtypes a little redundant if you only change icon state of base type when creating cablecuffs?
+	cuff_sound = 'sound/weapons/cablecuff.ogg'
+	cuff_type = "cable restraints"
 
 /obj/item/weapon/handcuffs/cable/red
-	icon_state = "cuff_red"
+	color = "#DD0000"
 
 /obj/item/weapon/handcuffs/cable/yellow
-	icon_state = "cuff_yellow"
+	color = "#DDDD00"
 
 /obj/item/weapon/handcuffs/cable/blue
-	icon_state = "cuff_blue"
-	item_state = "coil_blue"
+	color = "#0000DD"
 
 /obj/item/weapon/handcuffs/cable/green
-	icon_state = "cuff_green"
+	color = "#00DD00"
 
 /obj/item/weapon/handcuffs/cable/pink
-	icon_state = "cuff_pink"
+	color = "#DD00DD"
 
 /obj/item/weapon/handcuffs/cable/orange
-	icon_state = "cuff_orange"
+	color = "#DD8800"
 
 /obj/item/weapon/handcuffs/cable/cyan
-	icon_state = "cuff_cyan"
+	color = "#00DDDD"
 
 /obj/item/weapon/handcuffs/cable/white
-	icon_state = "cuff_white"
+	color = "#FFFFFF"
 
 /obj/item/weapon/handcuffs/cable/attackby(var/obj/item/I, mob/user as mob)
 	..()
 	if(istype(I, /obj/item/stack/rods))
 		var/obj/item/stack/rods/R = I
 		if (R.use(1))
-			var/obj/item/weapon/wirerod/W = new /obj/item/weapon/wirerod
-			user.unEquip(src)
+			var/obj/item/weapon/material/wirerod/W = new(get_turf(user))
 			user.put_in_hands(W)
 			user << "<span class='notice'>You wrap the cable restraint around the top of the rod.</span>"
 			qdel(src)
-		else
-			user << "<span class='warning'>You need one rod to make a wired rod.</span>"
-			return
+			update_icon(user)
 
-/obj/item/weapon/handcuffs/cable/zipties/cyborg/attack(mob/living/carbon/C, mob/user)
-	if(isrobot(user))
-		if(!C.handcuffed)
-			playsound(loc, 'sound/weapons/cablecuff.ogg', 30, 1, -2)
-			C.visible_message("<span class='danger'>[user] is trying to put zipties on [C]!</span>", \
-								"<span class='userdanger'>[user] is trying to put zipties on [C]!</span>")
-			if(do_mob(user, C, 30))
-				if(!C.handcuffed)
-					C.handcuffed = new /obj/item/weapon/handcuffs/cable/zipties/used(C)
-					C.update_inv_handcuffed(0)
-					user << "<span class='notice'>You handcuff [C].</span>"
-					add_logs(user, C, "handcuffed")
-			else
-				user << "<span class='warning'>You fail to handcuff [C].</span>"
-
-/obj/item/weapon/handcuffs/cable/zipties
-	name = "zipties"
-	desc = "Plastic, disposable zipties that can be used to restrain temporarily but are destroyed after use."
-	icon_state = "cuff_white"
-	breakouttime = 450 //Deciseconds = 45s
-	trashtype = /obj/item/weapon/handcuffs/cable/zipties/used
-
-/obj/item/weapon/handcuffs/cable/zipties/used
-	desc = "A pair of broken zipties."
-	icon_state = "cuff_white_used"
-
-/obj/item/weapon/handcuffs/cable/zipties/used/attack()
-	return
-
-
-//Legcuffs
-
-/obj/item/weapon/legcuffs
-	name = "leg cuffs"
-	desc = "Use this to keep prisoners in line."
-	gender = PLURAL
-	icon = 'icons/obj/items.dmi'
-	icon_state = "handcuff"
-	flags = CONDUCT
-	throwforce = 0
-	w_class = 3.0
-	origin_tech = "materials=1"
-	slowdown = 7
-	var/breakouttime = 300	//Deciseconds = 30s = 0.5 minute
-
-/obj/item/weapon/legcuffs/beartrap
-	name = "bear trap"
-	throw_speed = 1
-	throw_range = 1
-	icon_state = "beartrap0"
-	desc = "A trap used to catch bears and other legged creatures."
-	var/armed = 0
-
-/obj/item/weapon/legcuffs/beartrap/suicide_act(mob/user)
-	user.visible_message("<span class='suicide'>[user] is putting the [src.name] on \his head! It looks like \he's trying to commit suicide.</span>")
-	return (BRUTELOSS)
-
-/obj/item/weapon/legcuffs/beartrap/attack_self(mob/user as mob)
-	..()
-	if(ishuman(user) && !user.stat && !user.restrained())
-		armed = !armed
-		icon_state = "beartrap[armed]"
-		user << "<span class='notice'>[src] is now [armed ? "armed" : "disarmed"]</span>"
-
-
-/obj/item/weapon/legcuffs/beartrap/Crossed(AM as mob|obj)
-	if(armed && isturf(src.loc))
-		if( (iscarbon(AM) || isanimal(AM)) && !istype(AM, /mob/living/simple_animal/parrot) && !istype(AM, /mob/living/simple_animal/construct) && !istype(AM, /mob/living/simple_animal/shade) && !istype(AM, /mob/living/simple_animal/hostile/viscerator))
-			var/mob/living/L = AM
-			armed = 0
-			icon_state = "beartrap0"
-			playsound(src.loc, 'sound/effects/snap.ogg', 50, 1)
-			L.visible_message("<span class='danger'>[L] triggers \the [src].</span>", \
-					"<span class='userdanger'>You trigger \the [src]!</span>")
-
-			if(ishuman(AM))
-				var/mob/living/carbon/H = AM
-				if(H.lying)
-					H.apply_damage(20,BRUTE,"chest")
-				else
-					H.apply_damage(20,BRUTE,(pick("l_leg", "r_leg")))
-				if(!H.legcuffed) //beartrap can't cuff you leg if there's already a beartrap or legcuffs.
-					H.legcuffed = src
-					src.loc = H
-					H.update_inv_legcuffed(0)
-					feedback_add_details("handcuffs","B") //Yes, I know they're legcuffs. Don't change this, no need for an extra variable. The "B" is used to tell them apart.
-
-			else
-				L.apply_damage(20,BRUTE)
-	..()
+/obj/item/weapon/handcuffs/cyborg
+	dispenser = 1

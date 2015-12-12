@@ -2,7 +2,7 @@
 	name = "display case"
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "glassbox1"
-	desc = "A display case for prized possessions. Hooked up with an anti-theft system."
+	desc = "A display case for prized possessions. It taunts you to kick it."
 	density = 1
 	anchored = 1
 	unacidable = 1//Dissolving the case would also delete the gun.
@@ -10,12 +10,12 @@
 	var/occupied = 1
 	var/destroyed = 0
 
-/obj/structure/displaycase/ex_act(severity, target)
+/obj/structure/displaycase/ex_act(severity)
 	switch(severity)
 		if (1)
-			new /obj/item/weapon/shard( src.loc )
+			new /obj/item/weapon/material/shard( src.loc )
 			if (occupied)
-				new /obj/item/weapon/gun/energy/laser/captain( src.loc )
+				new /obj/item/weapon/gun/energy/captain( src.loc )
 				occupied = 0
 			qdel(src)
 		if (2)
@@ -29,8 +29,7 @@
 
 
 /obj/structure/displaycase/bullet_act(var/obj/item/projectile/Proj)
-	if((Proj.damage_type == BRUTE || Proj.damage_type == BURN))
-		health -= Proj.damage
+	health -= Proj.damage
 	..()
 	src.healthcheck()
 	return
@@ -38,10 +37,16 @@
 
 /obj/structure/displaycase/blob_act()
 	if (prob(75))
-		new /obj/item/weapon/shard( src.loc )
+		new /obj/item/weapon/material/shard( src.loc )
 		if (occupied)
-			new /obj/item/weapon/gun/energy/laser/captain( src.loc )
+			new /obj/item/weapon/gun/energy/captain( src.loc )
 			occupied = 0
+		qdel(src)
+
+
+/obj/structure/displaycase/meteorhit(obj/O as obj)
+		new /obj/item/weapon/material/shard( src.loc )
+		new /obj/item/weapon/gun/energy/captain( src.loc )
 		qdel(src)
 
 
@@ -50,15 +55,9 @@
 		if (!( src.destroyed ))
 			src.density = 0
 			src.destroyed = 1
-			new /obj/item/weapon/shard( src.loc )
+			new /obj/item/weapon/material/shard( src.loc )
 			playsound(src, "shatter", 70, 1)
 			update_icon()
-
-			//Activate Anti-theft
-			var/area/alarmed = get_area(src)
-			alarmed.burglaralert(src)
-			playsound(src, "sound/effects/alert.ogg", 50, 1)
-
 	else
 		playsound(src.loc, 'sound/effects/Glasshit.ogg', 75, 1)
 	return
@@ -71,30 +70,25 @@
 	return
 
 
-/obj/structure/displaycase/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
-	user.changeNext_move(CLICK_CD_MELEE)
+/obj/structure/displaycase/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	src.health -= W.force
 	src.healthcheck()
 	..()
 	return
 
-/obj/structure/displaycase/attack_paw(mob/user as mob)
-	return src.attack_hand(user)
-
 /obj/structure/displaycase/attack_hand(mob/user as mob)
-	user.changeNext_move(CLICK_CD_MELEE)
 	if (src.destroyed && src.occupied)
-		new /obj/item/weapon/gun/energy/laser/captain( src.loc )
-		user << "<span class='notice'>You deactivate the hover field built into the case.</span>"
+		new /obj/item/weapon/gun/energy/captain( src.loc )
+		user << "\b You deactivate the hover field built into the case."
 		src.occupied = 0
 		src.add_fingerprint(user)
 		update_icon()
 		return
 	else
-		user.visible_message("<span class='danger'>[user] kicks the display case.</span>", \
-						 "<span class='notice'>You kick the display case.</span>")
+		usr << text("\blue You kick the display case.")
+		for(var/mob/O in oviewers())
+			if ((O.client && !( O.blinded )))
+				O << text("\red [] kicks the display case.", usr)
 		src.health -= 2
 		healthcheck()
 		return
-
-

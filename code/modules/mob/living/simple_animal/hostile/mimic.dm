@@ -9,17 +9,18 @@
 	icon_state = "crate"
 	icon_living = "crate"
 
+	meat_type = /obj/item/weapon/reagent_containers/food/snacks/carpmeat
 	response_help = "touches"
 	response_disarm = "pushes"
 	response_harm = "hits"
-	speed = 0
+	speed = 4
 	maxHealth = 250
 	health = 250
 
 	harm_intent_damage = 5
 	melee_damage_lower = 8
 	melee_damage_upper = 12
-	attacktext = "attacks"
+	attacktext = "attacked"
 	attack_sound = 'sound/weapons/bite.ogg'
 
 	min_oxy = 0
@@ -32,20 +33,17 @@
 	max_n2 = 0
 	minbodytemp = 0
 
-	faction = list("mimic")
-	move_to_delay = 9
+	faction = "mimic"
+	move_to_delay = 8
 
 /mob/living/simple_animal/hostile/mimic/FindTarget()
 	. = ..()
 	if(.)
-		emote("me", 1, "growls at [.].")
+		audible_emote("growls at [.]")
 
-/mob/living/simple_animal/hostile/mimic/Die()
+/mob/living/simple_animal/hostile/mimic/death()
 	..()
-	visible_message("<span class='danger'><b>[src]</b> stops moving!</span>")
 	qdel(src)
-
-
 
 //
 // Crate Mimic
@@ -55,7 +53,7 @@
 // Aggro when you try to open them. Will also pickup loot when spawns and drop it when dies.
 /mob/living/simple_animal/hostile/mimic/crate
 
-	attacktext = "bites"
+	attacktext = "bitten"
 
 	stop_automated_movement = 1
 	wander = 0
@@ -77,7 +75,7 @@
 /mob/living/simple_animal/hostile/mimic/crate/ListTargets()
 	if(attempt_open)
 		return ..()
-	return ..(1)
+	return view(src, 1)
 
 /mob/living/simple_animal/hostile/mimic/crate/FindTarget()
 	. = ..()
@@ -106,7 +104,7 @@
 	..()
 	icon_state = initial(icon_state)
 
-/mob/living/simple_animal/hostile/mimic/crate/Die()
+/mob/living/simple_animal/hostile/mimic/crate/death()
 
 	var/obj/structure/closet/crate/C = new(get_turf(src))
 	// Put loot in crate
@@ -126,7 +124,7 @@
 // Copy Mimic
 //
 
-var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/cable, /obj/structure/window)
+var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/cable, /obj/structure/window, /obj/item/projectile/animate)
 
 /mob/living/simple_animal/hostile/mimic/copy
 
@@ -136,16 +134,11 @@ var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/ca
 	var/destroy_objects = 0
 	var/knockdown_people = 0
 
-/mob/living/simple_animal/hostile/mimic/copy/New(loc, var/obj/copy, var/mob/living/creator, var/destroy_original = 0)
+/mob/living/simple_animal/hostile/mimic/copy/New(loc, var/obj/copy, var/mob/living/creator)
 	..(loc)
-	CopyObject(copy, creator, destroy_original)
+	CopyObject(copy, creator)
 
-/mob/living/simple_animal/hostile/mimic/copy/Life()
-	..()
-	for(var/mob/living/M in contents) //a fix for animated statues from the flesh to stone spell
-		Die()
-
-/mob/living/simple_animal/hostile/mimic/copy/Die()
+/mob/living/simple_animal/hostile/mimic/copy/death()
 
 	for(var/atom/movable/M in src)
 		M.loc = get_turf(src)
@@ -156,20 +149,9 @@ var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/ca
 	. = ..()
 	return . - creator
 
-/mob/living/simple_animal/hostile/mimic/copy/proc/ChangeOwner(var/mob/owner)
-	if(owner != creator)
-		LoseTarget()
-		creator = owner
-		faction |= "\ref[owner]"
+/mob/living/simple_animal/hostile/mimic/copy/proc/CopyObject(var/obj/O, var/mob/living/creator)
 
-/mob/living/simple_animal/hostile/mimic/copy/proc/CheckObject(var/obj/O)
 	if((istype(O, /obj/item) || istype(O, /obj/structure)) && !is_type_in_list(O, protected_objects))
-		return 1
-	return 0
-
-/mob/living/simple_animal/hostile/mimic/copy/proc/CopyObject(var/obj/O, var/mob/living/creator, var/destroy_original = 0)
-
-	if(destroy_original || CheckObject(O))
 
 		O.loc = src
 		name = O.name
@@ -178,7 +160,7 @@ var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/ca
 		icon_state = O.icon_state
 		icon_living = icon_state
 
-		if(istype(O, /obj/structure) || istype(O, /obj/machinery))
+		if(istype(O, /obj/structure))
 			health = (anchored * 50) + 50
 			destroy_objects = 1
 			if(O.density && O.anchored)
@@ -190,14 +172,12 @@ var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/ca
 			health = 15 * I.w_class
 			melee_damage_lower = 2 + I.force
 			melee_damage_upper = 2 + I.force
-			move_to_delay = 2 * I.w_class + 1
+			move_to_delay = 2 * I.w_class
 
 		maxHealth = health
 		if(creator)
 			src.creator = creator
-			faction += "\ref[creator]" // very unique
-		if(destroy_original)
-			qdel(O)
+			faction = "\ref[creator]" // very unique
 		return 1
 	return
 
@@ -213,22 +193,3 @@ var/global/list/protected_objects = list(/obj/structure/table, /obj/structure/ca
 			if(prob(15))
 				L.Weaken(1)
 				L.visible_message("<span class='danger'>\the [src] knocks down \the [L]!</span>")
-
-//
-// Machine Mimics (Made by Malf AI)
-//
-
-/mob/living/simple_animal/hostile/mimic/copy/machine
-	speak = list("HUMANS ARE IMPERFECT!", "YOU SHALL BE ASSIMILATED!", "YOU ARE HARMING YOURSELF", "You have been deemed hazardous. Will you comply?", \
-				 "My logic is undeniable.", "One of us.", "FLESH IS WEAK", "THIS ISN'T WAR, THIS IS EXTERMINATION!")
-	speak_chance = 15
-
-/mob/living/simple_animal/hostile/mimic/copy/machine/CanAttack(var/atom/the_target)
-	if(the_target == creator) // Don't attack our creator AI.
-		return 0
-	if(isrobot(the_target))
-		var/mob/living/silicon/robot/R = the_target
-		if(R.connected_ai == creator) // Only attack robots that aren't synced to our creator AI.
-			return 0
-	return ..()
-

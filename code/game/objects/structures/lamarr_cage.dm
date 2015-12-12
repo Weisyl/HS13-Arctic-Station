@@ -10,10 +10,10 @@
 	var/occupied = 1
 	var/destroyed = 0
 
-/obj/structure/lamarr/ex_act(severity, target)
+/obj/structure/lamarr/ex_act(severity)
 	switch(severity)
 		if (1)
-			new /obj/item/weapon/shard( src.loc )
+			new /obj/item/weapon/material/shard( src.loc )
 			Break()
 			qdel(src)
 		if (2)
@@ -35,7 +35,13 @@
 
 /obj/structure/lamarr/blob_act()
 	if (prob(75))
-		new /obj/item/weapon/shard( src.loc )
+		new /obj/item/weapon/material/shard( src.loc )
+		Break()
+		qdel(src)
+
+
+/obj/structure/lamarr/meteorhit(obj/O as obj)
+		new /obj/item/weapon/material/shard( src.loc )
 		Break()
 		qdel(src)
 
@@ -45,7 +51,7 @@
 		if (!( src.destroyed ))
 			src.density = 0
 			src.destroyed = 1
-			new /obj/item/weapon/shard( src.loc )
+			new /obj/item/weapon/material/shard( src.loc )
 			playsound(src, "shatter", 70, 1)
 			Break()
 	else
@@ -60,32 +66,36 @@
 	return
 
 
-/obj/structure/lamarr/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
-	user.changeNext_move(CLICK_CD_MELEE)
+/obj/structure/lamarr/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	src.health -= W.force
 	src.healthcheck()
 	..()
 	return
 
-/obj/structure/lamarr/attack_paw(mob/user as mob)
-	return src.attack_hand(user)
-
 /obj/structure/lamarr/attack_hand(mob/user as mob)
-	user.changeNext_move(CLICK_CD_MELEE)
 	if (src.destroyed)
 		return
 	else
-		user.visible_message("<span class='danger'>[user] kicks the lab cage.</span>", \
-					 		"<span class='notice'>You kick the lab cage.</span>")
+		usr << text("\blue You kick the lab cage.")
+		for(var/mob/O in oviewers())
+			if ((O.client && !( O.blinded )))
+				O << text("\red [] kicks the lab cage.", usr)
 		src.health -= 2
 		healthcheck()
 		return
 
 /obj/structure/lamarr/proc/Break()
 	if(occupied)
-		var/obj/item/clothing/mask/facehugger/A = new /obj/item/clothing/mask/facehugger( src.loc )
-		A.sterile = 1
-		A.name = "Lamarr"
+		new /obj/item/clothing/mask/facehugger/lamarr(src.loc)
 		occupied = 0
 	update_icon()
+	return
+
+/obj/item/clothing/mask/facehugger/lamarr
+	name = "Lamarr"
+	desc = "The worst she might do is attempt to... couple with your head."//hope we don't get sued over a harmless reference, rite?
+	sterile = 1
+	gender = FEMALE
+
+/obj/item/clothing/mask/facehugger/lamarr/New()//to prevent deleting it if aliums are disabled
 	return

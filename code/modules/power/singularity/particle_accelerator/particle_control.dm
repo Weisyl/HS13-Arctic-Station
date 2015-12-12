@@ -1,16 +1,16 @@
 //This file was auto-corrected by findeclaration.exe on 25.5.2012 20:42:33
 
 /obj/machinery/particle_accelerator/control_box
-	name = "Particle Accelerator Control Console"
+	name = "Particle Accelerator Control Computer"
 	desc = "This controls the density of the particles."
-	icon = 'icons/obj/machines/particle_accelerator.dmi'
+	icon = 'icons/obj/machines/particle_accelerator2.dmi'
 	icon_state = "control_box"
 	reference = "control_box"
 	anchored = 0
 	density = 1
 	use_power = 0
 	idle_power_usage = 500
-	active_power_usage = 10000
+	active_power_usage = 70000 //70 kW per unit of strength
 	construction_state = 0
 	active = 0
 	dir = 1
@@ -21,11 +21,10 @@
 	var/parts = null
 	var/datum/wires/particle_acc/control_box/wires = null
 
-	l_color = "#0000FF"
-
 /obj/machinery/particle_accelerator/control_box/New()
 	wires = new(src)
 	connected_parts = list()
+	active_power_usage = initial(active_power_usage) * (strength + 1)
 	..()
 
 /obj/machinery/particle_accelerator/control_box/Destroy()
@@ -41,7 +40,7 @@
 
 /obj/machinery/particle_accelerator/control_box/update_state()
 	if(construction_state < 3)
-		use_power = 0
+		update_use_power(0)
 		assembled = 0
 		active = 0
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
@@ -51,7 +50,7 @@
 		connected_parts = list()
 		return
 	if(!part_scan())
-		use_power = 1
+		update_use_power(1)
 		active = 0
 		connected_parts = list()
 
@@ -79,21 +78,21 @@
 	return
 
 /obj/machinery/particle_accelerator/control_box/Topic(href, href_list)
-	if(..())
-		return
-
-	if(!interface_control)
-		usr << "<span class='error'>ERROR: Request timed out. Check wire contacts.</span>"
+	..()
+	//Ignore input if we are broken, !silicon guy cant touch us, or nonai controlling from super far away
+	if(stat & (BROKEN|NOPOWER) || (get_dist(src, usr) > 1 && !istype(usr, /mob/living/silicon)) || (get_dist(src, usr) > 8 && !istype(usr, /mob/living/silicon/ai)))
+		usr.unset_machine()
+		usr << browse(null, "window=pacontrol")
 		return
 
 	if( href_list["close"] )
 		usr << browse(null, "window=pacontrol")
 		usr.unset_machine()
 		return
+
 	if(href_list["togglep"])
 		if(!wires.IsIndexCut(PARTICLE_TOGGLE_WIRE))
 			src.toggle_power()
-
 	else if(href_list["scan"])
 		src.part_scan()
 
@@ -108,7 +107,6 @@
 	src.updateDialog()
 	src.update_icon()
 	return
-
 
 /obj/machinery/particle_accelerator/control_box/proc/strength_change()
 	for(var/obj/structure/particle_accelerator/part in connected_parts)
@@ -141,15 +139,10 @@
 	..()
 	if(stat & NOPOWER)
 		active = 0
-		use_power = 0
-	else if(!stat && construction_state <= 3)
-		use_power = 1
+		update_use_power(0)
+	else if(!stat && construction_state == 3)
+		update_use_power(1)
 	return
-
-	if(!(stat & (BROKEN|NOPOWER)))
-		SetLuminosity(2)
-	else
-		SetLuminosity(0)
 
 
 /obj/machinery/particle_accelerator/control_box/process()
@@ -168,7 +161,7 @@
 
 /obj/machinery/particle_accelerator/control_box/proc/part_scan()
 	for(var/obj/structure/particle_accelerator/fuel_chamber/F in orange(1,src))
-		src.dir = F.dir
+		src.set_dir(F.dir)
 	connected_parts = list()
 	var/tally = 0
 	var/ldir = turn(dir,-90)
@@ -221,13 +214,13 @@
 	message_admins("PA Control Computer turned [active ?"ON":"OFF"] by [key_name(usr, usr.client)](<A HREF='?_src_=holder;adminmoreinfo=\ref[usr]'>?</A>) in ([x],[y],[z] - <A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[x];Y=[y];Z=[z]'>JMP</a>)",0,1)
 	log_game("PA Control Computer turned [active ?"ON":"OFF"] by [usr.ckey]([usr]) in ([x],[y],[z])")
 	if(src.active)
-		src.use_power = 2
+		update_use_power(2)
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = src.strength
 			part.powered = 1
 			part.update_icon()
 	else
-		src.use_power = 1
+		update_use_power(1)
 		for(var/obj/structure/particle_accelerator/part in connected_parts)
 			part.strength = null
 			part.powered = 0
@@ -244,8 +237,9 @@
 	user.set_machine(src)
 
 	var/dat = ""
+	dat += "Particle Accelerator Control Panel<BR>"
 	dat += "<A href='?src=\ref[src];close=1'>Close</A><BR><BR>"
-	dat += "<h3>Status</h3>"
+	dat += "Status:<BR>"
 	if(!assembled)
 		dat += "Unable to detect all parts!<BR>"
 		dat += "<A href='?src=\ref[src];scan=1'>Run Scan</A><BR><BR>"
@@ -260,10 +254,6 @@
 		dat += "Particle Strength: [src.strength] "
 		dat += "<A href='?src=\ref[src];strengthdown=1'>--</A>|<A href='?src=\ref[src];strengthup=1'>++</A><BR><BR>"
 
-	//user << browse(dat, "window=pacontrol;size=420x500")
-	//onclose(user, "pacontrol")
-	var/datum/browser/popup = new(user, "pacontrol", name, 420, 500)
-	popup.set_content(dat)
-	popup.set_title_image(user.browse_rsc_icon(src.icon, src.icon_state))
-	popup.open()
+	user << browse(dat, "window=pacontrol;size=420x500")
+	onclose(user, "pacontrol")
 	return

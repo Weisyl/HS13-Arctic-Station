@@ -1,6 +1,6 @@
 /obj/machinery/igniter
 	name = "igniter"
-	desc = "It's useful for igniting plasma."
+	desc = "It's useful for igniting flammable items."
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "igniter1"
 	var/id = null
@@ -11,9 +11,6 @@
 	active_power_usage = 4
 
 /obj/machinery/igniter/attack_ai(mob/user as mob)
-	return src.attack_hand(user)
-
-/obj/machinery/igniter/attack_paw(mob/user as mob)
 	return src.attack_hand(user)
 
 /obj/machinery/igniter/attack_hand(mob/user as mob)
@@ -38,6 +35,7 @@
 	icon_state = "igniter[on]"
 
 /obj/machinery/igniter/power_change()
+	..()
 	if(!( stat & NOPOWER) )
 		icon_state = "igniter[src.on]"
 	else
@@ -46,7 +44,7 @@
 // Wall mounted remote-control igniter.
 
 /obj/machinery/sparker
-	name = "mounted igniter"
+	name = "Mounted igniter"
 	desc = "A wall-mounted ignition device."
 	icon = 'icons/obj/stationobjs.dmi'
 	icon_state = "migniter"
@@ -55,31 +53,35 @@
 	var/last_spark = 0
 	var/base_state = "migniter"
 	anchored = 1
+	use_power = 1
+	idle_power_usage = 2
+	active_power_usage = 4
+
 
 /obj/machinery/sparker/New()
 	..()
 
 /obj/machinery/sparker/power_change()
-	if ( powered() && disable == 0 )
-		stat &= ~NOPOWER
+	..()
+	if ( !(stat & NOPOWER) && disable == 0 )
+
 		icon_state = "[base_state]"
 //		src.sd_SetLuminosity(2)
 	else
-		stat |= ~NOPOWER
 		icon_state = "[base_state]-p"
 //		src.sd_SetLuminosity(0)
 
-/obj/machinery/sparker/attackby(obj/item/weapon/W as obj, mob/user as mob, params)
+/obj/machinery/sparker/attackby(obj/item/weapon/W as obj, mob/user as mob)
 	if(istype(W, /obj/item/device/detective_scanner))
 		return
 	if (istype(W, /obj/item/weapon/screwdriver))
 		add_fingerprint(user)
 		src.disable = !src.disable
 		if (src.disable)
-			user.visible_message("<span class='danger'>[user] has disabled \the [src]!</span>", "<span class='danger'>You disable the connection to \the [src].</span>")
+			user.visible_message("\red [user] has disabled the [src]!", "\red You disable the connection to the [src].")
 			icon_state = "[base_state]-d"
 		if (!src.disable)
-			user.visible_message("<span class='danger'>[user] has reconnected \the [src]!</span>", "<span class='danger'>You fix the connection to \the [src].</span>")
+			user.visible_message("\red [user] has reconnected the [src]!", "\red You fix the connection to the [src].")
 			if(src.powered())
 				icon_state = "[base_state]"
 			else
@@ -117,20 +119,13 @@
 	ignite()
 	..(severity)
 
-/obj/machinery/ignition_switch/attack_ai(mob/user as mob)
-	return src.attack_hand(user)
+/obj/machinery/button/ignition
+	name = "ignition switch"
+	desc = "A remote control switch for a mounted igniter."
 
-/obj/machinery/ignition_switch/attack_paw(mob/user as mob)
-	return src.attack_hand(user)
+/obj/machinery/button/ignition/attack_hand(mob/user as mob)
 
-/obj/machinery/ignition_switch/attackby(obj/item/weapon/W, mob/user as mob)
-	return src.attack_hand(user)
-
-/obj/machinery/ignition_switch/attack_hand(mob/user as mob)
-
-	if(stat & (NOPOWER|BROKEN))
-		return
-	if(active)
+	if(..())
 		return
 
 	use_power(5)
@@ -138,12 +133,12 @@
 	active = 1
 	icon_state = "launcheract"
 
-	for(var/obj/machinery/sparker/M in world)
+	for(var/obj/machinery/sparker/M in machines)
 		if (M.id == src.id)
 			spawn( 0 )
 				M.ignite()
 
-	for(var/obj/machinery/igniter/M in world)
+	for(var/obj/machinery/igniter/M in machines)
 		if(M.id == src.id)
 			use_power(50)
 			M.on = !( M.on )

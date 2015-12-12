@@ -9,7 +9,7 @@ proc/cardinalrange(var/center)
 
 /obj/machinery/am_shielding
 	name = "antimatter reactor section"
-	desc = "This device was built using a plasma life-form that seems to increase plasma's natural ability to react with neutrinos while reducing the combustibility."
+	desc = "This device was built using a phoron life-form that seems to increase phoron's natural ability to react with neutrinos while reducing the combustibility."
 
 	icon = 'icons/obj/machines/antimatter.dmi'
 	icon_state = "shield"
@@ -23,7 +23,7 @@ proc/cardinalrange(var/center)
 	var/obj/machinery/power/am_control_unit/control_unit = null
 	var/processing = 0//To track if we are in the update list or not, we need to be when we are damaged and if we ever
 	var/stability = 100//If this gets low bad things tend to happen
-	var/efficiency = 1//How many cores this core counts for when doing power processing, plasma in the air and stability could affect this
+	var/efficiency = 1//How many cores this core counts for when doing power processing, phoron in the air and stability could affect this
 
 
 /obj/machinery/am_shielding/New(loc)
@@ -40,7 +40,8 @@ proc/cardinalrange(var/center)
 		return
 	for(var/obj/machinery/am_shielding/AMS in loc.contents)
 		if(AMS == src) continue
-		qdel(src)
+		spawn(0)
+			qdel(src)
 		return
 
 	//Search for shielding first
@@ -59,27 +60,29 @@ proc/cardinalrange(var/center)
 			spawn(20)
 				controllerscan(1)//Last chance
 			return
-		qdel(src)
+		spawn(0)
+			qdel(src)
 	return
 
 
 /obj/machinery/am_shielding/Destroy()
 	if(control_unit)	control_unit.remove_shielding(src)
 	if(processing)	shutdown_core()
-	visible_message("<span class='danger'>The [src.name] melts!</span>")
+	visible_message("\red The [src.name] melts!")
 	//Might want to have it leave a mess on the floor but no sprites for now
 	..()
+	return
 
 
-/obj/machinery/am_shielding/CanPass(atom/movable/mover, turf/target, height=0)
-	if(height==0)	return 1
+/obj/machinery/am_shielding/CanPass(atom/movable/mover, turf/target, height=0, air_group=0)
+	if(air_group || (height==0))	return 1
 	return 0
 
 
 /obj/machinery/am_shielding/process()
 	if(!processing) . = PROCESS_KILL
 	//TODO: core functions and stability
-	//TODO: think about checking the airmix for plasma and increasing power output
+	//TODO: think about checking the airmix for phoron and increasing power output
 	return
 
 
@@ -94,20 +97,27 @@ proc/cardinalrange(var/center)
 			new /obj/effect/blob/node(src.loc,150)
 		else
 			new /obj/effect/blob(src.loc,60)
-		qdel(src)
+		spawn(0)
+			qdel(src)
 		return
 	check_stability()
 	return
 
 
-/obj/machinery/am_shielding/ex_act(severity, target)
-	stability -= (80 - (severity * 20))
+/obj/machinery/am_shielding/ex_act(severity)
+	switch(severity)
+		if(1.0)
+			stability -= 80
+		if(2.0)
+			stability -= 40
+		if(3.0)
+			stability -= 20
 	check_stability()
 	return
 
 
 /obj/machinery/am_shielding/bullet_act(var/obj/item/projectile/Proj)
-	if(Proj.flag != "bullet")
+	if(Proj.check_armour != "bullet")
 		stability -= Proj.force/2
 	return 0
 
@@ -125,7 +135,7 @@ proc/cardinalrange(var/center)
 	else if(processing) shutdown_core()
 
 
-/obj/machinery/am_shielding/attackby(obj/item/W, mob/user, params)
+/obj/machinery/am_shielding/attackby(obj/item/W, mob/user)
 	if(!istype(W) || !user) return
 	if(W.force > 10)
 		stability -= W.force/2
@@ -200,9 +210,9 @@ proc/cardinalrange(var/center)
 	throwforce = 5
 	throw_speed = 1
 	throw_range = 2
-	m_amt = 100
+	matter = list(DEFAULT_WALL_MATERIAL = 100, "waste" = 2000)
 
-/obj/item/device/am_shielding_container/attackby(var/obj/item/I, var/mob/user, params)
+/obj/item/device/am_shielding_container/attackby(var/obj/item/I, var/mob/user)
 	if(istype(I, /obj/item/device/multitool) && istype(src.loc,/turf))
 		new/obj/machinery/am_shielding(src.loc)
 		qdel(src)

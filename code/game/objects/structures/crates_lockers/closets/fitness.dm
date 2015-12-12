@@ -11,6 +11,16 @@
 	new /obj/item/clothing/under/shorts/red(src)
 	new /obj/item/clothing/under/shorts/blue(src)
 	new /obj/item/clothing/under/shorts/green(src)
+	new /obj/item/clothing/under/swimsuit/red(src)
+	new /obj/item/clothing/under/swimsuit/black(src)
+	new /obj/item/clothing/under/swimsuit/blue(src)
+	new /obj/item/clothing/under/swimsuit/green(src)
+	new /obj/item/clothing/under/swimsuit/purple(src)
+	new /obj/item/clothing/mask/snorkel(src)
+	new /obj/item/clothing/mask/snorkel(src)
+	new /obj/item/clothing/shoes/swimmingfins(src)
+	new /obj/item/clothing/shoes/swimmingfins(src)
+
 
 
 /obj/structure/closet/boxinggloves
@@ -44,13 +54,10 @@
 
 /obj/structure/closet/lasertag/red/New()
 	..()
-	new /obj/item/weapon/gun/energy/laser/redtag(src)
-	new /obj/item/weapon/gun/energy/laser/redtag(src)
-	new /obj/item/weapon/gun/energy/laser/redtag(src)
+	new /obj/item/weapon/gun/energy/lasertag/red(src)
+	new /obj/item/weapon/gun/energy/lasertag/red(src)
 	new /obj/item/clothing/suit/redtag(src)
 	new /obj/item/clothing/suit/redtag(src)
-	new /obj/item/clothing/suit/redtag(src)
-	new /obj/item/clothing/head/helmet/redtaghelm(src)
 
 
 /obj/structure/closet/lasertag/blue
@@ -61,10 +68,7 @@
 
 /obj/structure/closet/lasertag/blue/New()
 	..()
-	new /obj/item/weapon/gun/energy/laser/bluetag(src)
-	new /obj/item/weapon/gun/energy/laser/bluetag(src)
-	new /obj/item/weapon/gun/energy/laser/bluetag(src)
+	new /obj/item/weapon/gun/energy/lasertag/blue(src)
+	new /obj/item/weapon/gun/energy/lasertag/blue(src)
 	new /obj/item/clothing/suit/bluetag(src)
 	new /obj/item/clothing/suit/bluetag(src)
-	new /obj/item/clothing/suit/bluetag(src)
-	new /obj/item/clothing/head/helmet/bluetaghelm(src)

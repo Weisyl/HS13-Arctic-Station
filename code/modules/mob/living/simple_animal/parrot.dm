@@ -6,7 +6,6 @@
  *		AI
  *		Procs / Verbs (usable by players)
  *		Sub-types
- *		Hear & say (the things we do for gimmicks)
  */
 
 /*
@@ -27,47 +26,37 @@
 
 
 /mob/living/simple_animal/parrot
-	name = "parrot"
-	desc = "The parrot squaks, \"It's a Parrot! BAWWK!\"" //'
+	name = "\improper Parrot"
+	desc = "The parrot squaks, \"It's a Parrot! BAWWK!\""
 	icon = 'icons/mob/animal.dmi'
 	icon_state = "parrot_fly"
 	icon_living = "parrot_fly"
 	icon_dead = "parrot_dead"
 	pass_flags = PASSTABLE
+	small = 1
 
-	speak = list("Hi!","Hello!","Cracker?","BAWWWWK george mellons griffing me!")
+	speak = list("Hi","Hello!","Cracker?","BAWWWWK george mellons griffing me")
 	speak_emote = list("squawks","says","yells")
-	emote_hear = list("squawks.","bawks!")
-	emote_see = list("flutters its wings.")
+	emote_hear = list("squawks","bawks")
+	emote_see = list("flutters its wings")
 
-	speak_chance = 1 //1% (1 in 100) chance every tick; So about once per 150 seconds, assuming an average tick is 1.5s
+	speak_chance = 1//1% (1 in 100) chance every tick; So about once per 150 seconds, assuming an average tick is 1.5s
 	turns_per_move = 5
 	meat_type = /obj/item/weapon/reagent_containers/food/snacks/cracker/
-	meat_amount = 1
-	melee_damage_upper = 10
-	melee_damage_lower = 5
 
 	response_help  = "pets"
 	response_disarm = "gently moves aside"
 	response_harm   = "swats"
 	stop_automated_movement = 1
-	a_intent = "harm" //parrots now start "aggressive" since only player parrots will nuzzle.
-	attacktext = "chomps"
-	friendly = "grooms"
-	mob_size = 0
+	universal_speak = 1
 
-	var/parrot_damage_upper = 10
 	var/parrot_state = PARROT_WANDER //Hunt for a perch when created
 	var/parrot_sleep_max = 25 //The time the parrot sits while perched before looking around. Mosly a way to avoid the parrot's AI in life() being run every single tick.
 	var/parrot_sleep_dur = 25 //Same as above, this is the var that physically counts down
 	var/parrot_dam_zone = list("chest", "head", "l_arm", "l_leg", "r_arm", "r_leg") //For humans, select a bodypart to attack
 
 	var/parrot_speed = 5 //"Delay in world ticks between movement." according to byond. Yeah, that's BS but it does directly affect movement. Higher number = slower.
-	//var/parrot_been_shot = 0 this wasn't working right, and parrots don't survive bullets.((Parrots get a speed bonus after being shot. This will deincrement every Life() and at 0 the parrot will return to regular speed.))
-
-	var/parrot_lastmove = null //Updates/Stores position of the parrot while it's moving
-	var/parrot_stuck = 0	//If parrot_lastmove hasnt changed, this will increment until it reaches parrot_stuck_threshold
-	var/parrot_stuck_threshold = 10 //if this == parrot_stuck, it'll force the parrot back to wandering
+	var/parrot_been_shot = 0 //Parrots get a speed bonus after being shot. This will deincrement every Life() and at 0 the parrot will return to regular speed.
 
 	var/list/speech_buffer = list()
 	var/list/available_channels = list()
@@ -79,7 +68,7 @@
 	//mobs it wants to attack or mobs that have attacked it
 	var/atom/movable/parrot_interest = null
 
-	//Parrots will generally sit on their perch unless something catches their eye.
+	//Parrots will generally sit on their pertch unless something catches their eye.
 	//These vars store their preffered perch and if they dont have one, what they can use as a perch
 	var/obj/parrot_perch = null
 	var/obj/desired_perches = list(/obj/structure/computerframe, 		/obj/structure/displaycase, \
@@ -109,11 +98,10 @@
 	verbs.Add(/mob/living/simple_animal/parrot/proc/steal_from_ground, \
 			  /mob/living/simple_animal/parrot/proc/steal_from_mob, \
 			  /mob/living/simple_animal/parrot/verb/drop_held_item_player, \
-			  /mob/living/simple_animal/parrot/proc/perch_player, \
-			  /mob/living/simple_animal/parrot/proc/toggle_mode)
+			  /mob/living/simple_animal/parrot/proc/perch_player)
 
 
-/mob/living/simple_animal/parrot/Die()
+/mob/living/simple_animal/parrot/death()
 	if(held_item)
 		held_item.loc = src.loc
 		held_item = null
@@ -123,57 +111,23 @@
 /mob/living/simple_animal/parrot/Stat()
 	..()
 	stat("Held Item", held_item)
-	stat("Mode",a_intent)
-
-/mob/living/simple_animal/parrot/Hear(message, atom/movable/speaker, message_langs, raw_message, radio_freq)
-	if(speaker != src && prob(20)) //Dont imitate ourselves
-		if(speech_buffer.len >= 20)
-			speech_buffer -= pick(speech_buffer)
-		speech_buffer |= html_decode(raw_message)
-	..()
-
-/mob/living/simple_animal/parrot/radio(message, message_mode) //literally copied from human/radio(), but there's no other way to do this. at least it's better than it used to be.
-	. = ..()
-	if(. != 0)
-		return .
-
-	switch(message_mode)
-		if(MODE_HEADSET)
-			if (ears)
-				ears.talk_into(src, message)
-			return ITALICS | REDUCE_RANGE
-
-		if(MODE_SECURE_HEADSET)
-			if (ears)
-				ears.talk_into(src, message, 1)
-			return ITALICS | REDUCE_RANGE
-
-		if(MODE_DEPARTMENT)
-			if (ears)
-				ears.talk_into(src, message, message_mode)
-			return ITALICS | REDUCE_RANGE
-
-	if(message_mode in radiochannels)
-		if(ears)
-			ears.talk_into(src, message, message_mode)
-			return ITALICS | REDUCE_RANGE
-
-	return 0
 
 /*
  * Inventory
  */
-/mob/living/simple_animal/parrot/show_inv(mob/user)
+/mob/living/simple_animal/parrot/show_inv(mob/user as mob)
 	user.set_machine(src)
+	if(user.stat) return
+
 	var/dat = 	"<div align='center'><b>Inventory of [name]</b></div><p>"
 	if(ears)
 		dat +=	"<br><b>Headset:</b> [ears] (<a href='?src=\ref[src];remove_inv=ears'>Remove</a>)"
 	else
 		dat +=	"<br><b>Headset:</b> <a href='?src=\ref[src];add_inv=ears'>Nothing</a>"
 
-	user << browse(dat, "window=mob[real_name];size=325x500")
+	user << browse(dat, text("window=mob[];size=325x500", name))
 	onclose(user, "mob[real_name]")
-
+	return
 
 /mob/living/simple_animal/parrot/Topic(href, href_list)
 
@@ -181,8 +135,8 @@
 	if(!usr.canmove || usr.stat || usr.restrained() || !in_range(loc, usr))
 		return
 
-	//Is the usr's mob type able to do this? (lolaliens)
-	if(ishuman(usr) || ismonkey(usr) || isrobot(usr) ||  isalienadult(usr))
+	//Is the usr's mob type able to do this?
+	if(ishuman(usr) || issmall(usr) || isrobot(usr))
 
 		//Removing from inventory
 		if(href_list["remove_inv"])
@@ -190,30 +144,29 @@
 			switch(remove_from)
 				if("ears")
 					if(ears)
-						if(!stat)
-							if(available_channels.len)
-								src.say("[pick(available_channels)] BAWWWWWK LEAVE THE HEADSET BAWKKKKK!")
-							else
-								src.say("BAWWWWWK LEAVE THE HEADSET BAWKKKKK!")
+						if(available_channels.len)
+							src.say("[pick(available_channels)] BAWWWWWK LEAVE THE HEADSET BAWKKKKK!")
+						else
+							src.say("BAWWWWWK LEAVE THE HEADSET BAWKKKKK!")
 						ears.loc = src.loc
 						ears = null
 						for(var/possible_phrase in speak)
 							if(copytext(possible_phrase,1,3) in department_radio_keys)
-								possible_phrase = copytext(possible_phrase,3)
+								possible_phrase = copytext(possible_phrase,3,length(possible_phrase))
 					else
-						usr << "<span class='danger'>There is nothing to remove from its [remove_from].</span>"
+						usr << "\red There is nothing to remove from its [remove_from]."
 						return
 
 		//Adding things to inventory
 		else if(href_list["add_inv"])
 			var/add_to = href_list["add_inv"]
 			if(!usr.get_active_hand())
-				usr << "<span class='danger'>You have nothing in your hand to put on its [add_to].</span>"
+				usr << "\red You have nothing in your hand to put on its [add_to]."
 				return
 			switch(add_to)
 				if("ears")
 					if(ears)
-						usr << "<span class='danger'>It's already wearing something.</span>"
+						usr << "\red It's already wearing something."
 						return
 					else
 						var/obj/item/item_to_add = usr.get_active_hand()
@@ -221,7 +174,7 @@
 							return
 
 						if( !istype(item_to_add,  /obj/item/device/radio/headset) )
-							usr << "<span class='danger'>This object won't fit.</span>"
+							usr << "\red This object won't fit."
 							return
 
 						var/obj/item/device/radio/headset/headset_to_add = item_to_add
@@ -244,10 +197,10 @@
 									available_channels.Add(":n")
 								if("Medical")
 									available_channels.Add(":m")
-								if("Supply")
-									available_channels.Add(":u")
-								if("Service")
-									available_channels.Add(":v")
+								if("Mining")
+									available_channels.Add(":d")
+								if("Cargo")
+									available_channels.Add(":q")
 
 						if(headset_to_add.translate_binary)
 							available_channels.Add(":b")
@@ -261,9 +214,8 @@
 //Humans, monkeys, aliens
 /mob/living/simple_animal/parrot/attack_hand(mob/living/carbon/M as mob)
 	..()
-	if(client)
-		return
-	if(!stat && M.a_intent == "harm")
+	if(client) return
+	if(!stat && M.a_intent == I_HURT)
 
 		icon_state = "parrot_fly" //It is going to be flying regardless of whether it flees or attacks
 
@@ -280,49 +232,18 @@
 			drop_held_item(0)
 	return
 
-/mob/living/simple_animal/parrot/attack_paw(mob/living/carbon/monkey/M as mob)
-	attack_hand(M)
-
-/mob/living/simple_animal/parrot/attack_alien(mob/living/carbon/alien/M as mob)
-	attack_hand(M)
-
-//Simple animals
-/mob/living/simple_animal/parrot/attack_animal(mob/living/simple_animal/M as mob)
-	..() //goodbye immortal parrots
-
-	if(client)
-		return
-
-	if(parrot_state == PARROT_PERCH)
-		parrot_sleep_dur = parrot_sleep_max //Reset it's sleep timer if it was perched
-
-	if(M.melee_damage_upper > 0 && !stat)
-		parrot_interest = M
-		parrot_state = PARROT_SWOOP | PARROT_ATTACK //Attack other animals regardless
-		icon_state = "parrot_fly"
-
 //Mobs with objects
-/mob/living/simple_animal/parrot/attackby(var/obj/item/O as obj, var/mob/living/user as mob)
-	if(!stat && !client && !istype(O, /obj/item/weapon/reagent_containers/medical) && !istype(O,/obj/item/weapon/reagent_containers/food/snacks/cracker))
+/mob/living/simple_animal/parrot/attackby(var/obj/item/O as obj, var/mob/user as mob)
+	..()
+	if(!stat && !client && !istype(O, /obj/item/stack/medical))
 		if(O.force)
 			if(parrot_state == PARROT_PERCH)
 				parrot_sleep_dur = parrot_sleep_max //Reset it's sleep timer if it was perched
 
 			parrot_interest = user
-			parrot_state = PARROT_SWOOP
-			if (user.health < 50)
-				parrot_state |= PARROT_ATTACK //weakened mob? fight back!
-			else
-				parrot_state |= PARROT_FLEE
+			parrot_state = PARROT_SWOOP | PARROT_FLEE
 			icon_state = "parrot_fly"
 			drop_held_item(0)
-	else if(istype(O,/obj/item/weapon/reagent_containers/food/snacks/cracker)) //Poly wants a cracker.
-		qdel(O)
-		user.drop_item()
-		if(health < maxHealth)
-			adjustBruteLoss(-10)
-		user << "<span class='notice'>[src] eagerly devours the cracker.</span>"
-	..()
 	return
 
 //Bullets
@@ -333,8 +254,8 @@
 			parrot_sleep_dur = parrot_sleep_max //Reset it's sleep timer if it was perched
 
 		parrot_interest = null
-		parrot_state = PARROT_WANDER | PARROT_FLEE //Been shot and survived! RUN LIKE HELL!
-		//parrot_been_shot += 5
+		parrot_state = PARROT_WANDER //OWFUCK, Been shot! RUN LIKE HELL!
+		parrot_been_shot += 5
 		icon_state = "parrot_fly"
 		drop_held_item(0)
 	return
@@ -362,7 +283,7 @@
 
 //-----SPEECH
 	/* Parrot speech mimickry!
-	   Phrases that the parrot Hear()s get added to speach_buffer.
+	   Phrases that the parrot hears in mob/living/say() get added to speach_buffer.
 	   Every once in a while, the parrot picks one of the lines from the buffer and replaces an element of the 'speech' list.
 	   Then it clears the buffer to make sure they dont magically remember something from hours ago. */
 	if(speech_buffer.len && prob(10))
@@ -405,9 +326,9 @@
 							useradio = 1
 
 						if(copytext(possible_phrase,1,3) in department_radio_keys)
-							possible_phrase = "[useradio?pick(available_channels):""][copytext(possible_phrase,3)]" //crop out the channel prefix
+							possible_phrase = "[useradio?pick(available_channels):""] [copytext(possible_phrase,3,length(possible_phrase)+1)]" //crop out the channel prefix
 						else
-							possible_phrase = "[useradio?pick(available_channels):""][possible_phrase]"
+							possible_phrase = "[useradio?pick(available_channels):""] [possible_phrase]"
 
 						newspeak.Add(possible_phrase)
 
@@ -421,7 +342,7 @@
 			//Search for item to steal
 			parrot_interest = search_for_item()
 			if(parrot_interest)
-				emote("me", 1, "looks in [parrot_interest]'s direction and takes flight.")
+				visible_emote("looks in [parrot_interest]'s direction and takes flight")
 				parrot_state = PARROT_SWOOP | PARROT_STEAL
 				icon_state = "parrot_fly"
 			return
@@ -443,7 +364,7 @@
 			if(AM)
 				if(istype(AM, /obj/item) || isliving(AM))	//If stealable item
 					parrot_interest = AM
-					emote("me", 1, "turns and flies towards [parrot_interest].")
+					visible_emote("turns and flies towards [parrot_interest]")
 					parrot_state = PARROT_SWOOP | PARROT_STEAL
 					return
 				else	//Else it's a perch
@@ -485,15 +406,13 @@
 				if(!parrot_perch || parrot_interest.loc != parrot_perch.loc)
 					held_item = parrot_interest
 					parrot_interest.loc = src
-					visible_message("[src] grabs [held_item]!", "<span class='notice'>You grab [held_item]!</span>", "You hear the sounds of wings flapping furiously.")
+					visible_message("[src] grabs the [held_item]!", "\blue You grab the [held_item]!", "You hear the sounds of wings flapping furiously.")
 
 			parrot_interest = null
 			parrot_state = PARROT_SWOOP | PARROT_RETURN
 			return
 
 		walk_to(src, parrot_interest, 1, parrot_speed)
-		if(isStuck()) return
-
 		return
 
 //-----RETURNING TO PERCH
@@ -512,8 +431,6 @@
 			return
 
 		walk_to(src, parrot_perch, 1, parrot_speed)
-		if(isStuck()) return
-
 		return
 
 //-----FLEEING
@@ -522,11 +439,8 @@
 		if(!parrot_interest || !isliving(parrot_interest)) //Sanity
 			parrot_state = PARROT_WANDER
 
-		walk_away(src, parrot_interest, 1, parrot_speed)
-		/*if(parrot_been_shot > 0)
-			parrot_been_shot--  didn't work anyways, and besides, any bullet poly survives isn't worth the speed boost.*/
-		if(isStuck()) return
-
+		walk_away(src, parrot_interest, 1, parrot_speed-parrot_been_shot)
+		parrot_been_shot--
 		return
 
 //-----ATTACKING
@@ -539,9 +453,6 @@
 			return
 
 		var/mob/living/L = parrot_interest
-		if(melee_damage_upper == 0)
-			melee_damage_upper = parrot_damage_upper
-			a_intent = "harm"
 
 		//If the mob is close enough to interact with
 		if(in_range(src, parrot_interest))
@@ -559,13 +470,24 @@
 					parrot_state = PARROT_WANDER
 				return
 
-			attacktext = pick("claws at", "chomps")
-			L.attack_animal(src)//Time for the hurt to begin!
+			//Time for the hurt to begin!
+			var/damage = rand(5,10)
+
+			if(ishuman(parrot_interest))
+				var/mob/living/carbon/human/H = parrot_interest
+				var/obj/item/organ/external/affecting = H.get_organ(ran_zone(pick(parrot_dam_zone)))
+
+				H.apply_damage(damage, BRUTE, affecting, H.run_armor_check(affecting, "melee"), sharp=1)
+				visible_emote(pick("pecks [H]'s [affecting].", "cuts [H]'s [affecting] with its talons."))
+
+			else
+				L.adjustBruteLoss(damage)
+				visible_emote(pick("pecks at [L].", "claws [L]."))
+			return
+
 		//Otherwise, fly towards the mob!
 		else
 			walk_to(src, parrot_interest, 1, parrot_speed)
-			if(isStuck()) return
-
 		return
 //-----STATE MISHAP
 	else //This should not happen. If it does lets reset everything and try again
@@ -584,21 +506,6 @@
 	if(client && stat == CONSCIOUS && parrot_state != "parrot_fly")
 		icon_state = "parrot_fly"
 	..()
-
-/mob/living/simple_animal/parrot/proc/isStuck()
-	//Check to see if the parrot is stuck due to things like windows or doors or windowdoors
-	if(parrot_lastmove)
-		if(parrot_lastmove == src.loc)
-			if(parrot_stuck_threshold >= ++parrot_stuck) //If it has been stuck for a while, go back to wander.
-				parrot_state = PARROT_WANDER
-				parrot_stuck = 0
-				parrot_lastmove = null
-				return 1
-		else
-			parrot_lastmove = null
-	else
-		parrot_lastmove = src.loc
-	return 0
 
 /mob/living/simple_animal/parrot/proc/search_for_item()
 	for(var/atom/movable/AM in view(src))
@@ -659,7 +566,7 @@
 		return -1
 
 	if(held_item)
-		src << "<span class='danger'>You are already holding [held_item]</span>"
+		src << "\red You are already holding the [held_item]"
 		return 1
 
 	for(var/obj/item/I in view(1,src))
@@ -672,10 +579,10 @@
 
 			held_item = I
 			I.loc = src
-			visible_message("[src] grabs [held_item]!", "<span class='notice'>You grab [held_item]!</span>", "You hear the sounds of wings flapping furiously.")
+			visible_message("[src] grabs the [held_item]!", "\blue You grab the [held_item]!", "You hear the sounds of wings flapping furiously.")
 			return held_item
 
-	src << "<span class='danger'>There is nothing of interest to take.</span>"
+	src << "\red There is nothing of interest to take."
 	return 0
 
 /mob/living/simple_animal/parrot/proc/steal_from_mob()
@@ -687,7 +594,7 @@
 		return -1
 
 	if(held_item)
-		src << "<span class='danger'>You are already holding [held_item]</span>"
+		src << "\red You are already holding the [held_item]"
 		return 1
 
 	var/obj/item/stolen_item = null
@@ -700,13 +607,13 @@
 			stolen_item = C.r_hand
 
 		if(stolen_item)
-			C.unEquip(stolen_item)
+			C.remove_from_mob(stolen_item)
 			held_item = stolen_item
 			stolen_item.loc = src
-			visible_message("[src] grabs [held_item] out of [C]'s hand!", "<span class='notice'>You snag [held_item] out of [C]'s hand!</span>", "You hear the sounds of wings flapping furiously.")
+			visible_message("[src] grabs the [held_item] out of [C]'s hand!", "\blue You snag the [held_item] out of [C]'s hand!", "You hear the sounds of wings flapping furiously.")
 			return held_item
 
-	src << "<span class='danger'>There is nothing of interest to take.</spawn>"
+	src << "\red There is nothing of interest to take."
 	return 0
 
 /mob/living/simple_animal/parrot/verb/drop_held_item_player()
@@ -730,31 +637,19 @@
 		return -1
 
 	if(!held_item)
-		if(src == usr) //So that other mobs wont make this message appear when they're bludgeoning you.
-			src << "<span class='danger'>You have nothing to drop!</span>"
+		usr << "\red You have nothing to drop!"
 		return 0
-
-
-//parrots will eat crackers instead of dropping them
-	if(istype(held_item,/obj/item/weapon/reagent_containers/food/snacks/cracker) && (drop_gently))
-		qdel(held_item)
-		held_item = null
-		if(health < maxHealth)
-			adjustBruteLoss(-10)
-		emote("me", 1, "[src] eagerly downs the cracker.")
-		return 1
-
 
 	if(!drop_gently)
 		if(istype(held_item, /obj/item/weapon/grenade))
 			var/obj/item/weapon/grenade/G = held_item
 			G.loc = src.loc
 			G.prime()
-			src << "You let go of [held_item]!"
+			src << "You let go of the [held_item]!"
 			held_item = null
 			return 1
 
-	src << "You drop [held_item]."
+	src << "You drop the [held_item]."
 
 	held_item.loc = src.loc
 	held_item = null
@@ -775,23 +670,7 @@
 					src.loc = AM.loc
 					icon_state = "parrot_sit"
 					return
-	src << "<span class='danger'>There is no perch nearby to sit on.</span>"
-	return
-
-/mob/living/simple_animal/parrot/proc/toggle_mode()
-	set name = "Toggle mode"
-	set category = "Parrot"
-	set desc = "Time to bear those claws!"
-
-	if(stat || !client)
-		return
-
-	if(melee_damage_upper)
-		melee_damage_upper = 0
-		a_intent = "help"
-	else
-		melee_damage_upper = parrot_damage_upper
-		a_intent = "harm"
+	src << "\red There is no perch nearby to sit on."
 	return
 
 /*
@@ -806,3 +685,73 @@
 	ears = new /obj/item/device/radio/headset/headset_eng(src)
 	available_channels = list(":e")
 	..()
+
+/mob/living/simple_animal/parrot/say(var/message)
+
+	if(stat)
+		return
+
+	var/verb = "says"
+	if(speak_emote.len)
+		verb = pick(speak_emote)
+
+
+	var/message_mode=""
+	if(copytext(message,1,2) == ";")
+		message_mode = "headset"
+		message = copytext(message,2)
+
+	if(length(message) >= 2)
+		var/channel_prefix = copytext(message, 1 ,3)
+		message_mode = department_radio_keys[channel_prefix]
+
+	if(copytext(message,1,2) == ":")
+		var/positioncut = 3
+		message = trim(copytext(message,positioncut))
+
+	message = capitalize(trim_left(message))
+
+	if(message_mode)
+		if(message_mode in radiochannels)
+			if(ears && istype(ears,/obj/item/device/radio))
+				ears.talk_into(src,sanitize(message), message_mode, verb, null)
+
+
+	..(message)
+
+
+/mob/living/simple_animal/parrot/hear_say(var/message, var/verb = "says", var/datum/language/language = null, var/alt_name = "",var/italics = 0, var/mob/speaker = null)
+	if(prob(50))
+		parrot_hear(message)
+	..(message,verb,language,alt_name,italics,speaker)
+
+
+
+/mob/living/simple_animal/parrot/hear_radio(var/message, var/verb="says", var/datum/language/language=null, var/part_a, var/part_b, var/mob/speaker = null, var/hard_to_hear = 0)
+	if(prob(50))
+		parrot_hear("[pick(available_channels)] [message]")
+	..(message,verb,language,part_a,part_b,speaker,hard_to_hear)
+
+
+/mob/living/simple_animal/parrot/proc/parrot_hear(var/message="")
+	if(!message || stat)
+		return
+	speech_buffer.Add(message)
+
+/mob/living/simple_animal/parrot/attack_generic(var/mob/user, var/damage, var/attack_message)
+
+	var/success = ..()
+
+	if(client)
+		return success
+
+	if(parrot_state == PARROT_PERCH)
+		parrot_sleep_dur = parrot_sleep_max //Reset it's sleep timer if it was perched
+
+	if(!success)
+		return 0
+
+	parrot_interest = user
+	parrot_state = PARROT_SWOOP | PARROT_ATTACK //Attack other animals regardless
+	icon_state = "parrot_fly"
+	return success
