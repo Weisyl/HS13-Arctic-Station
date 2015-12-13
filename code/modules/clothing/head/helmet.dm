@@ -86,7 +86,7 @@
 		"Tajara" = 'icons/mob/species/tajaran/helmet.dmi',
 		"Unathi" = 'icons/mob/species/unathi/helmet.dmi',
 		)
-	
+
 	armor = list(melee = 62, bullet = 50, laser = 50,energy = 35, bomb = 10, bio = 2, rad = 0)
 	flags_inv = HIDEEARS
 	siemens_coefficient = 0.7
@@ -133,3 +133,83 @@
 	name = "emergency response team medical helmet"
 	desc = "A set of armor worn by medical members of the NanoTrasen Emergency Response Team. Has red and white highlights."
 	icon_state = "erthelmet_med"
+
+/obj/item/clothing/head/rebel_helm
+	name = "Rebel helmet"
+	desc = "Standard Security gear. Protects the head from impacts."
+	icon_state = "rebel_helm"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "rebel_helm"
+	armor = list(melee = 50, bullet = 15, laser = 30,energy = 10, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	heat_protection = HEAD
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+
+/obj/item/clothing/head/rebel_pilot_helm
+	name = "Rebel Pilot helmet"
+	desc = "Standard Security gear. Protects the head from impacts."
+	icon_state = "rebel_pilot_helm"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "rebel_pilot_helm"
+	armor = list(melee = 50, bullet = 15, laser = 30,energy = 10, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	heat_protection = HEAD
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+
+/obj/item/clothing/head/jedi_hood
+	name = "Jedi Knight hood"
+	desc = "Jedi Knight traditional hood."
+	icon_state = "jedi_hood"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "jedi_hood"
+	armor = list(melee = 50, bullet = 15, laser = 50,energy = 10, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	heat_protection = HEAD
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+
+/obj/item/clothing/head/sith_hood
+	name = "Sith hood"
+	desc = "Sith traditional hood."
+	icon_state = "sith_hood"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "sith_hood"
+	armor = list(melee = 50, bullet = 15, laser = 50,energy = 10, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	heat_protection = HEAD
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+
+/obj/item/clothing/head/darth_vader_helm
+	name = "Lord Vader's helmet"
+	desc = "Lord Vader's personal helmet."
+	icon_state = "darth_vader_helm"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "darth_vader_helm"
+	armor = list(melee = 50, bullet = 15, laser = 70,energy = 60, bomb = 25, bio = 0, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	cold_protection = HEAD
+	min_cold_protection_temperature = HELMET_MIN_COLD_PROTECTION_TEMPERATURE
+	heat_protection = HEAD
+	max_heat_protection_temperature = HELMET_MAX_HEAT_PROTECTION_TEMPERATURE
+	siemens_coefficient = 0.7
+
+/obj/item/clothing/head/helmet/stormtrooper_helmet
+	name = "\improper stormtrooper helmet"
+	desc = "They're often used by Stormtroopers."
+	icon_state = "stormtrooper_helmet"
+//	flags = FPRINT | TABLEPASS | HEADCOVERSEYES
+	item_state = "stormtrooper_helmet"
+	armor = list(melee = 50, bullet = 30, laser = 50,energy = 20, bomb = 50, bio = 100, rad = 0)
+	flags_inv = HIDEEARS|HIDEEYES
+	siemens_coefficient = 0.5

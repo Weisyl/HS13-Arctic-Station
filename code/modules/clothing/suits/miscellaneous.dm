@@ -393,3 +393,9 @@
 	item_state = "black_hoodie"
 	icon_open = "black_hoodie_open"
 	icon_closed = "black_hoodie"
+
+/obj/item/clothing/under/rebel_pilot
+	name = "Rebel pilot Jumpsuit"
+	icon_state = "rebel_pilot"
+	item_state = "rebel_pilot"
+//	item_color = "rebel_pilot"

@@ -1,0 +1,23 @@
+/mob/living/simple_animal/hostile/bear/wolf
+	name = "wolf"
+	desc = "RawrRawr!!"
+	icon_state = "wolf"
+	icon_living = "wolf"
+	icon_dead = "wolf_dead"
+	icon_gib = "bear_gib"
+	speak = list("RAWR!","Rawr!","Bark!","Woooooo!")
+	speak_emote = list("growls", "roars")
+	emote_hear = list("rawrs","grumbles","grawls")
+	emote_see = list("stares ferociously", "stomps")
+	speak_chance = 1
+	turns_per_move = 5
+	see_in_dark = 6
+	meat_type = /obj/item/weapon/reagent_containers/food/snacks/meat
+	response_help  = "pets the"
+	response_disarm = "gently pushes aside the"
+	response_harm   = "pokes the"
+	stop_automated_movement_when_pulled = 0
+	maxHealth = 60
+	health = 60
+	melee_damage_lower = 10
+	melee_damage_upper = 15

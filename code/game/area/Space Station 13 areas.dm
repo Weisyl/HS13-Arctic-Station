@@ -285,6 +285,18 @@ area/space/atmosalert()
 /area/shuttle/thunderdome
 	name = "honk"
 
+/area/shuttle/train
+	name = "\improper Emergency Train"
+	music = "music/train.ogg"
+
+/area/shuttle/train/station
+	name = "\improper Emergency Train Station"
+	icon_state = "shuttle2"
+
+/area/shuttle/train/centcom
+	name = "\improper Emergency Train Centcom"
+	icon_state = "shuttle"
+
 /area/shuttle/thunderdome/grnshuttle
 	name = "\improper Thunderdome GRN Shuttle"
 	icon_state = "green"
@@ -337,6 +349,15 @@ area/space/atmosalert()
 	name = "\improper Alien base"
 	icon_state = "yellow"
 	requires_power = 0
+
+// POLAR AREAS
+
+/area/polar
+	name = "Arctic"
+	icon_state = "yellow"
+	lighting_use_dynamic = 1
+	requires_power = 1
+	has_gravity = 1
 
 // CENTCOM
 
@@ -1379,6 +1400,10 @@ area/space/atmosalert()
 /area/security/tactical
 	name = "\improper Security - Tactical Equipment"
 	icon_state = "Tactical"
+
+/area/security/hos
+	name = "\improper Head of Security's Office"
+	icon_state = "security"
 
 
 /*

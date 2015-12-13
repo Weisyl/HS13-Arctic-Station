@@ -83,6 +83,11 @@
 	icon = 'icons/obj/doors/Doorext.dmi'
 	assembly_type = /obj/structure/door_assembly/door_assembly_ext
 
+/obj/machinery/door/airlock/externalsnow
+	name = "External Airlock"
+	icon = 'icons/obj/doors/doorextwhite.dmi'
+	assembly_type = /obj/structure/door_assembly/door_assembly_ext
+
 /obj/machinery/door/airlock/glass
 	name = "Glass Airlock"
 	icon = 'icons/obj/doors/Doorglass.dmi'
@@ -195,6 +200,35 @@
 	assembly_type = /obj/structure/door_assembly/door_assembly_research
 	glass = 1
 	heat_proof = 1
+
+/obj/machinery/door/airlock/deathstarglassair
+	name = "Airlock"
+	icon = 'icons/obj/doors/dsdoors.dmi'
+	opacity = 0
+	glass = 1
+	maxhealth = 300
+	explosion_resistance = 5
+
+/obj/machinery/door/airlock/combunker
+	name = "Airlock"
+	icon = 'icons/obj/doors/Doorsteel.dmi'
+	maxhealth = 300
+	opacity = 1
+	assembly_type = /obj/structure/door_assembly/door_assembly_com
+
+/obj/machinery/door/airlock/deathstarglass
+	name = "Airlock"
+	icon = 'icons/obj/doors/Death_star_airlock_2.dmi'
+	opacity = 0
+	maxhealth = 300
+	explosion_resistance = 5
+
+/obj/machinery/door/airlock/deathstar
+	name = "Airlock"
+	icon = 'icons/obj/doors/Death_star_airlock.dmi'
+	opacity = 1
+	maxhealth = 300
+	explosion_resistance = 5
 
 /obj/machinery/door/airlock/glass_mining
 	name = "Maintenance Hatch"

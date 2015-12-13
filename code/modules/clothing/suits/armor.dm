@@ -350,3 +350,57 @@
 	icon_state = "tdgreen"
 	item_state = "tdgreen"
 	siemens_coefficient = 1
+
+/obj/item/clothing/suit/armor/stormtrooper
+	name = "stormtrooper armored suit"
+	desc = "A heavily armored suit that protects against moderate damage...maybe."
+	icon_state = "stormtrooper"
+	item_state = "stormtrooper"
+	gas_transfer_coefficient = 0.01
+	permeability_coefficient = 0.01
+//	flags = FPRINT | TABLEPASS
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|ARMS|HANDS
+	allowed = list(/obj/item/weapon/gun,/obj/item/ammo_magazine,/obj/item/ammo_casing,/obj/item/weapon/melee/baton,/obj/item/weapon/handcuffs,/obj/item/weapon/tank/emergency_oxygen)
+	armor = list(melee = 50, bullet = 30, laser = 50,energy = 20, bomb = 50, bio = 100, rad = 0)
+	flags_inv = HIDEGLOVES|HIDESHOES|HIDEJUMPSUIT
+	siemens_coefficient = 0.5
+
+/obj/item/clothing/suit/armor/jedi
+	name = "Jedi robe"
+	desc = "Jedi traditional robe"
+	icon_state = "jedi"
+	item_state = "jedi"
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|HANDS
+	armor = list(melee = 60, bullet = 30, laser = 60, energy = 40, bomb = 40, bio = 0, rad = 0)
+	flags_inv = HIDEJUMPSUIT
+	siemens_coefficient = 0.5
+
+/obj/item/clothing/suit/armor/sith
+	name = "Sith robe"
+	desc = "Sith traditional robe"
+	icon_state = "sith"
+	item_state = "sith"
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|HANDS
+	armor = list(melee = 60, bullet = 30, laser = 60, energy = 40, bomb = 40, bio = 0, rad = 0)
+	flags_inv = HIDEJUMPSUIT
+	siemens_coefficient = 0.5
+
+/obj/item/clothing/suit/armor/lord_sith
+	name = "Sith robe"
+	desc = "Sith Lord robe"
+	icon_state = "lord_sith"
+	item_state = "lord_sith"
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|HANDS
+	armor = list(melee = 80, bullet = 45, laser = 70, energy = 50, bomb = 0, bio = 0, rad = 0)
+	flags_inv = HIDEJUMPSUIT
+	siemens_coefficient = 0.5
+
+/obj/item/clothing/suit/armor/darth_vader
+	name = "Darth Vader's armor"
+	desc = "Lord Vader's personal armor"
+	icon_state = "darth_vader"
+	item_state = "darth_vader"
+	body_parts_covered = UPPER_TORSO|LOWER_TORSO|LEGS|FEET|HANDS
+	armor = list(melee = 80, bullet = 60, laser = 75, energy = 50, bomb = 80, bio = 0, rad = 0)
+	flags_inv = HIDEJUMPSUIT
+	siemens_coefficient = 0.5

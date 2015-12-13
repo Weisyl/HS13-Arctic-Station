@@ -303,6 +303,19 @@ var/global/ManifestJSON
 
 /obj/item/mouse_drag_pointer = MOUSE_ACTIVE_POINTER
 
+/obj/item/weapon/rope_coil
+	name = "rope"
+	icon = 'icons/turf/polar.dmi'
+	icon_state = "rope"
+	desc = "A coil of rope."
+	throwforce = 10
+	w_class = 2.0
+	throw_speed = 2
+	throw_range = 5
+	slot_flags = SLOT_BELT
+	item_state = "coil_red"
+	attack_verb = list("whipped", "lashed", "disciplined", "flogged")
+
 /obj/item/weapon/beach_ball
 	icon = 'icons/misc/beach.dmi'
 	icon_state = "ball"
