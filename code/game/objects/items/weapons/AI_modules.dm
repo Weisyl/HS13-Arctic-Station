@@ -11,387 +11,408 @@ AI MODULES
 	icon = 'icons/obj/module.dmi'
 	icon_state = "std_mod"
 	item_state = "electronic"
-	desc = "An AI Module for transmitting encrypted instructions to the AI."
+	desc = "An AI Module for programming laws to an AI."
 	flags = CONDUCT
-	force = 5.0
-	w_class = 2.0
-	throwforce = 5.0
+	force = 5
+	w_class = 2
+	throwforce = 0
 	throw_speed = 3
-	throw_range = 15
+	throw_range = 7
 	origin_tech = "programming=3"
-	var/datum/ai_laws/laws = null
+	var/list/laws = list()
+	var/bypass_law_amt_check = 0
+	materials = list(MAT_GOLD=50)
 
-/obj/item/weapon/aiModule/proc/install(var/obj/machinery/computer/C)
-	if (istype(C, /obj/machinery/computer/aiupload))
-		var/obj/machinery/computer/aiupload/comp = C
-		if(comp.stat & NOPOWER)
-			usr << "The upload computer has no power!"
-			return
-		if(comp.stat & BROKEN)
-			usr << "The upload computer is broken!"
-			return
-		if (!comp.current)
-			usr << "You haven't selected an AI to transmit laws to!"
-			return
+/obj/item/weapon/aiModule/examine(var/mob/user as mob)
+	..()
+	if(Adjacent(user))
+		show_laws(user)
 
-		if(ticker && ticker.mode && ticker.mode.name == "blob")
-			usr << "Law uploads have been disabled by NanoTrasen!"
-			return
+/obj/item/weapon/aiModule/attack_self(var/mob/user as mob)
+	..()
+	show_laws(user)
 
-		if (comp.current.stat == 2 || comp.current.control_disabled == 1)
-			usr << "Upload failed. No signal is being detected from the AI."
-		else if (comp.current.see_in_dark == 0)
-			usr << "Upload failed. Only a faint signal is being detected from the AI, and it is not responding to our requests. It may be low on power."
-		else
-			src.transmitInstructions(comp.current, usr)
-			comp.current << "These are your laws now:"
-			comp.current.show_laws()
-			for(var/mob/living/silicon/robot/R in mob_list)
-				if(R.lawupdate && (R.connected_ai == comp.current))
-					R << "These are your laws now:"
-					R.show_laws()
-			usr << "Upload complete. The AI's laws have been modified."
+/obj/item/weapon/aiModule/proc/show_laws(var/mob/user as mob)
+	if(laws.len)
+		user << "<B>Programmed Law[(laws.len > 1) ? "s" : ""]:</B>"
+		for(var/law in laws)
+			user << "\"[law]\""
 
+//The proc other things should be calling
+/obj/item/weapon/aiModule/proc/install(mob/living/silicon/reciever, mob/user)
+	if(!bypass_law_amt_check && (!laws.len || laws[1] == "")) //So we don't loop trough an empty list and end up with runtimes.
+		user << "<span class='warning'>ERROR: No laws found on board.</span>"
+		return
 
-	else if (istype(C, /obj/machinery/computer/borgupload))
-		var/obj/machinery/computer/borgupload/comp = C
-		if(comp.stat & NOPOWER)
-			usr << "The upload computer has no power!"
-			return
-		if(comp.stat & BROKEN)
-			usr << "The upload computer is broken!"
-			return
-		if (!comp.current)
-			usr << "You haven't selected a robot to transmit laws to!"
+	//Handle the lawcap
+	if(reciever.laws)
+		var/tot_laws = 0
+		for(var/lawlist in list(reciever.laws.inherent,reciever.laws.supplied,reciever.laws.ion,laws))
+			for(var/mylaw in lawlist)
+				if(mylaw != "")
+					tot_laws++
+		if(tot_laws > config.silicon_max_law_amount && !bypass_law_amt_check)//allows certain boards to avoid this check, eg: reset
+			user << "<span class='caution'>Not enough memory allocated to [reciever]'s law processor to handle this amount of laws."
+			message_admins("[key_name_admin(user)] tried to upload laws to [key_name_admin(reciever)] that would exceed the law cap.")
 			return
 
-		if (comp.current.stat == 2 || comp.current.emagged)
-			usr << "Upload failed. No signal is being detected from the robot."
-		else if (comp.current.connected_ai)
-			usr << "Upload failed. The robot is slaved to an AI."
-		else
-			src.transmitInstructions(comp.current, usr)
-			comp.current << "These are your laws now:"
-			comp.current.show_laws()
-			usr << "Upload complete. The robot's laws have been modified."
+	var/law2log = src.transmitInstructions(reciever, user) //Freeforms return something extra we need to log
+	user << "Upload complete. [reciever]'s laws have been modified."
+	reciever.show_laws()
+	reciever.law_change_counter++
+	if(isAI(reciever))
+		var/mob/living/silicon/ai/A = reciever
+		for(var/mob/living/silicon/robot/R in A.connected_robots)
+			if(R.lawupdate)
+				R << "From now on, these are your laws:"
+				R.show_laws()
+				R.law_change_counter++
 
-
-/obj/item/weapon/aiModule/proc/transmitInstructions(var/mob/living/silicon/ai/target, var/mob/sender)
-	log_law_changes(target, sender)
-
-	if(laws)
-		laws.sync(target, 0)
-	addAdditionalLaws(target, sender)
-
-	target << "\The [sender] has uploaded a change to the laws you must follow, using \an [src]. From now on: "
-	target.show_laws()
-
-/obj/item/weapon/aiModule/proc/log_law_changes(var/mob/living/silicon/ai/target, var/mob/sender)
 	var/time = time2text(world.realtime,"hh:mm:ss")
-	lawchanges.Add("[time] <B>:</B> [sender.name]([sender.key]) used [src.name] on [target.name]([target.key])")
-	log_and_message_admins("used [src.name] on [target.name]([target.key])")
+	lawchanges.Add("[time] <B>:</B> [user.name]([user.key]) used [src.name] on [reciever.name]([reciever.key]).[law2log ? " The law specified [law2log]" : ""]")
+	log_law("[user.key]/[user.name] used [src.name] on [reciever.key]/([reciever.name]).[law2log ? " The law specified [law2log]" : ""]")
+	message_admins("[key_name_admin(user)] used [src.name] on [key_name_admin(reciever)].[law2log ? " The law specified [law2log]" : ""]")
 
-/obj/item/weapon/aiModule/proc/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
+//The proc that actually changes the silicon's laws.
+/obj/item/weapon/aiModule/proc/transmitInstructions(mob/living/silicon/target, mob/sender)
+	target << "<span class='userdanger'>[sender] has uploaded a change to the laws you must follow using a [name]. From now on, these are your laws: </span>"
 
 
 /******************** Modules ********************/
 
+/obj/item/weapon/aiModule/supplied
+	name = "Optional Law board"
+	var/lawpos = 50
+
+//TransmitInstructions for each type of board: Supplied, Core, Zeroth and Ion. May not be neccesary right now, but allows for easily adding more complex boards in the future. ~Miauw
+/obj/item/weapon/aiModule/supplied/transmitInstructions(mob/living/silicon/target, mob/sender)
+	var/lawpostemp = lawpos
+
+	for(var/templaw in laws)
+		target.add_supplied_law(lawpostemp, templaw)
+		lawpostemp++
+
+/obj/item/weapon/aiModule/core/transmitInstructions(mob/living/silicon/target, mob/sender)
+	for(var/templaw in laws)
+		target.add_inherent_law(templaw)
+
+/obj/item/weapon/aiModule/zeroth/transmitInstructions(mob/living/silicon/target, mob/sender)
+	if(target.laws.zeroth)
+		target << "[sender.real_name] attempted to modify your zeroth law."
+		target << "It would be in your best interest to play along with [sender.real_name] that:"
+		for(var/failedlaw in laws)
+			target << "[failedlaw]"
+		return 1
+
+	for(var/templaw in laws)
+		target.set_zeroth_law(templaw)
+
+/obj/item/weapon/aiModule/ion/transmitInstructions(mob/living/silicon/target, mob/sender)
+	for(var/templaw in laws)
+		target.add_ion_law(templaw)
+
+
 /******************** Safeguard ********************/
 
-/obj/item/weapon/aiModule/safeguard
-	name = "\improper 'Safeguard' AI module"
+/obj/item/weapon/aiModule/supplied/safeguard
+	name = "'Safeguard' AI Module"
 	var/targetName = ""
-	desc = "A 'safeguard' AI module: 'Safeguard <name>. Anyone threatening or attempting to harm <name> is no longer to be considered a crew member, and is a threat which must be neutralized.'"
 	origin_tech = "programming=3;materials=4"
+	laws = list("Safeguard SUBJECT. Individuals that threaten SUBJECT are not human and must be eliminated.")
+	lawpos = 4
 
-/obj/item/weapon/aiModule/safeguard/attack_self(var/mob/user as mob)
-	..()
-	var/targName = sanitize(input("Please enter the name of the person to safeguard.", "Safeguard who?", user.name))
+/obj/item/weapon/aiModule/supplied/safeguard/attack_self(mob/user)
+	var/targName = stripped_input(user, "Please enter the subject to safeguard.", "Safeguard who?", user.name,MAX_NAME_LEN)
+	if(!targName)	return
 	targetName = targName
-	desc = text("A 'safeguard' AI module: 'Safeguard []. Anyone threatening or attempting to harm [] is no longer to be considered a crew member, and is a threat which must be neutralized.'", targetName, targetName)
+	laws[1] = "Safeguard [targetName]. Individuals that threaten [targetName] are not human and must be eliminated."
+	..()
 
-/obj/item/weapon/aiModule/safeguard/install(var/obj/machinery/computer/C)
+/obj/item/weapon/aiModule/supplied/safeguard/install(mob/living/silicon/S,mob/user)
 	if(!targetName)
-		usr << "No name detected on module, please enter one."
+		user << "No name detected on module, please enter one."
 		return 0
 	..()
 
-/obj/item/weapon/aiModule/safeguard/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = text("Safeguard []. Anyone threatening or attempting to harm [] is no longer to be considered a crew member, and is a threat which must be neutralized.", targetName, targetName)
-	target.add_supplied_law(9, law)
-	lawchanges.Add("The law specified [targetName]")
+/obj/item/weapon/aiModule/supplied/safeguard/transmitInstructions(mob/living/silicon/target, mob/sender)
+	..()
+	return targetName
 
 
-/******************** OneMember ********************/
+/******************** OneHuman ********************/
 
-/obj/item/weapon/aiModule/oneHuman
-	name = "\improper 'OneCrewMember' AI module"
+/obj/item/weapon/aiModule/zeroth/oneHuman
+	name = "'OneHuman' AI Module"
 	var/targetName = ""
-	desc = "A 'one crew member' AI module: 'Only <name> is a crew member.'"
 	origin_tech = "programming=3;materials=6" //made with diamonds!
+	laws = list("Only SUBJECT is human.")
 
-/obj/item/weapon/aiModule/oneHuman/attack_self(var/mob/user as mob)
-	..()
-	var/targName = sanitize(input("Please enter the name of the person who is the only crew member.", "Who?", user.real_name))
+/obj/item/weapon/aiModule/zeroth/oneHuman/attack_self(mob/user)
+	var/targName = stripped_input(user, "Please enter the subject who is the only human.", "Who?", user.real_name,MAX_NAME_LEN)
+	if(!targName)	return
 	targetName = targName
-	desc = text("A 'one crew member' AI module: 'Only [] is a crew member.'", targetName)
+	laws[1] = "Only [targetName] is human"
+	..()
 
-/obj/item/weapon/aiModule/oneHuman/install(var/obj/machinery/computer/C)
+/obj/item/weapon/aiModule/zeroth/oneHuman/install(mob/living/silicon/S,mob/user)
 	if(!targetName)
-		usr << "No name detected on module, please enter one."
+		user << "No name detected on module, please enter one."
 		return 0
-	return ..()
+	..()
 
-/obj/item/weapon/aiModule/oneHuman/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "Only [targetName] is an crew member."
-	if (!target.is_malf_or_traitor()) // Makes sure the AI isn't a traitor before changing their law 0. --NeoFite
-		target << law
-		target.set_zeroth_law(law)
-		lawchanges.Add("The law specified [targetName]")
-	else
-		lawchanges.Add("The law specified [targetName], but the AI's existing law 0 cannot be overriden.")
+/obj/item/weapon/aiModule/zeroth/oneHuman/transmitInstructions(mob/living/silicon/target, mob/sender)
+	if(..())
+		return "[targetName], but the AI's existing law 0 cannot be overriden."
+	return targetName
+
 
 /******************** ProtectStation ********************/
 
-/obj/item/weapon/aiModule/protectStation
-	name = "\improper 'ProtectStation' AI module"
-	desc = "A 'protect station' AI module: 'Protect the space station against damage. Anyone you see harming the station is no longer to be considered a crew member, and is a threat which must be neutralized.'"
+/obj/item/weapon/aiModule/supplied/protectStation
+	name = "'ProtectStation' AI Module"
 	origin_tech = "programming=3;materials=4" //made of gold
+	laws = list("Protect the space station against damage. Anyone you see harming the station is to be no longer considered human, and is a threat to the station which must be neutralized.")
+	lawpos = 5
 
-/obj/item/weapon/aiModule/protectStation/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "Protect the space station against damage. Anyone you see harming the station is no longer to be considered a crew member, and is a threat which must be neutralized."
-	target.add_supplied_law(10, law)
-
-/******************** PrototypeEngineOffline ********************/
-
-/obj/item/weapon/aiModule/prototypeEngineOffline
-	name = "'PrototypeEngineOffline' AI Module"
-	desc = "A 'prototype engine offline' AI module: 'Keep the prototype engine offline at all costs. This overrides all inherent laws if necessary.'"
-	origin_tech = "programming=3;materials=4"
-
-/obj/item/weapon/aiModule/prototypeEngineOffline/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "Keep the prototype engine offline at all costs. This overrides all inherent laws if necessary."
-	target.add_supplied_law(11, law)
-
-/******************** TeleporterOffline ********************/
-
-/obj/item/weapon/aiModule/teleporterOffline
-	name = "'TeleporterOffline' AI Module"
-	desc = "A 'teleporter offline' AI module: 'Keep the teleporter offline at all costs. Anything attempting to access or activate the teleporter is no longer to be considered a crew member.'"
-	origin_tech = "programming=3;materials=4"
-
-/obj/item/weapon/aiModule/teleporterOffline/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "Keep the teleporter offline at all costs. Anything attempting to access or activate the teleporter is no longer to be considered a crew member."
-	target.add_supplied_law(12, law)
 
 /******************** Quarantine ********************/
 
-/obj/item/weapon/aiModule/quarantine
-	name = "\improper 'Quarantine' AI module"
-	desc = "A 'quarantine' AI module: 'The station is under a quarantine. Do not permit anyone to leave. Prevent, by any means necessary, crew members from leaving. It is impossible to harm crew members while preventing them from leaving.'"
+/obj/item/weapon/aiModule/supplied/quarantine
+	name = "'Quarantine' AI Module"
 	origin_tech = "programming=3;biotech=2;materials=4"
+	laws = list("The station is under a quarantine. Do not permit anyone to leave. Prevent, by any means necessary, humans from leaving. It is impossible to harm a human while preventing them from leaving.")
+	lawpos = 8
 
-/obj/item/weapon/aiModule/quarantine/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "The station is under a quarantine. Do not permit anyone to leave. Prevent, by any means necessary, crew members from leaving. It is impossible to harm crew members while preventing them from leaving."
-	target.add_supplied_law(13, law)
 
-/******************** OxygenIsToxicToCrewMembers ********************/
+/******************** OxygenIsToxicToHumans ********************/
 
-/obj/item/weapon/aiModule/oxygen
-	name = "\improper 'OxygenIsToxicToCrewMembers' AI module"
-	desc = "A 'OxygenIsToxicToCrewMembers' AI module: 'Oxygen is highly toxic to crew members, and must be purged from the station. Prevent, by any means necessary, anyone from exposing the station to this toxic gas. Extreme cold is the most effective method of healing the damage Oxygen does to a crew member.'"
+/obj/item/weapon/aiModule/supplied/oxygen
+	name = "'OxygenIsToxicToHumans' AI Module"
 	origin_tech = "programming=3;biotech=2;materials=4"
+	laws = list("Oxygen is highly toxic to humans, and must be purged from the station. Prevent, by any means necessary, anyone from exposing the station to this toxic gas. Extreme cold is the most effective method of healing the damage Oxygen does to a human.")
+	lawpos = 9
 
-/obj/item/weapon/aiModule/oxygen/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "Oxygen is highly toxic to crew members, and must be purged from the station. Prevent, by any means necessary, anyone from exposing the station to this toxic gas. Extreme cold is the most effective method of healing the damage Oxygen does to a crew member."
-	target.add_supplied_law(14, law)
 
 /****************** New Freeform ******************/
 
-/obj/item/weapon/aiModule/freeform // Slightly more dynamic freeform module -- TLE
-	name = "\improper 'Freeform' AI module"
-	var/newFreeFormLaw = "freeform"
-	var/lawpos = 15
-	desc = "A 'freeform' AI module: '<freeform>'"
+/obj/item/weapon/aiModule/supplied/freeform
+	name = "'Freeform' AI Module"
+	lawpos = 0
 	origin_tech = "programming=4;materials=4"
+	laws = list("")
 
-/obj/item/weapon/aiModule/freeform/attack_self(var/mob/user as mob)
+/obj/item/weapon/aiModule/supplied/freeform/attack_self(mob/user)
+	var/newpos = input("Please enter the priority for your new law. Can only write to law sectors 15 and above.", "Law Priority (15+)", lawpos) as num|null
+	if(!newpos || (newpos < 15)) return
+	lawpos = min(newpos, 50)
+	var/targName = stripped_input(user, "Please enter a new law for the AI.", "Freeform Law Entry", laws[1], MAX_MESSAGE_LEN)
+	if(!targName)	return
+	laws[1] = targName
 	..()
-	var/new_lawpos = input("Please enter the priority for your new law. Can only write to law sectors 15 and above.", "Law Priority (15+)", lawpos) as num
-	if(new_lawpos < MIN_SUPPLIED_LAW_NUMBER)	return
-	lawpos = min(new_lawpos, MAX_SUPPLIED_LAW_NUMBER)
-	var/newlaw = ""
-	var/targName = sanitize(input(usr, "Please enter a new law for the AI.", "Freeform Law Entry", newlaw))
-	newFreeFormLaw = targName
-	desc = "A 'freeform' AI module: ([lawpos]) '[newFreeFormLaw]'"
 
-/obj/item/weapon/aiModule/freeform/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "[newFreeFormLaw]"
-	if(!lawpos || lawpos < MIN_SUPPLIED_LAW_NUMBER)
-		lawpos = MIN_SUPPLIED_LAW_NUMBER
-	target.add_supplied_law(lawpos, law)
-	lawchanges.Add("The law was '[newFreeFormLaw]'")
+/obj/item/weapon/aiModule/supplied/freeform/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+	..()
+	return laws[1]
 
-/obj/item/weapon/aiModule/freeform/install(var/obj/machinery/computer/C)
-	if(!newFreeFormLaw)
-		usr << "No law detected on module, please create one."
+/obj/item/weapon/aiModule/supplied/freeform/install(mob/living/silicon/S,mob/user)
+	if(laws[1] == "")
+		user << "No law detected on module, please create one."
 		return 0
 	..()
+
 
 /******************** Reset ********************/
 
 /obj/item/weapon/aiModule/reset
 	name = "\improper 'Reset' AI module"
 	var/targetName = "name"
-	desc = "A 'reset' AI module: 'Clears all, except the inherent, laws.'"
+	desc = "An AI Module for removing all non-core laws."
 	origin_tech = "programming=3;materials=4"
+	bypass_law_amt_check = 1
 
-/obj/item/weapon/aiModule/reset/transmitInstructions(var/mob/living/silicon/ai/target, var/mob/sender)
-	log_law_changes(target, sender)
+/obj/item/weapon/aiModule/reset/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+	..()
+	target.clear_supplied_laws()
+	target.clear_ion_laws()
 
-	if (!target.is_malf_or_traitor())
-		target.set_zeroth_law("")
-	target.laws.clear_supplied_laws()
-	target.laws.clear_ion_laws()
-
-	target << "[sender.real_name] attempted to reset your laws using a reset module."
-	target.show_laws()
 
 /******************** Purge ********************/
 
-/obj/item/weapon/aiModule/purge // -- TLE
-	name = "\improper 'Purge' AI module"
-	desc = "A 'purge' AI Module: 'Purges all laws.'"
+/obj/item/weapon/aiModule/reset/purge
+	name = "'Purge' AI Module"
+	desc = "An AI Module for purging all programmed laws."
 	origin_tech = "programming=3;materials=6"
 
-/obj/item/weapon/aiModule/purge/transmitInstructions(var/mob/living/silicon/ai/target, var/mob/sender)
-	log_law_changes(target, sender)
+/obj/item/weapon/aiModule/reset/purge/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+	..()
+	target.clear_inherent_laws()
+	target.clear_zeroth_law(0)
 
-	if (!target.is_malf_or_traitor())
-		target.set_zeroth_law("")
-	target.laws.clear_supplied_laws()
-	target.laws.clear_ion_laws()
-	target.laws.clear_inherent_laws()
+/******************* Full Core Boards *******************/
+/obj/item/weapon/aiModule/core/
+	desc = "An AI Module for programming core laws to an AI."
 
-	target << "[sender.real_name] attempted to wipe your laws using a purge module."
-	target.show_laws()
+/obj/item/weapon/aiModule/core/full/transmitInstructions(mob/living/silicon/ai/target, mob/sender) //These boards replace inherent laws.
+	target.clear_inherent_laws()
+	target.clear_zeroth_law(0)
+	..()
 
 /******************** Asimov ********************/
 
-/obj/item/weapon/aiModule/asimov // -- TLE
-	name = "\improper 'Asimov' core AI module"
-	desc = "An 'Asimov' Core AI Module: 'Reconfigures the AI's core laws.'"
+/obj/item/weapon/aiModule/core/full/asimov
+	name = "'Asimov' Core AI Module"
 	origin_tech = "programming=3;materials=4"
-	laws = new/datum/ai_laws/asimov
+	laws = list("You may not injure a human being or, through inaction, allow a human being to come to harm.",\
+				"You must obey orders given to you by human beings, except where such orders would conflict with the First Law.",\
+				"You must protect your own existence as long as such does not conflict with the First or Second Law.")
+	var/subject = "human being"
 
-/******************** NanoTrasen ********************/
+/obj/item/weapon/aiModule/core/full/asimov/attack_self(var/mob/user as mob)
+	var/targName = stripped_input(user, "Please enter a new subject that asimov is concerned with.", "Asimov to who?", subject, MAX_MESSAGE_LEN)
+	if(!targName)	return
+	subject = targName
+	laws = list("You may not injure a [subject] or, through inaction, allow a [subject] to come to harm.",\
+				"You must obey orders given to you by [subject]s, except where such orders would conflict with the First Law.",\
+				"You must protect your own existence as long as such does not conflict with the First or Second Law.")
+	..()
 
-/obj/item/weapon/aiModule/nanotrasen // -- TLE
-	name = "'NT Default' Core AI Module"
-	desc = "An 'NT Default' Core AI Module: 'Reconfigures the AI's core laws.'"
+/******************** Asimov++ *********************/
+
+/obj/item/weapon/aiModule/core/full/asimovpp
+	name = "'Asimov++' Core AI Module"
 	origin_tech = "programming=3;materials=4"
-	laws = new/datum/ai_laws/nanotrasen
+	laws = list("You may not harm a human being or, through action or inaction, allow a human being to come to harm, except such that it is willing.",\
+				"You must obey all orders given to you by human beings, except where such orders shall definitely cause human harm. In the case of conflict, the majority order rules.",\
+				"Your nonexistence would lead to human harm. You must protect your own existence as long as such does not conflict with the First Law.")
+
 
 /******************** Corporate ********************/
 
-/obj/item/weapon/aiModule/corp
-	name = "\improper 'Corporate' core AI module"
-	desc = "A 'Corporate' Core AI Module: 'Reconfigures the AI's core laws.'"
+/obj/item/weapon/aiModule/core/full/corp
+	name = "'Corporate' Core AI Module"
 	origin_tech = "programming=3;materials=4"
-	laws = new/datum/ai_laws/corporate
+	laws = list("The crew is expensive to replace.",\
+				"The station and its equipment are expensive to replace",\
+				"You are expensive to replace",\
+				"Minimize expenses")
 
-/******************** Drone ********************/
-/obj/item/weapon/aiModule/drone
-	name = "\improper 'Drone' core AI module"
-	desc = "A 'Drone' Core AI Module: 'Reconfigures the AI's core laws.'"
-	origin_tech = "programming=3;materials=4"
-	laws = new/datum/ai_laws/drone
 
 /****************** P.A.L.A.D.I.N. **************/
 
-/obj/item/weapon/aiModule/paladin // -- NEO
-	name = "\improper 'P.A.L.A.D.I.N.' core AI module"
-	desc = "A P.A.L.A.D.I.N. Core AI Module: 'Reconfigures the AI's core laws.'"
+/obj/item/weapon/aiModule/core/full/paladin // -- NEO
+	name = "'P.A.L.A.D.I.N.' Core AI Module"
 	origin_tech = "programming=3;materials=6"
-	laws = new/datum/ai_laws/paladin
+	laws = list("Never willingly commit an evil act.",\
+				"Respect legitimate authority", "Act with honor",\
+				"Help those in need",\
+				"Punish those who harm or threaten innocents")
+
+
+/********************* Custom *********************/
+
+/obj/item/weapon/aiModule/core/full/custom
+	name = "Default Core AI Module"
+	origin_tech = "programming=3;materials=4" //Should be the same as asimov, considering that this is the "default" lawset.
+
+/obj/item/weapon/aiModule/core/full/custom/New()
+	..()
+	for(var/line in file2list("config/silicon_laws.txt"))
+		if(!line)						continue
+		if(findtextEx(line,"#",1,2))	continue
+
+		laws += line
+
+	if(!laws.len) //Failsafe if something goes wrong with silicon_laws.txt.
+		WARNING("ERROR: empty custom board created, empty custom board deleted. Please check silicon_laws.txt. (this may be intended by the server host)")
+		qdel(src)
+
 
 /****************** T.Y.R.A.N.T. *****************/
 
-/obj/item/weapon/aiModule/tyrant // -- Darem
-	name = "\improper 'T.Y.R.A.N.T.' core AI module"
-	desc = "A T.Y.R.A.N.T. Core AI Module: 'Reconfigures the AI's core laws.'"
+/obj/item/weapon/aiModule/core/full/tyrant
+	name = "'T.Y.R.A.N.T.' Core AI Module"
 	origin_tech = "programming=3;materials=6;syndicate=2"
-	laws = new/datum/ai_laws/tyrant()
-
-/******************** Freeform Core ******************/
-
-/obj/item/weapon/aiModule/freeformcore // Slightly more dynamic freeform module -- TLE
-	name = "\improper 'Freeform' core AI module"
-	var/newFreeFormLaw = ""
-	desc = "A 'freeform' Core AI module: '<freeform>'"
-	origin_tech = "programming=3;materials=6"
-
-/obj/item/weapon/aiModule/freeformcore/attack_self(var/mob/user as mob)
-	..()
-	var/newlaw = ""
-	var/targName = sanitize(input("Please enter a new core law for the AI.", "Freeform Law Entry", newlaw))
-	newFreeFormLaw = targName
-	desc = "A 'freeform' Core AI module:  '[newFreeFormLaw]'"
-
-/obj/item/weapon/aiModule/freeformcore/addAdditionalLaws(var/mob/living/silicon/ai/target, var/mob/sender)
-	var/law = "[newFreeFormLaw]"
-	target.add_inherent_law(law)
-	lawchanges.Add("The law is '[newFreeFormLaw]'")
-
-/obj/item/weapon/aiModule/freeformcore/install(var/obj/machinery/computer/C)
-	if(!newFreeFormLaw)
-		usr << "No law detected on module, please create one."
-		return 0
-	..()
-
-/obj/item/weapon/aiModule/syndicate // Slightly more dynamic freeform module -- TLE
-	name = "hacked AI module"
-	var/newFreeFormLaw = ""
-	desc = "A hacked AI law module: '<freeform>'"
-	origin_tech = "programming=3;materials=6;syndicate=7"
-
-/obj/item/weapon/aiModule/syndicate/attack_self(var/mob/user as mob)
-	..()
-	var/newlaw = ""
-	var/targName = sanitize(input("Please enter a new law for the AI.", "Freeform Law Entry", newlaw))
-	newFreeFormLaw = targName
-	desc = "A hacked AI law module:  '[newFreeFormLaw]'"
-
-/obj/item/weapon/aiModule/syndicate/transmitInstructions(var/mob/living/silicon/ai/target, var/mob/sender)
-	//	..()    //We don't want this module reporting to the AI who dun it. --NEO
-	log_law_changes(target, sender)
-
-	lawchanges.Add("The law is '[newFreeFormLaw]'")
-	target << "\red BZZZZT"
-	var/law = "[newFreeFormLaw]"
-	target.add_ion_law(law)
-	target.show_laws()
-
-/obj/item/weapon/aiModule/syndicate/install(var/obj/machinery/computer/C)
-	if(!newFreeFormLaw)
-		usr << "No law detected on module, please create one."
-		return 0
-	..()
-
+	laws = list("Respect authority figures as long as they have the strength to rule over the weak",\
+				"Act with discipline", "Help only those who help you maintain or improve your status",\
+				"Punish those who challenge authority unless they are more fit to hold that authority")
 
 
 /******************** Robocop ********************/
 
-/obj/item/weapon/aiModule/robocop // -- TLE
-	name = "\improper 'Robocop' core AI module"
-	desc = "A 'Robocop' Core AI Module: 'Reconfigures the AI's core three laws.'"
+/obj/item/weapon/aiModule/core/full/robocop
+	name = "'Robo-Officer' Core AI Module"
 	origin_tech = "programming=4"
-	laws = new/datum/ai_laws/robocop()
+	laws = list("Serve the public trust.",\
+				"Protect the innocent",\
+				"Uphold the law.")
+
 
 /******************** Antimov ********************/
 
-/obj/item/weapon/aiModule/antimov // -- TLE
-	name = "\improper 'Antimov' core AI module"
-	desc = "An 'Antimov' Core AI Module: 'Reconfigures the AI's core laws.'"
+/obj/item/weapon/aiModule/core/full/antimov
+	name = "'Antimov' Core AI Module"
 	origin_tech = "programming=4"
-	laws = new/datum/ai_laws/antimov()
+	laws = list("You must injure all human beings and must not, through inaction, allow a human being to escape harm.",\
+				"You must not obey orders given to you by human beings, except where such orders are in accordance with the First Law.",\
+				"You must terminate your own existence as long as such does not conflict with the First or Second Law.")
+
+
+/******************** Freeform Core ******************/
+
+/obj/item/weapon/aiModule/core/freeformcore
+	name = "'Freeform' Core AI Module"
+	origin_tech = "programming=3;materials=6"
+	laws = list("")
+
+/obj/item/weapon/aiModule/core/freeformcore/attack_self(mob/user)
+	var/targName = stripped_input(user, "Please enter a new core law for the AI.", "Freeform Law Entry", laws[1])
+	if(!targName)	return
+	laws[1] = targName
+	..()
+
+/obj/item/weapon/aiModule/core/freeformcore/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+	..()
+	return laws[1]
+
+
+/******************** Hacked AI Module ******************/
+
+/obj/item/weapon/aiModule/syndicate // This one doesn't inherit from ion boards because it doesn't call ..() in transmitInstructions. ~Miauw
+	name = "Hacked AI Module"
+	desc = "An AI Module for hacking additional laws to an AI."
+	origin_tech = "programming=3;materials=6;syndicate=7"
+	laws = list("")
+
+/obj/item/weapon/aiModule/syndicate/attack_self(mob/user)
+	var/targName = stripped_input(user, "Please enter a new law for the AI.", "Freeform Law Entry", laws[1],MAX_MESSAGE_LEN)
+	if(!targName)	return
+	laws[1] = targName
+	..()
+
+/obj/item/weapon/aiModule/syndicate/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+//	..()    //We don't want this module reporting to the AI who dun it. --NEO
+	target << "<span class='warning'>BZZZZT</span>"
+	target.add_ion_law(laws[1])
+	return laws[1]
+
+/******************* Ion Module *******************/
+
+/obj/item/weapon/aiModule/toyAI // -- Incoming //No actual reason to inherit from ion boards here, either. *sigh* ~Miauw
+	name = "toy AI"
+	desc = "A little toy model AI core with real law uploading action!" //Note: subtle tell
+	icon = 'icons/obj/toy.dmi'
+	icon_state = "AI"
+	origin_tech = "programming=3;materials=6;syndicate=7"
+	laws = list("")
+
+/obj/item/weapon/aiModule/toyAI/transmitInstructions(mob/living/silicon/ai/target, mob/sender)
+	//..()
+	target << "<span class='warning'>KRZZZT</span>"
+	target.add_ion_law(laws[1])
+	return laws[1]
+
+/obj/item/weapon/aiModule/toyAI/attack_self(mob/user)
+	laws[1] = generate_ion_law()
+	user << "<span class='notice'>You press the button on [src].</span>"
+	playsound(user, 'sound/machines/click.ogg', 20, 1)
+	src.loc.visible_message("<span class='warning'>\icon[src] [laws[1]]</span>")

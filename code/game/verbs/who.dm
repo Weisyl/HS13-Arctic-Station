@@ -1,145 +1,116 @@
-
 /client/verb/who()
 	set name = "Who"
 	set category = "OOC"
 
-	var/msg = "<b>Current Players:</b>\n"
-
 	var/list/Lines = list()
+	var/msg = ""
 
-	if(holder && (R_ADMIN & holder.rights || R_MOD & holder.rights))
-		for(var/client/C in clients)
-			var/entry = "\t[C.key]"
-			if(C.holder && C.holder.fakekey)
-				entry += " <i>(as [C.holder.fakekey])</i>"
-			entry += " - Playing as [C.mob.real_name]"
-			switch(C.mob.stat)
-				if(UNCONSCIOUS)
-					entry += " - <font color='darkgray'><b>Unconscious</b></font>"
-				if(DEAD)
-					if(isobserver(C.mob))
-						var/mob/dead/observer/O = C.mob
-						if(O.started_as_observer)
-							entry += " - <font color='gray'>Observing</font>"
-						else
-							entry += " - <font color='black'><b>DEAD</b></font>"
-					else
-						entry += " - <font color='black'><b>DEAD</b></font>"
+	if(length(admins) > 0)
+		Lines += "<b>Admins:</b>"
+		for(var/client/C in sortList(admins))
+			if(C.holder)
+				if(!C.holder.fakekey)
+					Lines += "\t <font color='#FF0000'>[C.key]</font>[show_info(C)]"
 
-			var/age
-			if(isnum(C.player_age))
-				age = C.player_age
-			else
-				age = 0
+	if(length(mentors) > 0)
+		Lines += "<b>Mentors:</b>"
+		for(var/client/C in sortList(clients))
+			var/mentor = mentor_datums[C.ckey]
+			if(mentor)
+				Lines += "\t <font color='#0033CC'>[C.key]</font>[show_info(C)]"
 
-			if(age <= 1)
-				age = "<font color='#ff0000'><b>[age]</b></font>"
-			else if(age < 10)
-				age = "<font color='#ff8c00'><b>[age]</b></font>"
+	Lines += "<b>Players:</b>"
+	for(var/client/C in sortList(clients))
+		if(C.holder)
+			if(C.holder.fakekey)
+				Lines += "\t [C.holder.fakekey][show_info(C)]"
+		else if(!check_mentor_other(C))
+			Lines += "\t [C.key][show_info(C)]"
 
-			entry += " - [age]"
-
-			if(is_special_character(C.mob))
-				entry += " - <b><font color='red'>Antagonist</font></b>"
-			entry += " (<A HREF='?_src_=holder;adminmoreinfo=\ref[C.mob]'>?</A>)"
-			Lines += entry
-	else
-		for(var/client/C in clients)
-			if(C.holder && C.holder.fakekey)
-				Lines += C.holder.fakekey
-			else
-				Lines += C.key
-
-	for(var/line in sortList(Lines))
+	for(var/line in Lines)
 		msg += "[line]\n"
 
-	msg += "<b>Total Players: [length(Lines)]</b>"
+	msg += "<b>Total Players: [length(clients)]</b>"
 	src << msg
 
-/client/verb/staffwho()
-	set category = "Admin"
-	set name = "Staffwho"
+/client/proc/show_info(var/client/C)
+	if(!C)
+		return ""
 
-	var/msg = ""
-	var/modmsg = ""
-	var/mentmsg = ""
-	var/num_mods_online = 0
-	var/num_admins_online = 0
-	var/num_mentors_online = 0
+	if(!src.holder)
+		return ""
+
+	var/entry = ""
+	if(C.holder && C.holder.fakekey)
+		entry += " <i>(as [C.holder.fakekey])</i>"
+	if (isnewplayer(C.mob))
+		entry += " - <font color='darkgray'><b>In Lobby</b></font>"
+	else
+		entry += " - Playing as [C.mob.real_name]"
+		switch(C.mob.stat)
+			if(UNCONSCIOUS)
+				entry += " - <font color='darkgray'><b>Unconscious</b></font>"
+			if(DEAD)
+				if(isobserver(C.mob))
+					var/mob/dead/observer/O = C.mob
+					if(O.started_as_observer)
+						entry += " - <font color='gray'>Observing</font>"
+					else
+						entry += " - <font color='black'><b>DEAD</b></font>"
+				else
+					entry += " - <font color='black'><b>DEAD</b></font>"
+		if(is_special_character(C.mob))
+			entry += " - <b><font color='red'>Antagonist</font></b>"
+	entry += " (<A HREF='?_src_=holder;adminmoreinfo=\ref[C.mob]'>?</A>)"
+	return entry
+
+/client/verb/adminwho()
+	set category = "Admin"
+	set name = "Adminwho"
+
+	var/msg = "<b>Current Admins:</b>\n"
 	if(holder)
 		for(var/client/C in admins)
-			if(R_ADMIN & C.holder.rights || (!R_MOD & C.holder.rights && !R_MENTOR & C.holder.rights))	//Used to determine who shows up in admin rows
+			msg += "\t[C] is a [C.holder.rank]"
 
-				if(C.holder.fakekey && (!R_ADMIN & holder.rights && !R_MOD & holder.rights))		//Mentors can't see stealthmins
-					continue
+			if(C.holder.fakekey)
+				msg += " <i>(as [C.holder.fakekey])</i>"
 
-				msg += "\t[C] is a [C.holder.rank]"
+			if(isobserver(C.mob))
+				msg += " - Observing"
+			else if(istype(C.mob,/mob/new_player))
+				msg += " - Lobby"
+			else
+				msg += " - Playing"
 
-				if(C.holder.fakekey)
-					msg += " <i>(as [C.holder.fakekey])</i>"
-
-				if(isobserver(C.mob))
-					msg += " - Observing"
-				else if(istype(C.mob,/mob/new_player))
-					msg += " - Lobby"
-				else
-					msg += " - Playing"
-
-				if(C.is_afk())
-					msg += " (AFK)"
-				msg += "\n"
-
-				num_admins_online++
-			else if(R_MOD & C.holder.rights)				//Who shows up in mod/mentor rows.
-				modmsg += "\t[C] is a [C.holder.rank]"
-
-				if(isobserver(C.mob))
-					modmsg += " - Observing"
-				else if(istype(C.mob,/mob/new_player))
-					modmsg += " - Lobby"
-				else
-					modmsg += " - Playing"
-
-				if(C.is_afk())
-					modmsg += " (AFK)"
-				modmsg += "\n"
-				num_mods_online++
-
-			else if(R_MENTOR & C.holder.rights)
-				mentmsg += "\t[C] is a [C.holder.rank]"
-				if(isobserver(C.mob))
-					mentmsg += " - Observing"
-				else if(istype(C.mob,/mob/new_player))
-					mentmsg += " - Lobby"
-				else
-					mentmsg += " - Playing"
-
-				if(C.is_afk())
-					mentmsg += " (AFK)"
-				mentmsg += "\n"
-				num_mentors_online++
-
+			if(C.is_afk())
+				msg += " (AFK)"
+			msg += "\n"
 	else
 		for(var/client/C in admins)
-			if(R_ADMIN & C.holder.rights || (!R_MOD & C.holder.rights && !R_MENTOR & C.holder.rights))
-				if(!C.holder.fakekey)
-					msg += "\t[C] is a [C.holder.rank]\n"
-					num_admins_online++
-			else if (R_MOD & C.holder.rights)
-				modmsg += "\t[C] is a [C.holder.rank]\n"
-				num_mods_online++
-			else if (R_MENTOR & C.holder.rights)
-				mentmsg += "\t[C] is a [C.holder.rank]\n"
-				num_mentors_online++
+			if(!C.holder.fakekey)
+				msg += "\t[C] is a [C.holder.rank]\n"
 
-	if(config.admin_irc)
-		src << "<span class='info'>Adminhelps are also sent to IRC. If no admins are available in game try anyway and an admin on IRC may see it and respond.</span>"
-	msg = "<b>Current Admins ([num_admins_online]):</b>\n" + msg
+	src << msg
 
-	if(config.show_mods)
-		msg += "\n<b> Current Moderators ([num_mods_online]):</b>\n" + modmsg
+/client/verb/mentorwho()
+	set category = "Mentor"
+	set name = "Mentorwho"
 
-	if(config.show_mentors)
-		msg += "\n<b> Current Mentors ([num_mentors_online]):</b>\n" + mentmsg
+	var/msg = "<b>Current Mentors:</b>\n"
+	for(var/client/C in mentors)
+		var/suffix = ""
+		if(holder)
+			if(isobserver(C.mob))
+				suffix += " - Observing"
+			else if(istype(C.mob,/mob/new_player))
+				suffix += " - Lobby"
+			else
+				suffix += " - Playing"
+
+			if(C.is_afk())
+				suffix += " (AFK)"
+
+		msg += "\t[C][suffix]\n"
 
 	src << msg

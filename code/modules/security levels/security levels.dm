@@ -5,10 +5,8 @@
 //3 = code delta
 
 //config.alert_desc_blue_downto
-/var/datum/announcement/priority/security/security_announcement_up = new(do_log = 0, do_newscast = 1, new_sound = sound('sound/misc/notice1.ogg'))
-/var/datum/announcement/priority/security/security_announcement_down = new(do_log = 0, do_newscast = 1)
 
-/proc/set_security_level(var/level)
+/proc/set_security_level(level)
 	switch(level)
 		if("green")
 			level = SEC_LEVEL_GREEN
@@ -23,27 +21,25 @@
 	if(level >= SEC_LEVEL_GREEN && level <= SEC_LEVEL_DELTA && level != security_level)
 		switch(level)
 			if(SEC_LEVEL_GREEN)
-				security_announcement_down.Announce("[config.alert_desc_green]", "Attention! Security level lowered to green")
+				minor_announce(config.alert_desc_green, "Attention! Security level lowered to green:")
 				security_level = SEC_LEVEL_GREEN
 				for(var/obj/machinery/firealarm/FA in machines)
-					if(FA.z in config.contact_levels)
-						FA.overlays = list()
-						FA.overlays += image('icons/obj/monitors.dmi', "overlay_green")
+					if(FA.z == ZLEVEL_STATION)
+						FA.update_icon()
 			if(SEC_LEVEL_BLUE)
 				if(security_level < SEC_LEVEL_BLUE)
-					security_announcement_up.Announce("[config.alert_desc_blue_upto]", "Attention! Security level elevated to blue")
+					minor_announce(config.alert_desc_blue_upto, "Attention! Security level elevated to blue:",1)
 				else
-					security_announcement_down.Announce("[config.alert_desc_blue_downto]", "Attention! Security level lowered to blue")
+					minor_announce(config.alert_desc_blue_downto, "Attention! Security level lowered to blue:")
 				security_level = SEC_LEVEL_BLUE
 				for(var/obj/machinery/firealarm/FA in machines)
-					if(FA.z in config.contact_levels)
-						FA.overlays = list()
-						FA.overlays += image('icons/obj/monitors.dmi', "overlay_blue")
+					if(FA.z == ZLEVEL_STATION)
+						FA.update_icon()
 			if(SEC_LEVEL_RED)
 				if(security_level < SEC_LEVEL_RED)
-					security_announcement_up.Announce("[config.alert_desc_red_upto]", "Attention! Code red!")
+					minor_announce(config.alert_desc_red_upto, "Attention! Code red!",1)
 				else
-					security_announcement_down.Announce("[config.alert_desc_red_downto]", "Attention! Code red!")
+					minor_announce(config.alert_desc_red_downto, "Attention! Code red!")
 				security_level = SEC_LEVEL_RED
 
 				/*	- At the time of commit, setting status displays didn't work properly
@@ -52,17 +48,18 @@
 					CC.post_status("alert", "redalert")*/
 
 				for(var/obj/machinery/firealarm/FA in machines)
-					if(FA.z in config.contact_levels)
-						FA.overlays = list()
-						FA.overlays += image('icons/obj/monitors.dmi', "overlay_red")
-
+					if(FA.z == ZLEVEL_STATION)
+						FA.update_icon()
+				for(var/obj/machinery/computer/shuttle/pod/pod in machines)
+					pod.admin_controlled = 0
 			if(SEC_LEVEL_DELTA)
-				security_announcement_up.Announce("[config.alert_desc_delta]", "Attention! Delta security level reached!", new_sound = 'sound/effects/siren.ogg')
+				minor_announce(config.alert_desc_delta, "Attention! Delta security level reached!",1)
 				security_level = SEC_LEVEL_DELTA
 				for(var/obj/machinery/firealarm/FA in machines)
-					if(FA.z in config.contact_levels)
-						FA.overlays = list()
-						FA.overlays += image('icons/obj/monitors.dmi', "overlay_delta")
+					if(FA.z == ZLEVEL_STATION)
+						FA.update_icon()
+				for(var/obj/machinery/computer/shuttle/pod/pod in machines)
+					pod.admin_controlled = 0
 	else
 		return
 
@@ -77,7 +74,7 @@
 		if(SEC_LEVEL_DELTA)
 			return "delta"
 
-/proc/num2seclevel(var/num)
+/proc/num2seclevel(num)
 	switch(num)
 		if(SEC_LEVEL_GREEN)
 			return "green"
@@ -88,7 +85,7 @@
 		if(SEC_LEVEL_DELTA)
 			return "delta"
 
-/proc/seclevel2num(var/seclevel)
+/proc/seclevel2num(seclevel)
 	switch( lowertext(seclevel) )
 		if("green")
 			return SEC_LEVEL_GREEN

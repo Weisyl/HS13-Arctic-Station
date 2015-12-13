@@ -23,8 +23,9 @@ BONUS
 	stage_speed = 1
 	transmittable = 2
 	level = 1
+	severity = 1
 
-/datum/symptom/cough/Activate(var/datum/disease/advance/A)
+/datum/symptom/cough/Activate(datum/disease/advance/A)
 	..()
 	if(prob(SYMPTOM_ACTIVATION_PROB))
 		var/mob/living/M = A.affected_mob
@@ -34,6 +35,6 @@ BONUS
 			else
 				M.emote("cough")
 				var/obj/item/I = M.get_active_hand()
-				if(I && I.w_class < 3)
+				if(I && I.w_class == 1)
 					M.drop_item()
 	return

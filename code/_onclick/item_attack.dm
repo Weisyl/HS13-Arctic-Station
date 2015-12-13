@@ -4,15 +4,59 @@
 	return
 
 // No comment
-/atom/proc/attackby(obj/item/W, mob/user)
+/atom/proc/attackby(obj/item/W, mob/user, params)
 	return
-/atom/movable/attackby(obj/item/W, mob/user)
-	if(!(W.flags&NOBLUDGEON))
-		visible_message("<span class='danger'>[src] has been hit by [user] with [W].</span>")
 
-/mob/living/attackby(obj/item/I, mob/user)
-	if(istype(I) && ismob(user))
-		I.attack(src, user)
+/atom/movable/attackby(obj/item/W, mob/living/user, params)
+	user.do_attack_animation(src)
+	if(W && !(W.flags&NOBLUDGEON))
+		visible_message("<span class='danger'>[user] has hit [src] with [W]!</span>")
+
+/mob/living/attackby(obj/item/I, mob/user, params)
+	user.changeNext_move(CLICK_CD_MELEE)
+	if(butcher_results && stat == DEAD) //can we butcher it?
+		var/sharpness = I.is_sharp()
+		if(sharpness)
+			user << "<span class='notice'>You begin to butcher [src]...</span>"
+			playsound(loc, 'sound/weapons/slice.ogg', 50, 1, -1)
+			if(do_mob(user, src, 80/sharpness))
+				harvest(user)
+			return
+	I.attack(src, user)
+
+/mob/living/proc/attacked_by(obj/item/I, mob/living/user, def_zone)
+	apply_damage(I.force, I.damtype, def_zone)
+	if(I.damtype == "brute")
+		if(prob(33) && I.force)
+			var/turf/location = src.loc
+			if(istype(location, /turf/simulated))
+				location.add_blood_floor(src)
+
+	var/message_verb = ""
+	if(I.attack_verb && I.attack_verb.len)
+		message_verb = "[pick(I.attack_verb)]"
+	else if(I.force)
+		message_verb = "attacked"
+
+	var/attack_message = "[src] has been [message_verb] with [I]."
+	if(user)
+		user.do_attack_animation(src)
+		if(user in viewers(src, null))
+			attack_message = "[user] has [message_verb] [src] with [I]!"
+	if(message_verb)
+		visible_message("<span class='danger'>[attack_message]</span>",
+		"<span class='userdanger'>[attack_message]</span>")
+
+/mob/living/simple_animal/attacked_by(var/obj/item/I, var/mob/living/user)
+	if(!I.force)
+		user.visible_message("<span class='warning'>[user] gently taps [src] with [I].</span>",\
+						"<span class='warning'>This weapon is ineffective, it does no damage!</span>")
+	else if(I.force >= force_threshold && I.damtype != STAMINA)
+		..()
+	else
+		visible_message("<span class='warning'>[I] bounces harmlessly off of [src].</span>",\
+					"<span class='warning'>[I] bounces harmlessly off of [src]!</span>")
+
 
 
 // Proximity_flag is 1 if this afterattack was called on something adjacent, in your square, or on your person.
@@ -20,84 +64,32 @@
 /obj/item/proc/afterattack(atom/target, mob/user, proximity_flag, click_parameters)
 	return
 
-//TODO: refactor mob attack code.
-/*
-Busy writing something else that I don't want to get mixed up in a general attack code, and I don't want to forget this so leaving a note here.
-leave attackby() as handling the general case of "using an item on a mob"
-attackby() will decide to call attacked_by() or not.
-attacked_by() will be made a living level proc and handle the specific case of "attacking with an item to cause harm"
-attacked_by() will then call attack() so that stunbatons and other weapons that have special attack effects can do their thing.
-attacked_by() will handle hitting/missing/logging as it does now, and will call attack() to apply the attack effects (damage) instead of the other way around (as it is now).
-*/
 
-/obj/item/proc/attack(mob/living/M as mob, mob/living/user as mob, def_zone)
+/obj/item/proc/get_clamped_volume()
+	if(src.force && src.w_class)
+		return Clamp((src.force + src.w_class) * 4, 30, 100)// Add the item's force to its weight class and multiply by 4, then clamp the value between 30 and 100
+	else if(!src.force && src.w_class)
+		return Clamp(src.w_class * 6, 10, 100) // Multiply the item's weight class by 6, then clamp the value between 10 and 100
 
-	if(!istype(M) || (can_operate(M) && do_surgery(M,user,src))) return 0
+/obj/item/proc/attack(mob/living/M, mob/living/user, def_zone)
 
-	// Knifing
-	if(edge)
-		for(var/obj/item/weapon/grab/G in M.grabbed_by)
-			if(G.assailant == user && G.state >= GRAB_NECK && world.time >= (G.last_action + 20))
-				//TODO: better alternative for applying damage multiple times? Nice knifing sound?
-				M.apply_damage(20, BRUTE, "head", 0, sharp=sharp, edge=edge)
-				M.apply_damage(20, BRUTE, "head", 0, sharp=sharp, edge=edge)
-				M.apply_damage(20, BRUTE, "head", 0, sharp=sharp, edge=edge)
-				M.adjustOxyLoss(60) // Brain lacks oxygen immediately, pass out
-				flick(G.hud.icon_state, G.hud)
-				G.last_action = world.time
-				user.visible_message("<span class='danger'>[user] slit [M]'s throat open with \the [name]!</span>")
-				user.attack_log += "\[[time_stamp()]\]<font color='red'> Knifed [M.name] ([M.ckey]) with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])</font>"
-				M.attack_log += "\[[time_stamp()]\]<font color='orange'> Got knifed by [user.name] ([user.ckey]) with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])</font>"
-				msg_admin_attack("[key_name(user)] knifed [key_name(M)] with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])" )
-				return
+	if (!istype(M)) // not sure if this is the right thing...
+		return
 
+	if (hitsound && force > 0) //If an item's hitsound is defined and the item's force is greater than zero...
+		playsound(loc, hitsound, get_clamped_volume(), 1, hitsound_extrarange) //...play the item's hitsound at get_clamped_volume() with varying frequency and -1 extra range.
+	else if (force == 0)//Otherwise, if the item's force is zero...
+		playsound(loc, 'sound/weapons/tap.ogg', get_clamped_volume(), 1, hitsound_extrarange)//...play tap.ogg at get_clamped_volume()
 	/////////////////////////
 	user.lastattacked = M
 	M.lastattacker = user
 
-	if(!no_attack_log)
-		user.attack_log += "\[[time_stamp()]\]<font color='red'> Attacked [M.name] ([M.ckey]) with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])</font>"
-		M.attack_log += "\[[time_stamp()]\]<font color='orange'> Attacked by [user.name] ([user.ckey]) with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])</font>"
-		msg_admin_attack("[key_name(user)] attacked [key_name(M)] with [name] (INTENT: [uppertext(user.a_intent)]) (DAMTYE: [uppertext(damtype)])" )
+	//spawn(1800)            // this wont work right
+	//	M.lastattacker = null
 	/////////////////////////
+	M.attacked_by(src, user, def_zone)
 
-	var/power = force
-	if(HULK in user.mutations)
-		power *= 2
-
-	// TODO: needs to be refactored into a mob/living level attacked_by() proc. ~Z
-	user.do_attack_animation(M)
-	if(istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-
-		// Handle striking to cripple.
-		var/dislocation_str
-		if(user.a_intent == "disarm")
-			dislocation_str = H.attack_joint(src, user, def_zone)
-		if(H.attacked_by(src, user, def_zone) && hitsound)
-			playsound(loc, hitsound, 50, 1, -1)
-			spawn(1) //ugh I hate this but I don't want to root through human attack procs to print it after this call resolves.
-				if(dislocation_str) user.visible_message("<span class='danger'>[dislocation_str]</span>")
-			return 1
-		return 0
-	else
-		if(attack_verb.len)
-			user.visible_message("<span class='danger'>[M] has been [pick(attack_verb)] with [src] by [user]!</span>")
-		else
-			user.visible_message("<span class='danger'>[M] has been attacked with [src] by [user]!</span>")
-
-		if (hitsound)
-			playsound(loc, hitsound, 50, 1, -1)
-		switch(damtype)
-			if("brute")
-				M.take_organ_damage(power)
-				if(prob(33)) // Added blood for whacking non-humans too
-					var/turf/simulated/location = get_turf(M)
-					if(istype(location)) location.add_blood_floor(M)
-			if("fire")
-				if (!(COLD_RESISTANCE in M.mutations))
-					M.take_organ_damage(0, power)
-					M << "Aargh it burns!"
-		M.updatehealth()
+	add_logs(user, M, "attacked", src.name, "(INTENT: [uppertext(user.a_intent)]) (DAMTYPE: [uppertext(damtype)])")
 	add_fingerprint(user)
+
 	return 1

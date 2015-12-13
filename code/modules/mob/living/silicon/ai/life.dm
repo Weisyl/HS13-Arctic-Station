@@ -5,97 +5,111 @@
 		//Being dead doesn't mean your temperature never changes
 		var/turf/T = get_turf(src)
 
-		if (src.stat!=CONSCIOUS)
+		if (src.stat!= CONSCIOUS)
 			src.cameraFollow = null
 			src.reset_view(null)
+			src.unset_machine()
 
-		src.updatehealth()
+		updatehealth()
 
-		if (!hardware_integrity() || !backup_capacitor())
+		update_gravity(mob_has_gravity())
+
+		update_action_buttons()
+
+		if (src.malfhack)
+			if (src.malfhack.aidisabled)
+				src << "<span class='danger'>ERROR: APC access disabled, hack attempt canceled.</span>"
+				src.malfhacking = 0
+				src.malfhack = null
+
+
+		if (src.health <= config.health_threshold_dead)
 			death()
 			return
 
-		// If our powersupply object was destroyed somehow, create new one.
-		if(!psupply)
-			create_powersupply()
-
+		if (src.machine)
+			if (!( src.machine.check_eye(src) ))
+				src.reset_view(null)
 
 		// Handle power damage (oxy)
-		if(aiRestorePowerRoutine != 0 && !APU_power)
-			// Lose power
+		if(src.aiRestorePowerRoutine != 0)
+			// Lost power
 			adjustOxyLoss(1)
 		else
 			// Gain Power
-			aiRestorePowerRoutine = 0 // Necessary if AI activated it's APU AFTER losing primary power.
 			adjustOxyLoss(-1)
 
-		handle_stunned()	// Handle EMP-stun
-		lying = 0			// Handle lying down
-
-		malf_process()
-
-		if(APU_power && (hardware_integrity() < 50))
-			src << "<span class='notice'><b>APU GENERATOR FAILURE! (System Damaged)</b></span>"
-			stop_apu(1)
-
-		var/blind = 0
+		//stage = 1
+		//if (istype(src, /mob/living/silicon/ai)) // Are we not sure what we are?
+		var/blindness = 0
+		//stage = 2
 		var/area/loc = null
 		if (istype(T, /turf))
+			//stage = 3
 			loc = T.loc
 			if (istype(loc, /area))
-				if (!loc.power_equip && !istype(src.loc,/obj/item) && !APU_power)
-					blind = 1
+				//stage = 4
+				if (!loc.master.power_equip && !is_type_in_list(src.loc,list(/obj/item, /obj/mecha)))
+					//stage = 5
+					blindness = 1
 
-		if (!blind)
+		if (!blindness)
+			//stage = 4.5
+			if (src.blind.layer != 0)
+				src.blind.layer = 0
 			src.sight |= SEE_TURFS
 			src.sight |= SEE_MOBS
 			src.sight |= SEE_OBJS
 			src.see_in_dark = 8
-			src.see_invisible = SEE_INVISIBLE_LIVING
+			src.see_invisible = SEE_INVISIBLE_LEVEL_TWO
+			if(see_override)
+				see_invisible = see_override
 
-			if (aiRestorePowerRoutine==2)
+			var/area/home = get_area(src)
+			if(!home)	return//something to do with malf fucking things up I guess. <-- aisat is gone. is this still necessary? ~Carn
+			if(home.powered(EQUIP))
+				home.use_power(1000, EQUIP)
+
+			if (src:aiRestorePowerRoutine==2)
 				src << "Alert cancelled. Power has been restored without our assistance."
-				aiRestorePowerRoutine = 0
+				src:aiRestorePowerRoutine = 0
 				src.blind.layer = 0
 				return
-			else if (aiRestorePowerRoutine==3)
+			else if (src:aiRestorePowerRoutine==3)
 				src << "Alert cancelled. Power has been restored."
-				aiRestorePowerRoutine = 0
-				src.blind.layer = 0
-				return
-			else if (APU_power)
-				aiRestorePowerRoutine = 0
+				src:aiRestorePowerRoutine = 0
 				src.blind.layer = 0
 				return
 		else
-			var/area/current_area = get_area(src)
 
-			if (lacks_power())
-				if (aiRestorePowerRoutine==0)
-					aiRestorePowerRoutine = 1
+			//stage = 6
+			src.blind.screen_loc = "1,1 to 15,15"
+			if (src.blind.layer!=18)
+				src.blind.layer = 18
+			src.sight = src.sight&~SEE_TURFS
+			src.sight = src.sight&~SEE_MOBS
+			src.sight = src.sight&~SEE_OBJS
+			src.see_in_dark = 0
+			src.see_invisible = SEE_INVISIBLE_LIVING
 
-					//Blind the AI
-
-					src.blind.screen_loc = "1,1 to 15,15"
-					if (src.blind.layer!=18)
-						src.blind.layer = 18
-					src.sight = src.sight&~SEE_TURFS
-					src.sight = src.sight&~SEE_MOBS
-					src.sight = src.sight&~SEE_OBJS
-					src.see_in_dark = 0
-					src.see_invisible = SEE_INVISIBLE_LIVING
-
-					//Now to tell the AI why they're blind and dying slowly.
+			if (((!loc.master.power_equip) || istype(T, /turf/space)) && !is_type_in_list(src.loc,list(/obj/item, /obj/mecha)))
+				if (src:aiRestorePowerRoutine==0)
+					src:aiRestorePowerRoutine = 1
 
 					src << "You've lost power!"
-
+//							world << "DEBUG CODE TIME! [loc] is the area the AI is sucking power from"
+					//if (!is_special_character(src))
+						//src.set_zeroth_law("")
+					//src.clear_supplied_laws() // Don't reset our laws.
+					//var/time = time2text(world.realtime,"hh:mm:ss")
+					//lawchanges.Add("[time] <b>:</b> [src.name]'s noncore laws have been reset due to power failure")
 					spawn(20)
 						src << "Backup battery online. Scanners, camera, and radio interface offline. Beginning fault-detection."
 						sleep(50)
-						if (loc.power_equip)
+						if (loc.master.power_equip)
 							if (!istype(T, /turf/space))
 								src << "Alert cancelled. Power has been restored without our assistance."
-								aiRestorePowerRoutine = 0
+								src.aiRestorePowerRoutine = 0
 								src.blind.layer = 0
 								return
 						src << "Fault confirmed: missing external power. Shutting down main control system to save power."
@@ -104,28 +118,36 @@
 						sleep(50)
 						if (istype(T, /turf/space))
 							src << "Unable to verify! No power connection detected!"
-							aiRestorePowerRoutine = 2
+							src:aiRestorePowerRoutine = 2
 							return
 						src << "Connection verified. Searching for APC in power network."
 						sleep(50)
 						var/obj/machinery/power/apc/theAPC = null
-
-						var/PRP
-						for (PRP=1, PRP<=4, PRP++)
-							for (var/obj/machinery/power/apc/APC in current_area)
-								if (!(APC.stat & BROKEN))
-									theAPC = APC
+/*
+						for (var/something in loc)
+							if (istype(something, /obj/machinery/power/apc))
+								if (!(something:stat & BROKEN))
+									theAPC = something
 									break
+*/
+						var/PRP //like ERP with the code, at least this stuff is no more 4x sametext
+						for (PRP=1, PRP<=4, PRP++)
+							var/area/AIarea = get_area(src)
+							for(var/area/A in AIarea.master.related)
+								for (var/obj/machinery/power/apc/APC in A)
+									if (!(APC.stat & BROKEN))
+										theAPC = APC
+										break
 							if (!theAPC)
 								switch(PRP)
 									if (1) src << "Unable to locate APC!"
 									else src << "Lost connection with the APC!"
 								src:aiRestorePowerRoutine = 2
 								return
-							if (loc.power_equip)
+							if (loc.master.power_equip)
 								if (!istype(T, /turf/space))
 									src << "Alert cancelled. Power has been restored without our assistance."
-									aiRestorePowerRoutine = 0
+									src:aiRestorePowerRoutine = 0
 									src.blind.layer = 0 //This, too, is a fix to issue 603
 									return
 							switch(PRP)
@@ -137,39 +159,23 @@
 									sleep(50)
 									src << "Receiving control information from APC."
 									sleep(2)
-									theAPC.operating = 1
-									theAPC.equipment = 3
-									theAPC.update()
-									aiRestorePowerRoutine = 3
+									//bring up APC dialog
+									apc_override = 1
+									theAPC.attack_ai(src)
+									apc_override = 0
+									src:aiRestorePowerRoutine = 3
 									src << "Here are your current laws:"
-									show_laws()
+									src.show_laws()
 							sleep(50)
 							theAPC = null
 
-	process_queued_alarms()
-	regular_hud_updates()
-	switch(src.sensor_mode)
-		if (SEC_HUD)
-			process_sec_hud(src,0,src.eyeobj)
-		if (MED_HUD)
-			process_med_hud(src,0,src.eyeobj)
-
-/mob/living/silicon/ai/proc/lacks_power()
-	if(APU_power)
-		return 0
-	var/turf/T = get_turf(src)
-	var/area/A = get_area(src)
-	return ((!A.power_equip) && A.requires_power == 1 || istype(T, /turf/space)) && !istype(src.loc,/obj/item)
-
 /mob/living/silicon/ai/updatehealth()
 	if(status_flags & GODMODE)
-		health = 100
+		health = maxHealth
 		stat = CONSCIOUS
-		setOxyLoss(0)
-	else
-		health = 100 - getFireLoss() - getBruteLoss() // Oxyloss is not part of health as it represents AIs backup power. AI is immune against ToxLoss as it is machine.
-
-/mob/living/silicon/ai/rejuvenate()
-	..()
-	add_ai_verbs(src)
-
+		return
+	health = maxHealth - getOxyLoss() - getToxLoss() - getBruteLoss()
+	if(!fire_res_on_core)
+		health -= getFireLoss()
+	diag_hud_set_status()
+	diag_hud_set_health()

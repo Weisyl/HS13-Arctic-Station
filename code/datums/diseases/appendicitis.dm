@@ -1,53 +1,48 @@
 /datum/disease/appendicitis
 	form = "Condition"
 	name = "Appendicitis"
-	max_stages = 4
-	spread = "Acute"
-	cure = "Surgery"
-	agent = "Appendix"
-	affected_species = list("Human")
+	max_stages = 3
+	cure_text = "Surgery"
+	agent = "Shitty Appendix"
+	viable_mobtypes = list(/mob/living/carbon/human)
 	permeability_mod = 1
-	contagious_period = 9001 //slightly hacky, but hey! whatever works, right?
 	desc = "If left untreated the subject will become very weak, and may vomit often."
-	severity = "Medium"
+	severity = "Dangerous!"
 	longevity = 1000
-	hidden = list(0, 1)
-	stage_minimum_age = 160 // at least 200 life ticks per stage
+	disease_flags = CAN_CARRY|CAN_RESIST
+	spread_flags = NON_CONTAGIOUS
+	visibility_flags = HIDDEN_PANDEMIC
+	required_organs = list(/obj/item/organ/internal/appendix)
 
 /datum/disease/appendicitis/stage_act()
 	..()
+	switch(stage)
+		if(1)
+			if(prob(5))
+				affected_mob.emote("cough")
+		if(2)
+			var/obj/item/organ/internal/appendix/A = affected_mob.getorgan(/obj/item/organ/internal/appendix)
+			if(A)
+				A.inflamed = 1
+				A.update_icon()
+			if(prob(3))
+				affected_mob << "<span class='warning'>You feel a stabbing pain in your abdomen!</span>"
+				affected_mob.Stun(rand(2,3))
+				affected_mob.adjustToxLoss(1)
+		if(3)
+			if(prob(1))
+				if (affected_mob.nutrition > 100)
+					affected_mob.Stun(rand(4,6))
+					affected_mob.visible_message("<span class='danger'>[affected_mob] throws up!</span>", \
+												"<span class='userdanger'>[affected_mob] throws up!</span>")
+					playsound(affected_mob.loc, 'sound/effects/splat.ogg', 50, 1)
+					var/turf/location = affected_mob.loc
+					if(istype(location, /turf/simulated))
+						location.add_vomit_floor(affected_mob)
+					affected_mob.nutrition -= 95
+					affected_mob.adjustToxLoss(-1)
+				else
+					affected_mob << "<span class='userdanger'>You gag as you want to throw up, but there's nothing in your stomach!</span>"
+					affected_mob.Weaken(10)
+					affected_mob.adjustToxLoss(3)
 
-	if(istype(affected_mob,/mob/living/carbon/human))
-		var/mob/living/carbon/human/H = affected_mob
-		if(!H.internal_organs_by_name["appendix"])
-			src.cure()
-
-	if(stage == 1)
-		if(prob(5))
-			affected_mob << "\red You feel a stinging pain in your abdomen!"
-			affected_mob.emote("me",1,"winces slightly.")
-	if(stage > 1)
-		if(prob(3))
-			affected_mob << "\red You feel a stabbing pain in your abdomen!"
-			affected_mob.emote("me",1,"winces painfully.")
-			affected_mob.adjustToxLoss(1)
-	if(stage > 2)
-		if(prob(1))
-			if (affected_mob.nutrition > 100)
-				var/mob/living/carbon/human/H = affected_mob
-				H.vomit()
-			else
-				affected_mob << "\red You gag as you want to throw up, but there's nothing in your stomach!"
-				affected_mob.Weaken(10)
-				affected_mob.adjustToxLoss(3)
-	if(stage > 3)
-		if(prob(1) && ishuman(affected_mob))
-			var/mob/living/carbon/human/H = affected_mob
-			H << "\red Your abdomen is a world of pain!"
-			H.Weaken(10)
-
-			var/obj/item/organ/external/groin = H.get_organ("groin")
-			var/datum/wound/W = new /datum/wound/internal_bleeding(20)
-			H.adjustToxLoss(25)
-			groin.wounds += W
-			src.cure()

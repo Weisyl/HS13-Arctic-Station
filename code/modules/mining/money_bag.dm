@@ -5,23 +5,27 @@
 	name = "Money bag"
 	icon_state = "moneybag"
 	flags = CONDUCT
-	force = 10.0
-	throwforce = 2.0
-	w_class = 4.0
+	force = 10
+	throwforce = 0
+	w_class = 4
+	burn_state = 0 //Burnable
+	burntime = 20
 
-/obj/item/weapon/moneybag/attack_hand(user as mob)
+/obj/item/weapon/moneybag/attack_hand(mob/user)
 	var/amt_gold = 0
 	var/amt_silver = 0
 	var/amt_diamond = 0
 	var/amt_iron = 0
-	var/amt_phoron = 0
+	var/amt_plasma = 0
 	var/amt_uranium = 0
+	var/amt_clown = 0
+	var/amt_adamantine = 0
 
 	for (var/obj/item/weapon/coin/C in contents)
 		if (istype(C,/obj/item/weapon/coin/diamond))
 			amt_diamond++;
-		if (istype(C,/obj/item/weapon/coin/phoron))
-			amt_phoron++;
+		if (istype(C,/obj/item/weapon/coin/plasma))
+			amt_plasma++;
 		if (istype(C,/obj/item/weapon/coin/iron))
 			amt_iron++;
 		if (istype(C,/obj/item/weapon/coin/silver))
@@ -30,6 +34,10 @@
 			amt_gold++;
 		if (istype(C,/obj/item/weapon/coin/uranium))
 			amt_uranium++;
+		if (istype(C,/obj/item/weapon/coin/clown))
+			amt_clown++;
+		if (istype(C,/obj/item/weapon/coin/adamantine))
+			amt_adamantine++;
 
 	var/dat = text("<b>The contents of the moneybag reveal...</b><br>")
 	if (amt_gold)
@@ -40,29 +48,34 @@
 		dat += text("Metal coins: [amt_iron] <A href='?src=\ref[src];remove=iron'>Remove one</A><br>")
 	if (amt_diamond)
 		dat += text("Diamond coins: [amt_diamond] <A href='?src=\ref[src];remove=diamond'>Remove one</A><br>")
-	if (amt_phoron)
-		dat += text("Phoron coins: [amt_phoron] <A href='?src=\ref[src];remove=phoron'>Remove one</A><br>")
+	if (amt_plasma)
+		dat += text("Plasma coins: [amt_plasma] <A href='?src=\ref[src];remove=plasma'>Remove one</A><br>")
 	if (amt_uranium)
 		dat += text("Uranium coins: [amt_uranium] <A href='?src=\ref[src];remove=uranium'>Remove one</A><br>")
+	if (amt_clown)
+		dat += text("Bananium coins: [amt_clown] <A href='?src=\ref[src];remove=clown'>Remove one</A><br>")
+	if (amt_adamantine)
+		dat += text("Adamantine coins: [amt_adamantine] <A href='?src=\ref[src];remove=adamantine'>Remove one</A><br>")
 	user << browse("[dat]", "window=moneybag")
 
-/obj/item/weapon/moneybag/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/item/weapon/moneybag/attackby(obj/item/weapon/W, mob/user, params)
 	..()
 	if (istype(W, /obj/item/weapon/coin))
 		var/obj/item/weapon/coin/C = W
-		user << "\blue You add the [C.name] into the bag."
-		usr.drop_item()
+		if(!user.drop_item())
+			return
+		user << "<span class='notice'>You add the [C.name] into the bag.</span>"
 		contents += C
 	if (istype(W, /obj/item/weapon/moneybag))
 		var/obj/item/weapon/moneybag/C = W
 		for (var/obj/O in C.contents)
 			contents += O;
-		user << "\blue You empty the [C.name] into the bag."
+		user << "<span class='notice'>You empty the [C.name] into the bag.</span>"
 	return
 
 /obj/item/weapon/moneybag/Topic(href, href_list)
 	if(..())
-		return 1
+		return
 	usr.set_machine(src)
 	src.add_fingerprint(usr)
 	if(href_list["remove"])
@@ -76,10 +89,14 @@
 				COIN = locate(/obj/item/weapon/coin/iron,src.contents)
 			if("diamond")
 				COIN = locate(/obj/item/weapon/coin/diamond,src.contents)
-			if("phoron")
-				COIN = locate(/obj/item/weapon/coin/phoron,src.contents)
+			if("plasma")
+				COIN = locate(/obj/item/weapon/coin/plasma,src.contents)
 			if("uranium")
 				COIN = locate(/obj/item/weapon/coin/uranium,src.contents)
+			if("clown")
+				COIN = locate(/obj/item/weapon/coin/clown,src.contents)
+			if("adamantine")
+				COIN = locate(/obj/item/weapon/coin/adamantine,src.contents)
 		if(!COIN)
 			return
 		COIN.loc = src.loc
@@ -97,3 +114,4 @@
 	new /obj/item/weapon/coin/silver(src)
 	new /obj/item/weapon/coin/gold(src)
 	new /obj/item/weapon/coin/gold(src)
+	new /obj/item/weapon/coin/adamantine(src)

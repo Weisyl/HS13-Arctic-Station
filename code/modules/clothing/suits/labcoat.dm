@@ -1,104 +1,85 @@
-/obj/item/clothing/suit/storage/toggle/labcoat
+/obj/item/clothing/suit/toggle/labcoat
 	name = "labcoat"
 	desc = "A suit that protects against minor chemical spills."
-	icon_state = "labcoat_open"
-	item_state = "labcoat" //Is this even used for anything?
-	icon_open = "labcoat_open"
-	icon_closed = "labcoat"
+	icon_state = "labcoat"
+	item_state = "labcoat"
 	blood_overlay_type = "coat"
-	body_parts_covered = UPPER_TORSO|ARMS
-	allowed = list(/obj/item/device/analyzer,/obj/item/stack/medical,/obj/item/weapon/dnainjector,/obj/item/weapon/reagent_containers/dropper,/obj/item/weapon/reagent_containers/syringe,/obj/item/weapon/reagent_containers/hypospray,/obj/item/device/healthanalyzer,/obj/item/device/flashlight/pen,/obj/item/weapon/reagent_containers/glass/bottle,/obj/item/weapon/reagent_containers/glass/beaker,/obj/item/weapon/reagent_containers/pill,/obj/item/weapon/storage/pill_bottle,/obj/item/weapon/paper)
+	body_parts_covered = CHEST|ARMS
+	allowed = list(/obj/item/device/analyzer,/obj/item/stack/medical,/obj/item/weapon/dnainjector,/obj/item/weapon/reagent_containers/dropper,/obj/item/weapon/reagent_containers/syringe,/obj/item/weapon/reagent_containers/hypospray,/obj/item/device/healthanalyzer,/obj/item/device/flashlight/pen,/obj/item/weapon/reagent_containers/glass/bottle,/obj/item/weapon/reagent_containers/glass/beaker,/obj/item/weapon/reagent_containers/pill,/obj/item/weapon/storage/pill_bottle,/obj/item/weapon/paper,/obj/item/weapon/melee/classic_baton/telescopic)
 	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 50, rad = 0)
-	sprite_sheets = list("Vox" = 'icons/mob/species/vox/suit.dmi')
+	togglename = "buttons"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/red
-	name = "red labcoat"
-	desc = "A suit that protects against minor chemical spills. This one is red."
-	icon_state = "red_labcoat_open"
-	item_state = "red_labcoat"
-	icon_open = "red_labcoat_open"
-	icon_closed = "red_labcoat"
-
-/obj/item/clothing/suit/storage/toggle/labcoat/blue
-	name = "blue labcoat"
-	desc = "A suit that protects against minor chemical spills. This one is blue."
-	icon_state = "blue_labcoat_open"
-	item_state = "blue_labcoat"
-	icon_open = "blue_labcoat_open"
-	icon_closed = "blue_labcoat"
-
-/obj/item/clothing/suit/storage/toggle/labcoat/purple
-	name = "purple labcoat"
-	desc = "A suit that protects against minor chemical spills. This one is purple."
-	icon_state = "purple_labcoat_open"
-	item_state = "purple_labcoat"
-	icon_open = "purple_labcoat_open"
-	icon_closed = "purple_labcoat"
-
-/obj/item/clothing/suit/storage/toggle/labcoat/orange
-	name = "orange labcoat"
-	desc = "A suit that protects against minor chemical spills. This one is orange."
-	icon_state = "orange_labcoat_open"
-	item_state = "orange_labcoat"
-	icon_open = "orange_labcoat_open"
-	icon_closed = "orange_labcoat"
-
-/obj/item/clothing/suit/storage/toggle/labcoat/green
-	name = "green labcoat"
-	desc = "A suit that protects against minor chemical spills. This one is green."
-	icon_state = "green_labcoat_open"
-	item_state = "green_labcoat"
-	icon_open = "green_labcoat_open"
-	icon_closed = "green_labcoat"
-
-/obj/item/clothing/suit/storage/toggle/labcoat/cmo
+/obj/item/clothing/suit/toggle/labcoat/cmo
 	name = "chief medical officer's labcoat"
 	desc = "Bluer than the standard model."
-	icon_state = "labcoat_cmo_open"
+	icon_state = "labcoat_cmo"
 	item_state = "labcoat_cmo"
-	icon_open = "labcoat_cmo_open"
-	icon_closed = "labcoat_cmo"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/cmoalt
-	name = "chief medical officer labcoat"
-	desc = "A labcoat with command blue highlights."
-	icon_state = "labcoat_cmoalt_open"
-	icon_open = "labcoat_cmoalt_open"
-	icon_closed = "labcoat_cmoalt"
+/obj/item/clothing/suit/toggle/labcoat/emt
+	name = "EMT's jacket"
+	desc = "A dark blue jacket with reflective strips for emergency medical technicians."
+	icon_state = "labcoat_emt"
+	item_state = "labcoat_cmo"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/mad
-	name = "The Mad's labcoat"
+/obj/item/clothing/suit/toggle/labcoat/mad
+	name = "\improper The Mad's labcoat"
 	desc = "It makes you look capable of konking someone on the noggin and shooting them into space."
-	icon_state = "labgreen_open"
+	icon_state = "labgreen"
 	item_state = "labgreen"
-	icon_open = "labgreen_open"
-	icon_closed = "labgreen"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/genetics
-	name = "Geneticist labcoat"
+/obj/item/clothing/suit/toggle/labcoat/genetics
+	name = "geneticist labcoat"
 	desc = "A suit that protects against minor chemical spills. Has a blue stripe on the shoulder."
-	icon_state = "labcoat_gen_open"
-	icon_open = "labcoat_gen_open"
-	icon_closed = "labcoat_gen"
+	icon_state = "labcoat_gen"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/chemist
-	name = "Chemist labcoat"
+/obj/item/clothing/suit/toggle/labcoat/chemist
+	name = "chemist labcoat"
 	desc = "A suit that protects against minor chemical spills. Has an orange stripe on the shoulder."
-	icon_state = "labcoat_chem_open"
-	icon_open = "labcoat_chem_open"
-	icon_closed = "labcoat_chem"
+	icon_state = "labcoat_chem"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/virologist
-	name = "Virologist labcoat"
+/obj/item/clothing/suit/toggle/labcoat/virologist
+	name = "virologist labcoat"
 	desc = "A suit that protects against minor chemical spills. Offers slightly more protection against biohazards than the standard model. Has a green stripe on the shoulder."
-	icon_state = "labcoat_vir_open"
-	icon_open = "labcoat_vir_open"
-	icon_closed = "labcoat_vir"
-	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 60, rad = 0)
+	icon_state = "labcoat_vir"
 
-/obj/item/clothing/suit/storage/toggle/labcoat/science
-	name = "Scientist labcoat"
+/obj/item/clothing/suit/toggle/labcoat/science
+	name = "scientist labcoat"
 	desc = "A suit that protects against minor chemical spills. Has a purple stripe on the shoulder."
-	icon_state = "labcoat_tox_open"
-	icon_open = "labcoat_tox_open"
-	icon_closed = "labcoat_tox"
+	icon_state = "labcoat_tox"
+
+/obj/item/clothing/suit/labcoat/chameleon //For some reason the button up button was appearing where the action button should be for this, so until someone works that out this thing cant be buttoned up I guess
+	name = "labcoat"
+	icon_state = "labcoat"
+	item_state = "labcoat"
+	desc = "A reinforced labcoat that protects against much more than a minor chemical spill. Has a small dial inside it."
+	action_button_name = "Change"
+	origin_tech = "syndicate=2"
+	armor = list(melee = 35, bullet = 15, laser = 15, energy = 0, bomb = 0, bio = 50, rad = 0) //real armor is still better
+	var/list/clothing_choices = list()
+	burn_state = -1 //Won't burn in fires
+
+/obj/item/clothing/suit/labcoat/chameleon/New()
+	..()
+	for(var/U in typesof(/obj/item/clothing/suit/toggle/labcoat)-(/obj/item/clothing/suit/toggle/labcoat))
+		var/obj/item/clothing/suit/toggle/V = new U
+		src.clothing_choices += V
+	return
+
+/obj/item/clothing/suit/labcoat/chameleon/attack_self()
+	set src in usr
+
+	var/obj/item/clothing/suit/toggle/labcoat/A
+	A = input("Select Design to change it to", "BOOYEA", A) in clothing_choices
+	if(!A)
+		return
+
+	if(usr.stat != CONSCIOUS)
+		return
+
+	desc = null
+
+	desc = A.desc
+	name = A.name
+	icon_state = A.icon_state
+	item_state = A.item_state
+	usr.update_inv_wear_suit()	//so our overlays update.

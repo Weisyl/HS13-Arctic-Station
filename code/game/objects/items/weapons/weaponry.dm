@@ -1,72 +1,40 @@
 /obj/item/weapon/banhammer
-	desc = "banhammer"
+	desc = "A banhammer"
 	name = "banhammer"
 	icon = 'icons/obj/items.dmi'
 	icon_state = "toyhammer"
 	slot_flags = SLOT_BELT
 	throwforce = 0
-	w_class = 2.0
-	throw_speed = 7
-	throw_range = 15
+	w_class = 1
+	throw_speed = 3
+	throw_range = 7
 	attack_verb = list("banned")
 
-	suicide_act(mob/user)
-		viewers(user) << "<span class='danger'>[user] is hitting \himself with the [src.name]! It looks like \he's trying to ban \himself from life.</span>"
+/obj/item/weapon/banhammer/suicide_act(mob/user)
+		user.visible_message("<span class='suicide'>[user] is hitting \himself with the [src.name]! It looks like \he's trying to ban \himself from life.</span>")
 		return (BRUTELOSS|FIRELOSS|TOXLOSS|OXYLOSS)
+
+/obj/item/weapon/banhammer/attack(mob/M, mob/user)
+	M << "<font color='red'><b> You have been banned FOR NO REISIN by [user]<b></font>"
+	user << "<font color='red'>You have <b>BANNED</b> [M]</font>"
+	playsound(loc, 'sound/effects/adminhelp.ogg', 15) //keep it at 15% volume so people don't jump out of their skin too much
+
 
 /obj/item/weapon/nullrod
 	name = "null rod"
-	desc = "A rod of pure obsidian, its very presence disrupts and dampens the powers of paranormal phenomenae."
+	desc = "A rod of pure obsidian, its very presence disrupts and dampens the powers of Nar-Sie's followers."
 	icon_state = "nullrod"
 	item_state = "nullrod"
 	slot_flags = SLOT_BELT
 	force = 15
-	throw_speed = 1
+	throw_speed = 3
 	throw_range = 4
 	throwforce = 10
-	w_class = 2
+	w_class = 1
 
-	suicide_act(mob/user)
-		viewers(user) << "<span class='danger'>[user] is impaling \himself with the [src.name]! It looks like \he's trying to commit suicide.</span>"
-		return (BRUTELOSS|FIRELOSS)
-
-/obj/item/weapon/nullrod/attack(mob/M as mob, mob/living/user as mob) //Paste from old-code to decult with a null rod.
-
-	M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been attacked with [src.name] by [user.name] ([user.ckey])</font>")
-	user.attack_log += text("\[[time_stamp()]\] <font color='red'>Used the [src.name] to attack [M.name] ([M.ckey])</font>")
-
-	msg_admin_attack("[user.name] ([user.ckey]) attacked [M.name] ([M.ckey]) with [src.name] (INTENT: [uppertext(user.a_intent)]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
-
-	if (!(istype(user, /mob/living/carbon/human) || ticker) && ticker.mode.name != "monkey")
-		user << "<span class='danger'>You don't have the dexterity to do this!</span>"
-		return
-
-	if ((CLUMSY in user.mutations) && prob(50))
-		user << "<span class='danger'>The rod slips out of your hand and hits your head.</span>"
-		user.take_organ_damage(10)
-		user.Paralyse(20)
-		return
-
-	if (M.stat !=2)
-		if(cult && (M.mind in cult.current_antagonists) && prob(33))
-			M << "<span class='danger'>The power of [src] clears your mind of the cult's influence!</span>"
-			user << "<span class='danger'>You wave [src] over [M]'s head and see their eyes become clear, their mind returning to normal.</span>"
-			cult.remove_antagonist(M.mind)
-			M.visible_message("<span class='danger'>\The [user] waves \the [src] over \the [M]'s head.</span>")
-		else if(prob(10))
-			user << "<span class='danger'>The rod slips in your hand.</span>"
-			..()
-		else
-			user << "<span class='danger'>The rod appears to do nothing.</span>"
-			M.visible_message("<span class='danger'>\The [user] waves \the [src] over \the [M]'s head.</span>")
-			return
-
-/obj/item/weapon/nullrod/afterattack(atom/A, mob/user as mob, proximity)
-	if(!proximity)
-		return
-	if (istype(A, /turf/simulated/floor))
-		user << "<span class='notice'>You hit the floor with the [src].</span>"
-		call(/obj/effect/rune/proc/revealrunes)(src)
+/obj/item/weapon/nullrod/suicide_act(mob/user)
+	user.visible_message("<span class='suicide'>[user] is impaling \himself with the [src.name]! It looks like \he's trying to commit suicide.</span>")
+	return (BRUTELOSS|FIRELOSS)
 
 /obj/item/weapon/sord
 	name = "\improper SORD"
@@ -76,172 +44,318 @@
 	slot_flags = SLOT_BELT
 	force = 2
 	throwforce = 1
-	sharp = 1
-	edge = 1
 	w_class = 3
+	hitsound = 'sound/weapons/bladeslice.ogg'
 	attack_verb = list("attacked", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
 
-	suicide_act(mob/user)
-		viewers(user) << "<span class='danger'>[user] is impaling \himself with the [src.name]! It looks like \he's trying to commit suicide.</span>"
-		return(BRUTELOSS)
+/obj/item/weapon/sord/suicide_act(mob/user)
+	user.visible_message("<span class='suicide'>[user] is impaling \himself with the [src.name]! It looks like \he's trying to commit suicide.</span>")
+	return(BRUTELOSS)
 
-/obj/item/weapon/sord/attack(mob/living/carbon/M as mob, mob/living/carbon/user as mob)
-	playsound(loc, 'sound/weapons/bladeslice.ogg', 50, 1, -1)
-	return ..()
+/obj/item/weapon/claymore
+	name = "claymore"
+	desc = "What are you standing around staring at this for? Get to killing!"
+	icon_state = "claymore"
+	item_state = "claymore"
+	hitsound = 'sound/weapons/bladeslice.ogg'
+	flags = CONDUCT
+	slot_flags = SLOT_BELT | SLOT_BACK
+	force = 40
+	throwforce = 10
+	w_class = 3
+	attack_verb = list("attacked", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
+	block_chance = 50
 
-/obj/item/weapon/energy_net
-	name = "energy net"
-	desc = "It's a net made of green energy."
-	icon = 'icons/effects/effects.dmi'
-	icon_state = "energynet"
-	throwforce = 0
-	force = 0
-	var/net_type = /obj/effect/energy_net
+/obj/item/weapon/claymore/suicide_act(mob/user)
+	user.visible_message("<span class='suicide'>[user] is falling on the [src.name]! It looks like \he's trying to commit suicide.</span>")
+	return(BRUTELOSS)
 
-/obj/item/weapon/energy_net/dropped()
-	spawn(10)
-		if(src) qdel(src)
+/obj/item/weapon/katana
+	name = "katana"
+	desc = "Woefully underpowered in D20"
+	icon_state = "katana"
+	item_state = "katana"
+	flags = CONDUCT
+	slot_flags = SLOT_BELT | SLOT_BACK
+	force = 40
+	throwforce = 10
+	w_class = 3
+	hitsound = 'sound/weapons/bladeslice.ogg'
+	attack_verb = list("attacked", "slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
+	block_chance = 50
 
-/obj/item/weapon/energy_net/throw_impact(atom/hit_atom)
+/obj/item/weapon/katana/cursed
+	slot_flags = null
+
+/obj/item/weapon/katana/suicide_act(mob/user)
+	user.visible_message("<span class='suicide'>[user] is slitting \his stomach open with the [src.name]! It looks like \he's trying to commit seppuku.</span>")
+	return(BRUTELOSS)
+
+/obj/item/weapon/wirerod
+	name = "wired rod"
+	desc = "A rod with some wire wrapped around the top. It'd be easy to attach something to the top bit."
+	icon_state = "wiredrod"
+	item_state = "rods"
+	flags = CONDUCT
+	force = 9
+	throwforce = 10
+	w_class = 3
+	materials = list(MAT_METAL=1000)
+	attack_verb = list("hit", "bludgeoned", "whacked", "bonked")
+
+/obj/item/weapon/wirerod/attackby(obj/item/I, mob/user, params)
 	..()
+	if(istype(I, /obj/item/weapon/shard))
+		var/obj/item/weapon/twohanded/spear/S = new
 
-	var/mob/living/M = hit_atom
+		if(!remove_item_from_storage(user))
+			user.unEquip(src)
+		user.unEquip(I)
 
-	if(!istype(M) || locate(/obj/effect/energy_net) in M.loc)
-		qdel(src)
-		return 0
-
-	var/turf/T = get_turf(M)
-	if(T)
-		var/obj/effect/energy_net/net = new net_type(T)
-		net.layer = M.layer+1
-		M.captured = 1
-		net.affecting = M
-		T.visible_message("[M] was caught in an energy net!")
+		user.put_in_hands(S)
+		user << "<span class='notice'>You fasten the glass shard to the top of the rod with the cable.</span>"
+		qdel(I)
 		qdel(src)
 
-	// If we miss or hit an obstacle, we still want to delete the net.
-	spawn(10)
-		if(src) qdel(src)
+	else if(istype(I, /obj/item/weapon/wirecutters))
+		var/obj/item/weapon/melee/baton/cattleprod/P = new
 
-/obj/effect/energy_net
-	name = "energy net"
-	desc = "It's a net made of green energy."
-	icon = 'icons/effects/effects.dmi'
-	icon_state = "energynet"
+		if(!remove_item_from_storage(user))
+			user.unEquip(src)
+		user.unEquip(I)
 
-	density = 1
-	opacity = 0
-	mouse_opacity = 1
-	anchored = 1
+		user.put_in_hands(P)
+		user << "<span class='notice'>You fasten the wirecutters to the top of the rod with the cable, prongs outward.</span>"
+		qdel(I)
+		qdel(src)
+	else if(istype(I, /obj/item/weapon/weldingtool))
+		var/obj/item/weapon/weldingtool/welder = I
+		if(welder.remove_fuel(1,user))
+			playsound(loc, 'sound/items/Welder.ogg', 100, 1)
+			user << "<span class='notice'>You weld \the [src] in half.</span>"
+			var/obj/item/garrotehandles/S = new
 
-	var/health = 25
-	var/mob/living/affecting = null //Who it is currently affecting, if anyone.
-	var/mob/living/master = null    //Who shot web. Will let this person know if the net was successful.
-	var/countdown = -1
+			if(!remove_item_from_storage(user))
+				user.unEquip(src)
 
-/obj/effect/energy_net/teleport
-	countdown = 60
+			user.put_in_hands(S)
+			qdel(src)
 
-/obj/effect/energy_net/New()
+/obj/item/weapon/throwing_star
+	name = "throwing star"
+	desc = "An ancient weapon still used to this day due to it's ease of lodging itself into victim's body parts"
+	icon_state = "throwingstar"
+	item_state = "eshield0"
+	force = 2
+	throwforce = 20 //This is never used on mobs since this has a 100% embed chance.
+	throw_speed = 4
+	embedded_pain_multiplier = 4
+	w_class = 2
+	embed_chance = 100
+	sharpness = IS_SHARP
+
+//5*(2*4) = 5*8 = 45, 45 damage if you hit one person with all 5 stars.
+//Not counting the damage it will do while embedded (2*4 = 8, at 15% chance)
+/obj/item/weapon/storage/box/throwing_stars/New()
 	..()
-	processing_objects |= src
+	contents = list()
+	new /obj/item/weapon/throwing_star(src)
+	new /obj/item/weapon/throwing_star(src)
+	new /obj/item/weapon/throwing_star(src)
+	new /obj/item/weapon/throwing_star(src)
+	new /obj/item/weapon/throwing_star(src)
 
-/obj/effect/energy_net/Destroy()
 
-	if(affecting)
-		var/mob/living/carbon/M = affecting
-		M.anchored = initial(affecting.anchored)
-		M.captured = 0
-		M << "You are free of the net!"
 
-	processing_objects -= src
-	..()
+/obj/item/weapon/switchblade
+	name = "switchblade"
+	icon_state = "switchblade"
+	desc = "A sharp, concealable, spring-loaded knife."
+	flags = CONDUCT
+	force = 15
+	w_class = 2
+	throwforce = 15
+	throw_speed = 3
+	throw_range = 6
+	materials = list(MAT_METAL=12000)
+	origin_tech = "materials=1"
+	hitsound = 'sound/weapons/Genhit.ogg'
+	attack_verb = list("stubbed", "poked")
+	var/extended
 
-/obj/effect/energy_net/proc/healthcheck()
-
-	if(health <=0)
-		density = 0
-		src.visible_message("The energy net is torn apart!")
-		qdel(src)
-	return
-
-/obj/effect/energy_net/process()
-
-	if(isnull(affecting) || affecting.loc != loc)
-		qdel(src)
-		return
-
-	// Countdown begin set to -1 will stop the teleporter from firing.
-	// Clientless mobs can be netted but they will not teleport or decrement the timer.
-	var/mob/living/M = affecting
-	if(countdown == -1 || (istype(M) && !M.client))
-		return
-
-	if(countdown > 0)
-		countdown--
-		return
-
-	// TODO: consider removing or altering this; energy nets are useful on their own
-	// merits and the teleportation was never properly implemented; it's halfassed.
-	density = 0
-	invisibility = 101 //Make the net invisible so all the animations can play out.
-	health = INFINITY  //Make the net invincible so that an explosion/something else won't kill it during anims.
-
-	playsound(affecting.loc, 'sound/effects/sparks4.ogg', 50, 1)
-	anim(affecting.loc,affecting,'icons/mob/mob.dmi',,"phaseout",,affecting.dir)
-
-	affecting.visible_message("[affecting] vanishes in a flare of light!")
-
-	if(holdingfacility.len)
-		affecting.loc = pick(holdingfacility)
-
-	affecting << "You appear in a strange place!"
-
-	playsound(affecting.loc, 'sound/effects/phasein.ogg', 25, 1)
-	playsound(affecting.loc, 'sound/effects/sparks2.ogg', 50, 1)
-	anim(affecting.loc,affecting,'icons/mob/mob.dmi',,"phasein",,affecting.dir)
-
-	qdel(src)
-
-/obj/effect/energy_net/bullet_act(var/obj/item/projectile/Proj)
-	health -= Proj.damage
-	healthcheck()
-	return 0
-
-/obj/effect/energy_net/ex_act()
-	health = 0
-	healthcheck()
-
-/obj/effect/energy_net/blob_act()
-	health = 0
-	healthcheck()
-
-/obj/effect/energy_net/meteorhit()
-	health = 0
-	healthcheck()
-
-/obj/effect/energy_net/attack_hand(var/mob/user)
-
-	var/mob/living/carbon/human/H = user
-	if(istype(H))
-		if(H.species.can_shred(H))
-			playsound(src.loc, 'sound/weapons/slash.ogg', 80, 1)
-			health -= rand(10, 20)
-		else
-			health -= rand(1,3)
-
-	else if (HULK in user.mutations)
-		health = 0
+/obj/item/weapon/switchblade/attack_self(mob/user)
+	extended = !extended
+	playsound(src.loc, 'sound/weapons/batonextend.ogg', 50, 1)
+	if(extended)
+		playsound(user, 'sound/weapons/raise.ogg', 20, 1, -4)
+		force = 15
+		w_class = 3
+		throwforce = 15
+		icon_state = "switchblade_ext"
+		attack_verb = list("slashed", "stabbed", "sliced", "torn", "ripped", "diced", "cut")
+		hitsound = 'sound/weapons/bladeslice.ogg'
 	else
-		health -= rand(5,8)
+		playsound(user, 'sound/weapons/raise.ogg', 20, 1, -4)
+		force = 1
+		w_class = 2
+		throwforce = 5
+		icon_state = "switchblade"
+		attack_verb = list("stubbed", "poked")
+		hitsound = 'sound/weapons/Genhit.ogg'
 
-	H << "<span class='danger'>You claw at the energy net.</span>"
+/obj/item/weapon/pocketknife
+	name = "pocket knife"
+	desc = "Small, concealable blade that fits in the pocket nicely."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "pocketknife"
+	force = 3
+	throwforce = 3
+	hitsound = "swing_hit" //it starts deactivated
+	throw_speed = 3
+	throw_range = 8
+	var/active = 0
+	var/active_force = 12
+	var/deactive_force = 3
+	w_class = 1 //note to self: weight class
+	sharpness = IS_BLUNT
 
-	healthcheck()
+/obj/item/weapon/pocketknife/attack_self(mob/living/user)
+	if (user.disabilities & CLUMSY && prob(50))
+		user << "<span class='warning'>You accidentally cut yourself with [src], like a doofus!</span>"
+		user.take_organ_damage(5,0)
+	active = !active
+	if (active)
+		force = active_force
+		throwforce = 14
+		sharpness = IS_SHARP
+		hitsound = 'sound/weapons/knife.ogg'
+		attack_verb = list("stabbed", "torn", "cut", "sliced")
+		icon_state = "pocketknife_open"
+		w_class = 3
+		playsound(user, 'sound/weapons/raise.ogg', 20, 1)
+		user << "<span class='notice'>[src] is now open.</span>"
+	else
+		force = deactive_force
+		throwforce = 3
+		sharpness = IS_BLUNT
+		hitsound = "swing_hit"
+		attack_verb = null
+		icon_state = "pocketknife"
+		w_class = 1
+		playsound(user, 'sound/weapons/raise.ogg', 20, 1)
+		user << "<span class='notice'>[src] is now closed.</span>"
+	add_fingerprint(user)
 	return
 
-/obj/effect/energy_net/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	health -= W.force
-	healthcheck()
-	..()
+/obj/item/weapon/phone
+	name = "red phone"
+	desc = "Should anything ever go wrong..."
+	icon = 'icons/obj/items.dmi'
+	icon_state = "red_phone"
+	force = 3
+	throwforce = 2
+	throw_speed = 3
+	throw_range = 4
+	w_class = 2
+	attack_verb = list("called", "rang")
+	hitsound = 'sound/weapons/ring.ogg'
+
+/obj/item/weapon/phone/suicide_act(mob/user) //TODO: Make noosing work for this one like the cables
+	if(locate(/obj/structure/stool) in user.loc)
+		user.visible_message("<span class='notice'>[user] begins to tie a noose with the [src.name]'s cord! It looks like \he's trying to commit suicide.</span>")
+	else
+		user.visible_message("<span class='notice'>[user] is strangling \himself with the [src.name]'s cord! It looks like \he's trying to commit suicide.</span>")
+	return(OXYLOSS)
+
+/obj/item/weapon/cane
+	name = "cane"
+	desc = "A cane used by a true gentlemen. Or a clown."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "cane"
+	item_state = "stick"
+	force = 5
+	throwforce = 5
+	w_class = 2
+	materials = list(MAT_METAL=50)
+	burn_state = 0
+	attack_verb = list("bludgeoned", "whacked", "disciplined", "thrashed")
+
+/obj/item/weapon/staff
+	name = "wizards staff"
+	desc = "Apparently a staff used by the wizard."
+	icon = 'icons/obj/wizard.dmi'
+	icon_state = "staff"
+	force = 3
+	throwforce = 5
+	throw_speed = 2
+	throw_range = 5
+	w_class = 2
+	flags = NOSHIELD
+	attack_verb = list("bludgeoned", "whacked", "disciplined")
+	burn_state = 0 //Burnable
+
+/obj/item/weapon/staff/broom
+	name = "broom"
+	desc = "Used for sweeping, and flying into the night while cackling. Black cat not included."
+	icon = 'icons/obj/wizard.dmi'
+	icon_state = "broom"
+
+/obj/item/weapon/staff/stick
+	name = "stick"
+	desc = "A great tool to drag someone else's drinks across the bar."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "stick"
+	item_state = "stick"
+	force = 3
+	throwforce = 5
+	throw_speed = 2
+	throw_range = 5
+	w_class = 2
+	flags = NOSHIELD
+
+/obj/item/weapon/ectoplasm
+	name = "ectoplasm"
+	desc = "spooky"
+	gender = PLURAL
+	icon = 'icons/obj/wizard.dmi'
+	icon_state = "ectoplasm"
+
+/obj/item/weapon/ectoplasm/suicide_act(mob/user)
+	user.visible_message("<span class='suicide'>[user] is inhaling the [src.name]! It looks like \he's trying to visit the astral plane.</span>")
+	return (OXYLOSS)
+
+/obj/item/weapon/icepick
+	name = "ice pick"
+	desc = "Perfect for breaking ice, or piercing skulls."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "icepick"
+	item_state = "icepick"
+	force = 7
+	throwforce = 5
+	throw_speed = 4
+	throw_range = 6
+	w_class = 1
+	attack_verb = list("stabbed", "picked", "lobotomized")
+	hitsound = 'sound/weapons/bladeslice.ogg'
+
+/obj/item/weapon/icepick/attack(mob/living/carbon/M, mob/living/carbon/user)
+	if(!istype(M))	return ..()
+	if(user.zone_sel.selecting != "eyes" && user.zone_sel.selecting != "head")
+		return ..()
+	if(user.disabilities & CLUMSY && prob(50))
+		M = user
+	return eyestab(M,user)
+
+/obj/item/weapon/cane/pimpstick
+	name = "pimp stick"
+	desc = "A gold-rimmed cane, with a gleaming diamond set at the top. Great for bashing in kneecaps."
+	icon = 'icons/obj/weapons.dmi'
+	icon_state = "pimpstick"
+	item_state = "pimpstick"
+	force = 10
+	throwforce = 7
+	w_class = 3
+	flags = NOSHIELD
+	attack_verb = list("pimped", "smacked", "disciplined", "busted", "capped", "decked")
+
+

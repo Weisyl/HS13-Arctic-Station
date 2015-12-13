@@ -1,76 +1,53 @@
 /obj/structure/largecrate
 	name = "large crate"
 	desc = "A hefty wooden crate."
-	icon = 'icons/obj/storage.dmi'
+	icon = 'icons/obj/crates.dmi'
 	icon_state = "densecrate"
 	density = 1
+	var/obj/item/weapon/paper/manifest/manifest
 
-/obj/structure/largecrate/attack_hand(mob/user as mob)
-	user << "<span class='notice'>You need a crowbar to pry this open!</span>"
-	return
+/obj/structure/largecrate/New()
+	..()
+	update_icon()
 
-/obj/structure/largecrate/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/structure/largecrate/update_icon()
+	..()
+	overlays.Cut()
+	if(manifest)
+		overlays += "manifest"
+
+/obj/structure/largecrate/attack_hand(mob/user)
+	if(manifest)
+		user << "<span class='notice'>You tear the manifest off of the crate.</span>"
+		playsound(src.loc, 'sound/items/poster_ripped.ogg', 75, 1)
+		manifest.loc = loc
+		if(ishuman(user))
+			user.put_in_hands(manifest)
+		manifest = null
+		update_icon()
+		return
+	else
+		user << "<span class='warning'>You need a crowbar to pry this open!</span>"
+		return
+
+/obj/structure/largecrate/attackby(obj/item/weapon/W, mob/user, params)
 	if(istype(W, /obj/item/weapon/crowbar))
-		new /obj/item/stack/material/wood(src)
+		if(manifest)
+			manifest.loc = loc
+			manifest = null
+			update_icon()
+		new /obj/item/stack/sheet/mineral/wood(src)
 		var/turf/T = get_turf(src)
-		for(var/atom/movable/M in contents)
-			M.forceMove(T)
-		user.visible_message("<span class='notice'>[user] pries \the [src] open.</span>", \
+		for(var/obj/O in contents)
+			O.loc = T
+		user.visible_message("[user] pries \the [src] open.", \
 							 "<span class='notice'>You pry open \the [src].</span>", \
-							 "<span class='notice'>You hear splitting wood.</span>")
+							 "<span class='italics'>You hear splitting wood.</span>")
+		playsound(src.loc, 'sound/items/Deconstruct.ogg', 75, 1)
 		qdel(src)
 	else
 		return attack_hand(user)
 
 /obj/structure/largecrate/mule
-	name = "MULE crate"
-
-/obj/structure/largecrate/hoverpod
-	name = "\improper Hoverpod assembly crate"
-	desc = "It comes in a box for the fabricator's sake. Where does the wood come from? ... And why is it lighter?"
 	icon_state = "mulecrate"
 
-/obj/structure/largecrate/hoverpod/attackby(obj/item/weapon/W as obj, mob/user as mob)
-	if(istype(W, /obj/item/weapon/crowbar))
-		var/obj/item/mecha_parts/mecha_equipment/ME
-		var/obj/mecha/working/hoverpod/H = new (loc)
-
-		ME = new /obj/item/mecha_parts/mecha_equipment/tool/hydraulic_clamp
-		ME.attach(H)
-		ME = new /obj/item/mecha_parts/mecha_equipment/tool/passenger
-		ME.attach(H)
-	..()
-
-/obj/structure/largecrate/animal
-	icon_state = "mulecrate"
-	var/held_count = 1
-	var/held_type
-
-/obj/structure/largecrate/animal/New()
-	..()
-	for(var/i = 1;i<=held_count;i++)
-		new held_type(src)
-
-/obj/structure/largecrate/animal/corgi
-	name = "corgi carrier"
-	held_type = /mob/living/simple_animal/corgi
-
-/obj/structure/largecrate/animal/cow
-	name = "cow crate"
-	held_type = /mob/living/simple_animal/cow
-
-/obj/structure/largecrate/animal/goat
-	name = "goat crate"
-	held_type = /mob/living/simple_animal/hostile/retaliate/goat
-
-/obj/structure/largecrate/animal/cat
-	name = "cat carrier"
-	held_type = /mob/living/simple_animal/cat
-
-/obj/structure/largecrate/animal/cat/bones
-	held_type = /mob/living/simple_animal/cat/fluff/bones
-
-/obj/structure/largecrate/animal/chick
-	name = "chicken crate"
-	held_count = 5
-	held_type = /mob/living/simple_animal/chick

@@ -3,53 +3,65 @@
 	desc = "A device used to project your voice. Loudly."
 	icon_state = "megaphone"
 	item_state = "radio"
-	w_class = 2.0
-	flags = CONDUCT
+	w_class = 2
+	flags = FPRINT
+	siemens_coefficient = 1
 
 	var/spamcheck = 0
 	var/emagged = 0
 	var/insults = 0
-	var/list/insultmsg = list("FUCK EVERYONE!", "I'M A TATER!", "ALL SECURITY TO SHOOT ME ON SIGHT!", "I HAVE A BOMB!", "CAPTAIN IS A COMDOM!", "FOR THE SYNDICATE!")
+	var/list/insultmsg = list("FUCK EVERYONE!", "DEATH TO LIZARDS!", "ALL SECURITY TO SHOOT ME ON SIGHT!", "I HAVE A BOMB!", "CAPTAIN IS A COMDOM!", "FOR THE SYNDICATE!", "VIVA!", "HONK!")
 
-/obj/item/device/megaphone/attack_self(mob/living/user as mob)
-	if (user.client)
+/obj/item/device/megaphone/attack_self(mob/living/carbon/human/user)
+	if(user.client)
 		if(user.client.prefs.muted & MUTE_IC)
-			src << "\red You cannot speak in IC (muted)."
+			src << "<span class='warning'>You cannot speak in IC (muted).</span>"
 			return
+
 	if(!ishuman(user))
-		user << "\red You don't know how to use this!"
-		return
-	if(user.silent)
-		return
-	if(spamcheck)
-		user << "\red \The [src] needs to recharge!"
+		user << "<span class='warning'>You don't know how to use this!</span>"
 		return
 
-	var/message = sanitize(input(user, "Shout a message?", "Megaphone", null)  as text)
+	if(spamcheck > world.time)
+		user << "<span class='warning'>\The [src] needs to recharge!</span>"
+		return
+
+	var/message = copytext(sanitize(input(user, "Shout a message?", "Megaphone", null)  as text),1,MAX_MESSAGE_LEN)
 	if(!message)
 		return
+
 	message = capitalize(message)
-	if ((src.loc == user && usr.stat == 0))
+	if(!user.can_speak(message))
+		user << "<span class='warning'>You find yourself unable to speak at all!</span>"
+		return
+
+	if ((src.loc == user && user.stat == 0))
 		if(emagged)
 			if(insults)
-				for(var/mob/O in (viewers(user)))
-					O.show_message("<B>[user]</B> broadcasts, <FONT size=3>\"[pick(insultmsg)]\"</FONT>",2) // 2 stands for hearable message
+				user.audible_message("<B>[user]</B> broadcasts, <FONT size=3>\"[pick(insultmsg)]\"</FONT>")
 				insults--
 			else
-				user << "\red *BZZZZzzzzzt*"
+				user << "<span class='warning'>*BZZZZzzzzzt*</span>"
 		else
-			for(var/mob/O in (viewers(user)))
-				O.show_message("<B>[user]</B> broadcasts, <FONT size=3>\"[message]\"</FONT>",2) // 2 stands for hearable message
+			user.audible_message("<B>[user]</B> broadcasts, <FONT size=3>\"[message]\"</FONT>")
 
-		spamcheck = 1
-		spawn(20)
-			spamcheck = 0
+		playsound(loc, 'sound/items/megaphone.ogg', 100, 0, 1)
+		spamcheck = world.time + 50
 		return
 
-/obj/item/device/megaphone/attackby(obj/item/I, mob/user)
-	if(istype(I, /obj/item/weapon/card/emag) && !emagged)
-		user << "\red You overload \the [src]'s voice synthesizer."
-		emagged = 1
-		insults = rand(1, 3)//to prevent dickflooding
-		return
-	return
+/obj/item/device/megaphone/emag_act(mob/user)
+	user << "<span class='warning'>You overload \the [src]'s voice synthesizer.</span>"
+	emagged = 1
+	insults = rand(1, 3)	//to prevent dickflooding
+
+/obj/item/device/megaphone/sec
+	name = "security megaphone"
+	icon_state = "megaphone-sec"
+
+/obj/item/device/megaphone/command
+	name = "command megaphone"
+	icon_state = "megaphone-command"
+
+/obj/item/device/megaphone/cargo
+	name = "supply megaphone"
+	icon_state = "megaphone-cargo"

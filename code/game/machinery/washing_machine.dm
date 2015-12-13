@@ -1,9 +1,10 @@
 /obj/machinery/washing_machine
-	name = "Washing Machine"
+	name = "washing machine"
+	desc = "Gets rid of those pesky bloodstains, or your money back!"
 	icon = 'icons/obj/machines/washing_machine.dmi'
 	icon_state = "wm_10"
 	density = 1
-	anchored = 1.0
+	anchored = 1
 	var/state = 1
 	//1 = empty, open door
 	//2 = empty, closed door
@@ -16,9 +17,6 @@
 	var/panel = 0
 	//0 = closed
 	//1 = open
-	var/hacked = 1 //Bleh, screw hacking, let's have it hacked by default.
-	//0 = not hacked
-	//1 = hacked
 	var/gibs_ready = 0
 	var/obj/crayon
 
@@ -27,7 +25,7 @@
 	set category = "Object"
 	set src in oview(1)
 
-	if(!istype(usr, /mob/living)) //ew ew ew usr, but it's the only way to check.
+	if(usr.stat || usr.restrained() || !usr.canmove)
 		return
 
 	if( state != 4 )
@@ -43,14 +41,33 @@
 	for(var/atom/A in contents)
 		A.clean_blood()
 
-	for(var/obj/item/I in contents)
-		I.decontaminate()
-
 	//Tanning!
-	for(var/obj/item/stack/material/hairlesshide/HH in contents)
-		var/obj/item/stack/material/wetleather/WL = new(src)
+	for(var/obj/item/stack/sheet/hairlesshide/HH in contents)
+		var/obj/item/stack/sheet/wetleather/WL = new(src)
 		WL.amount = HH.amount
 		qdel(HH)
+
+	//Corgi costume says goodbye
+	for(var/obj/item/clothing/suit/hooded/ian_costume/IC in contents)
+		new /obj/item/weapon/reagent_containers/food/snacks/meat/slab/corgi(src)
+		qdel(IC)
+
+	if(crayon)
+		var/wash_color
+		if(istype(crayon,/obj/item/toy/crayon))
+			var/obj/item/toy/crayon/CR = crayon
+			wash_color = CR.colourName
+		else if(istype(crayon,/obj/item/weapon/stamp))
+			var/obj/item/weapon/stamp/ST = crayon
+			wash_color = ST.item_color
+
+		if(wash_color)
+			for(var/obj/item/clothing/I in contents)
+				I.color = wash_color //Simply recolor the items.
+
+		qdel(crayon)
+		crayon = null
+
 
 	if( locate(/mob,contents) )
 		state = 7
@@ -72,14 +89,15 @@
 /obj/machinery/washing_machine/update_icon()
 	icon_state = "wm_[state][panel]"
 
-/obj/machinery/washing_machine/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/machinery/washing_machine/attackby(obj/item/weapon/W, mob/user, params)
 	/*if(istype(W,/obj/item/weapon/screwdriver))
 		panel = !panel
 		user << "\blue you [panel ? "open" : "close"] the [src]'s maintenance panel"*/
-	if(istype(W,/obj/item/weapon/pen/crayon) || istype(W,/obj/item/weapon/stamp))
+	if(istype(W,/obj/item/toy/crayon) ||istype(W,/obj/item/weapon/stamp))
 		if( state in list(	1, 3, 6 ) )
 			if(!crayon)
-				user.drop_item()
+				if(!user.drop_item())
+					return
 				crayon = W
 				crayon.loc = src
 			else
@@ -87,75 +105,42 @@
 		else
 			..()
 	else if(istype(W,/obj/item/weapon/grab))
-		if( (state == 1) && hacked)
+		if((state == 1))
 			var/obj/item/weapon/grab/G = W
-			if(ishuman(G.assailant) && iscorgi(G.affecting))
+			if(iscorgi(G.affecting))
 				G.affecting.loc = src
 				qdel(G)
 				state = 3
 		else
 			..()
-	else if(istype(W,/obj/item/stack/material/hairlesshide) || \
-		istype(W,/obj/item/clothing/under) || \
-		istype(W,/obj/item/clothing/mask) || \
-		istype(W,/obj/item/clothing/head) || \
-		istype(W,/obj/item/clothing/gloves) || \
-		istype(W,/obj/item/clothing/shoes) || \
-		istype(W,/obj/item/clothing/suit) || \
+	else if(istype(W,/obj/item/stack/sheet/hairlesshide) || \
+		istype(W,/obj/item/clothing) || \
 		istype(W,/obj/item/weapon/bedsheet))
 
-		//YES, it's hardcoded... saves a var/can_be_washed for every single clothing item.
-		if ( istype(W,/obj/item/clothing/suit/space ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/suit/syndicatefake ) )
-			user << "This item does not fit."
-			return
-//		if ( istype(W,/obj/item/clothing/suit/powered ) )
-//			user << "This item does not fit."
-//			return
-		if ( istype(W,/obj/item/clothing/suit/cyborg_suit ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/suit/bomb_suit ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/suit/armor ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/suit/armor ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/mask/gas ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/mask/smokable/cigarette ) )
-			user << "This item does not fit."
-			return
-		if ( istype(W,/obj/item/clothing/head/syndicatefake ) )
-			user << "This item does not fit."
-			return
-//		if ( istype(W,/obj/item/clothing/head/powered ) )
-//			user << "This item does not fit."
-//			return
-		if ( istype(W,/obj/item/clothing/head/helmet ) )
-			user << "This item does not fit."
+		if(istype(W,/obj/item/clothing))
+			var/obj/item/clothing/C = W
+			if(!C.can_be_washed)
+				user << "This item does not fit."
+				return
+		if(W.flags & NODROP) //if "can't drop" item
+			user << "<span class='warning'>\The [W] is stuck to your hand, you cannot put it in the washing machine!</span>"
 			return
 
 		if(contents.len < 5)
 			if ( state in list(1, 3) )
-				user.drop_item()
+				if(!user.drop_item())
+					return
 				W.loc = src
 				state = 3
 			else
-				user << "\blue You can't put the item in right now."
+				user << "<span class='warning'>You can't put the item in right now!</span>"
 		else
-			user << "\blue The washing machine is full."
+			user << "<span class='warning'>The washing machine is full!</span>"
 	else
 		..()
 	update_icon()
 
-/obj/machinery/washing_machine/attack_hand(mob/user as mob)
+/obj/machinery/washing_machine/attack_hand(mob/user)
 	switch(state)
 		if(1)
 			state = 2
@@ -172,7 +157,7 @@
 			crayon = null
 			state = 1
 		if(5)
-			user << "\red The [src] is busy."
+			user << "<span class='danger'>The [src] is busy.</span>"
 		if(6)
 			state = 7
 		if(7)

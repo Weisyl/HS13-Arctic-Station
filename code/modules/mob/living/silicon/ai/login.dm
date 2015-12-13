@@ -1,7 +1,9 @@
 /mob/living/silicon/ai/Login()	//ThisIsDumb(TM) TODO: tidy this up ¬_¬ ~Carn
 	..()
-	for(var/obj/effect/rune/rune in rune_list)
-		client.images += rune.blood_image
+	for(var/obj/effect/rune/rune in world)
+		var/image/blood = image(loc = rune)
+		blood.override = 1
+		client.images += blood
 	regenerate_icons()
 	flash = new /obj/screen()
 	flash.icon_state = "blank"

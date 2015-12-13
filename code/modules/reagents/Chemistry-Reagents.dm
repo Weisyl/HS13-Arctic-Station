@@ -1,112 +1,115 @@
+#define SOLID 1
+#define LIQUID 2
+#define GAS 3
+
+#define REM REAGENTS_EFFECT_MULTIPLIER
+
+//Various reagents
+//Toxin & acid reagents
+//Hydroponics stuff
+
 /datum/reagent
 	var/name = "Reagent"
 	var/id = "reagent"
-	var/description = "A non-descript chemical."
+	var/description = ""
 	var/datum/reagents/holder = null
-	var/reagent_state = SOLID
-	var/list/data = null
+	var/reagent_state = LIQUID
+	var/list/data
+	var/current_cycle = 0
 	var/volume = 0
-	var/metabolism = REM // This would be 0.2 normally
-	var/ingest_met = 0
-	var/touch_met = 0
-	var/dose = 0
-	var/max_dose = 0
-	var/overdose = 0
-	var/scannable = 0 // Shows up on health analyzers.
-	var/affects_dead = 0
-	var/glass_icon_state = null
-	var/glass_name = null
-	var/glass_desc = null
-	var/glass_center_of_mass = null
-	var/color = "#000000"
-	var/color_weight = 1
-
-/datum/reagent/proc/remove_self(var/amount) // Shortcut
-	holder.remove_reagent(id, amount)
-
-// This doesn't apply to skin contact - this is for, e.g. extinguishers and sprays. The difference is that reagent is not directly on the mob's skin - it might just be on their clothing.
-/datum/reagent/proc/touch_mob(var/mob/M, var/amount)
-	return
-
-/datum/reagent/proc/touch_obj(var/obj/O, var/amount) // Acid melting, cleaner cleaning, etc
-	return
-
-/datum/reagent/proc/touch_turf(var/turf/T, var/amount) // Cleaner cleaning, lube lubbing, etc, all go here
-	return
-
-/datum/reagent/proc/on_mob_life(var/mob/living/carbon/M, var/alien, var/location) // Currently, on_mob_life is called on carbons. Any interaction with non-carbon mobs (lube) will need to be done in touch_mob.
-	if(!istype(M))
-		return
-	if(!affects_dead && M.stat == DEAD)
-		return
-	if(overdose && (dose > overdose) && (location != CHEM_TOUCH))
-		overdose(M, alien)
-	var/removed = metabolism
-	if(ingest_met && (location == CHEM_INGEST))
-		removed = ingest_met
-	if(touch_met && (location == CHEM_TOUCH))
-		removed = touch_met
-	removed = min(removed, volume)
-	max_dose = max(volume, max_dose)
-	dose = min(dose + removed, max_dose)
-	if(removed >= (metabolism * 0.1) || removed >= 0.1) // If there's too little chemical, don't affect the mob, just remove it
-		switch(location)
-			if(CHEM_BLOOD)
-				affect_blood(M, alien, removed)
-			if(CHEM_INGEST)
-				affect_ingest(M, alien, removed)
-			if(CHEM_TOUCH)
-				affect_touch(M, alien, removed)
-	remove_self(removed)
-	return
-
-/datum/reagent/proc/affect_blood(var/mob/living/carbon/M, var/alien, var/removed)
-	return
-
-/datum/reagent/proc/affect_ingest(var/mob/living/carbon/M, var/alien, var/removed)
-	affect_blood(M, alien, removed * 0.5)
-	return
-
-/datum/reagent/proc/affect_touch(var/mob/living/carbon/M, var/alien, var/removed)
-	return
-
-/datum/reagent/proc/overdose(var/mob/living/carbon/M, var/alien) // Overdose effect. Doesn't happen instantly.
-	M.adjustToxLoss(REM)
-	return
-
-/datum/reagent/proc/initialize_data(var/newdata) // Called when the reagent is created.
-	if(!isnull(newdata))
-		data = newdata
-	return
-
-/datum/reagent/proc/mix_data(var/newdata, var/newamount) // You have a reagent with data, and new reagent with its own data get added, how do you deal with that?
-	return
-
-/datum/reagent/proc/get_data() // Just in case you have a reagent that handles data differently.
-	if(data && istype(data, /list))
-		return data.Copy()
-	else if(data)
-		return data
-	return null
+	var/color = "#000000" // rgb: 0, 0, 0
+	var/can_synth = 1
+	var/metabolization_rate = REAGENTS_METABOLISM //how fast the reagent is metabolized by the mob
+	var/overrides_metab = 0
+	var/overdose_threshold = 0
+	var/addiction_threshold = 0
+	var/addiction_stage = 0
+	var/overdosed = 0 // You fucked up and this is now triggering its overdose effects, purge that shit quick.
 
 /datum/reagent/Destroy() // This should only be called by the holder, so it's already handled clearing its references
-	..()
+	. = ..()
 	holder = null
 
-/* DEPRECATED - TODO: REMOVE EVERYWHERE */
+/datum/reagent/proc/reaction_mob(mob/living/M, method=TOUCH, reac_volume, show_message = 1, touch_protection = 0)
+	if(!istype(M))
+		return 0
+	if(method == VAPOR) //smoke, foam, spray
+		if(M.reagents)
+			var/modifier = Clamp((1 - touch_protection), 0, 1)
+			var/amount = round(reac_volume*modifier, 0.1)
+			if(amount >= 0.5)
+				M.reagents.add_reagent(id, amount)
+	return 1
 
-/datum/reagent/proc/reaction_turf(var/turf/target)
-	touch_turf(target)
+/datum/reagent/proc/reaction_obj(obj/O, volume)
+	return
 
-/datum/reagent/proc/reaction_obj(var/obj/target)
-	touch_obj(target)
+/datum/reagent/proc/reaction_turf(turf/T, volume)
+	return
 
-/datum/reagent/proc/reaction_mob(var/mob/target)
-	touch_mob(target)
+/datum/reagent/proc/on_mob_life(mob/living/M)
+	current_cycle++
+	holder.remove_reagent(src.id, metabolization_rate * M.metabolism_efficiency) //By default it slowly disappears.
+	return
 
-/datum/reagent/woodpulp
-	name = "Wood Pulp"
-	id = "woodpulp"
-	description = "A mass of wood fibers."
-	reagent_state = LIQUID
-	color = "#B97A57"
+// Called when this reagent is removed while inside a mob
+/datum/reagent/proc/on_mob_delete(mob/M)
+	return
+
+/datum/reagent/proc/on_move(mob/M)
+	return
+
+// Called after add_reagents creates a new reagent.
+/datum/reagent/proc/on_new(data)
+	return
+
+// Called when two reagents of the same are mixing.
+/datum/reagent/proc/on_merge(data)
+	return
+
+/datum/reagent/proc/on_update(atom/A)
+	return
+
+// Called every time reagent containers process.
+/datum/reagent/proc/on_tick(data)
+	return
+
+// Called when the reagent container is hit by an explosion
+/datum/reagent/proc/on_ex_act(severity)
+	return
+
+// Called if the reagent has passed the overdose threshold and is set to be triggering overdose effects
+/datum/reagent/proc/overdose_process(mob/living/M)
+	return
+
+/datum/reagent/proc/overdose_start(mob/living/M)
+	M << "<span class='userdanger'>You feel like you took too much of [name]!</span>"
+	return
+
+/datum/reagent/proc/addiction_act_stage1(mob/living/M)
+	if(prob(30))
+		M << "<span class='notice'>You feel like some [name] right about now.</span>"
+	return
+
+/datum/reagent/proc/addiction_act_stage2(mob/living/M)
+	if(prob(30))
+		M << "<span class='notice'>You feel like you need [name]. You just can't get enough.</span>"
+	return
+
+/datum/reagent/proc/addiction_act_stage3(mob/living/M)
+	if(prob(30))
+		M << "<span class='danger'>You have an intense craving for [name].</span>"
+	return
+
+/datum/reagent/proc/addiction_act_stage4(mob/living/M)
+	if(prob(30))
+		M << "<span class='boldannounce'>You're not feeling good at all! You really need some [name].</span>"
+	return
+
+/proc/pretty_string_from_reagent_list(var/list/reagent_list)
+	//Convert reagent list to a printable string for logging etc
+	var/result = "| "
+	for (var/datum/reagent/R in reagent_list)
+		result += "[R.name], [R.volume] | "
+
+	return result

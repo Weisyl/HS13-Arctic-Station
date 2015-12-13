@@ -1,11 +1,9 @@
 /obj/machinery/ai_slipper
-	name = "\improper AI Liquid Dispenser"
+	name = "\improper AI liquid dispenser"
 	icon = 'icons/obj/device.dmi'
-	icon_state = "motion0"
+	icon_state = "motion3"
 	layer = 3
-	anchored = 1.0
-	use_power = 1
-	idle_power_usage = 10
+	anchored = 1
 	var/uses = 20
 	var/disabled = 1
 	var/lethal = 0
@@ -15,27 +13,22 @@
 	var/cooldown_on = 0
 	req_access = list(access_ai_upload)
 
-
-/obj/machinery/ai_slipper/New()
-	..()
-	update_icon()
-
 /obj/machinery/ai_slipper/power_change()
-	..()
-	update_icon()
-
-/obj/machinery/ai_slipper/update_icon()
-	if (stat & NOPOWER || stat & BROKEN)
-		icon_state = "motion0"
+	if(stat & BROKEN)
+		return
 	else
-		icon_state = disabled ? "motion0" : "motion3"
+		if( powered() )
+			stat &= ~NOPOWER
+		else
+			icon_state = "motion0"
+			stat |= NOPOWER
 
-/obj/machinery/ai_slipper/proc/setState(var/enabled, var/uses)
+/obj/machinery/ai_slipper/proc/setState(enabled, uses)
 	src.disabled = disabled
 	src.uses = uses
 	src.power_change()
 
-/obj/machinery/ai_slipper/attackby(obj/item/weapon/W, mob/user)
+/obj/machinery/ai_slipper/attackby(obj/item/weapon/W, mob/user, params)
 	if(stat & (NOPOWER|BROKEN))
 		return
 	if (istype(user, /mob/living/silicon))
@@ -43,7 +36,7 @@
 	else // trying to unlock the interface
 		if (src.allowed(usr))
 			locked = !locked
-			user << "You [ locked ? "lock" : "unlock"] the device."
+			user << "<span class='notice'>You [ locked ? "lock" : "unlock"] the device.</span>"
 			if (locked)
 				if (user.machine==src)
 					user.unset_machine()
@@ -52,14 +45,14 @@
 				if (user.machine==src)
 					src.attack_hand(usr)
 		else
-			user << "\red Access denied."
+			user << "<span class='danger'>Access denied.</span>"
 			return
 	return
 
-/obj/machinery/ai_slipper/attack_ai(mob/user as mob)
+/obj/machinery/ai_slipper/attack_ai(mob/user)
 	return attack_hand(user)
 
-/obj/machinery/ai_slipper/attack_hand(mob/user as mob)
+/obj/machinery/ai_slipper/attack_hand(mob/user)
 	if(stat & (NOPOWER|BROKEN))
 		return
 	if ( (get_dist(src, user) > 1 ))
@@ -77,7 +70,7 @@
 		user << text("Turret badly positioned - loc.loc is [].", loc)
 		return
 	var/area/area = loc
-	var/t = "<TT><B>AI Liquid Dispenser</B> ([area.name])<HR>"
+	var/t = "<TT><B>AI Liquid Dispenser</B> ([format_text(area.name)])<HR>"
 
 	if(src.locked && (!istype(user, /mob/living/silicon)))
 		t += "<I>(Swipe ID card to unlock control panel.)</I><BR>"
@@ -90,19 +83,20 @@
 	return
 
 /obj/machinery/ai_slipper/Topic(href, href_list)
-	..()
+	if(..())
+		return
 	if (src.locked)
 		if (!istype(usr, /mob/living/silicon))
 			usr << "Control panel is locked!"
 			return
 	if (href_list["toggleOn"])
 		src.disabled = !src.disabled
-		update_icon()
+		icon_state = src.disabled? "motion0":"motion3"
 	if (href_list["toggleUse"])
 		if(cooldown_on || disabled)
 			return
 		else
-			new /obj/effect/effect/foam(src.loc)
+			PoolOrNew(/obj/effect/effect/foam, loc)
 			src.uses--
 			cooldown_on = 1
 			cooldown_time = world.timeofday + 100

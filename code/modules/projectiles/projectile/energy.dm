@@ -3,99 +3,144 @@
 	icon_state = "spark"
 	damage = 0
 	damage_type = BURN
-	check_armour = "energy"
+	flag = "energy"
 
-
-//releases a burst of light on impact or after travelling a distance
-/obj/item/projectile/energy/flash
-	name = "chemical shell"
-	icon_state = "bullet"
-	damage = 5
-	kill_count = 15 //if the shell hasn't hit anything after travelling this far it just explodes.
-	var/flash_range = 0
-	var/brightness = 7
-	var/light_duration = 5
-
-/obj/item/projectile/energy/flash/on_impact(var/atom/A)
-	var/turf/T = flash_range? src.loc : get_turf(A)
-	if(!istype(T)) return
-
-	//blind adjacent people
-	for (var/mob/living/carbon/M in viewers(T, flash_range))
-		if(M.eyecheck() < 1)
-			flick("e_flash", M.flash)
-
-	//snap pop
-	playsound(src, 'sound/effects/snap.ogg', 50, 1)
-	src.visible_message("<span class='warning'>\The [src] explodes in a bright flash!</span>")
-	
-	new /obj/effect/decal/cleanable/ash(src.loc) //always use src.loc so that ash doesn't end up inside windows
-	new /obj/effect/effect/sparks(T)
-	new /obj/effect/effect/smoke/illumination(T, brightness=max(flash_range*2, brightness), lifetime=light_duration)
-
-//blinds people like the flash round, but can also be used for temporary illumination
-/obj/item/projectile/energy/flash/flare
-	damage = 10
-	flash_range = 1
-	brightness = 9 //similar to a flare
-	light_duration = 200
 
 /obj/item/projectile/energy/electrode
 	name = "electrode"
 	icon_state = "spark"
+	color = "#FFFF00"
 	nodamage = 1
-	taser_effect = 1
-	agony = 40
-	damage_type = HALLOSS
-	//Damage will be handled on the MOB side, to prevent window shattering.
+	stun = 5
+	weaken = 5
+	stutter = 5
+	jitter = 20
+	hitsound = 'sound/weapons/taserhit.ogg'
+	range = 7
 
-/obj/item/projectile/energy/electrode/stunshot
-	name = "stunshot"
-	damage = 5
-	taser_effect = 1
-	agony = 80
+/obj/item/projectile/energy/electrode/on_hit(atom/target, blocked = 0)
+	. = ..()
+	if(!ismob(target) || blocked >= 2) //Fully blocked by mob or collided with dense object - burst into sparks!
+		var/datum/effect/effect/system/spark_spread/sparks = new /datum/effect/effect/system/spark_spread
+		sparks.set_up(1, 1, src)
+		sparks.start()
+	else if(iscarbon(target))
+		var/mob/living/carbon/C = target
+		if(C.dna && C.dna.check_mutation(HULK))
+			C.say(pick(";RAAAAAAAARGH!", ";HNNNNNNNNNGGGGGGH!", ";GWAAAAAAAARRRHHH!", "NNNNNNNNGGGGGGGGHH!", ";AAAAAAARRRGH!" ))
+		else if(C.status_flags & CANWEAKEN)
+			spawn(5)
+				C.do_jitter_animation(jitter)
+
+/obj/item/projectile/energy/electrode/on_range() //to ensure the bolt sparks when it reaches the end of its range if it didn't hit a target yet
+	var/datum/effect/effect/system/spark_spread/sparks = new /datum/effect/effect/system/spark_spread
+	sparks.set_up(1, 1, src)
+	sparks.start()
+	..()
+
+/obj/item/projectile/energy/net
+	name = "energy netting"
+	icon_state = "e_netting"
+	damage = 10
+	damage_type = STAMINA
+	hitsound = 'sound/weapons/taserhit.ogg'
+	range = 10
+
+/obj/item/projectile/energy/net/New()
+	..()
+	SpinAnimation()
+
+/obj/item/projectile/energy/net/on_hit(atom/target, blocked = 0)
+	if(isliving(target) && !locate(/obj/effect/nettingportal) in loc)
+		new/obj/effect/nettingportal(get_turf(target))
+	..()
+
+/obj/item/projectile/energy/net/on_range()
+	var/datum/effect/effect/system/spark_spread/sparks = new /datum/effect/effect/system/spark_spread
+	sparks.set_up(1, 1, src)
+	sparks.start()
+	..()
+
+/obj/effect/nettingportal
+	name = "DRAGnet teleportation field"
+	desc = "A field of bluespace energy, locking on to teleport a target."
+	icon = 'icons/effects/effects.dmi'
+	icon_state = "dragnetfield"
+	anchored = 1
+	unacidable = 1
+
+/obj/effect/nettingportal/New()
+	..()
+	SetLuminosity(3)
+	var/obj/item/device/radio/beacon/teletarget = null
+	for(var/obj/machinery/computer/teleporter/com in machines)
+		if(com.target)
+			if(com.power_station && com.power_station.teleporter_hub && com.power_station.engaged)
+				teletarget = com.target
+	if(teletarget)
+		spawn(30)
+			for(var/mob/living/L in get_turf(src))
+				do_teleport(L, teletarget, 2)//teleport what's in the tile to the beacon
+			qdel(src)
+	else
+		spawn(30)
+			for(var/mob/living/L in get_turf(src))
+				do_teleport(L, L, 15) //Otherwise it just warps you off somewhere.
+			qdel(src)
+
+
+/obj/item/projectile/energy/trap
+	name = "energy snare"
+	icon_state = "e_snare"
+	nodamage = 1
+	weaken = 1
+	hitsound = 'sound/weapons/taserhit.ogg'
+	range = 4
+
+/obj/item/projectile/energy/trap/on_hit(atom/target, blocked = 0)
+	if(!ismob(target) || blocked >= 2) //Fully blocked by mob or collided with dense object - drop a trap
+		new/obj/item/weapon/restraints/legcuffs/beartrap/energy(get_turf(loc))
+	else if(iscarbon(target))
+		var/obj/item/weapon/restraints/legcuffs/beartrap/B = new /obj/item/weapon/restraints/legcuffs/beartrap/energy(get_turf(target))
+		B.Crossed(target)
+	..()
+
+/obj/item/projectile/energy/trap/on_range()
+	new/obj/item/weapon/restraints/legcuffs/beartrap/energy(loc)
+	..()
+
 
 /obj/item/projectile/energy/declone
-	name = "declone"
+	name = "radiation beam"
 	icon_state = "declone"
 	nodamage = 1
 	damage_type = CLONE
 	irradiate = 40
 
-
-/obj/item/projectile/energy/dart
+/obj/item/projectile/energy/dart //ninja throwing dart
 	name = "dart"
 	icon_state = "toxin"
 	damage = 5
 	damage_type = TOX
 	weaken = 5
+	range = 7
 
-
-/obj/item/projectile/energy/bolt
+/obj/item/projectile/energy/bolt //ebow bolts
 	name = "bolt"
 	icon_state = "cbbolt"
-	damage = 10
+	damage = 15
 	damage_type = TOX
 	nodamage = 0
-	agony = 40
-	stutter = 10
-
+	weaken = 5
+	stutter = 5
 
 /obj/item/projectile/energy/bolt/large
-	name = "largebolt"
 	damage = 20
 
+/obj/item/ammo_casing/energy/plasma
+	projectile_type = /obj/item/projectile/plasma
+	select_name = "plasma burst"
+	fire_sound = 'sound/weapons/pulse.ogg'
 
-/obj/item/projectile/energy/neurotoxin
-	name = "neuro"
-	icon_state = "neurotoxin"
-	damage = 5
-	damage_type = TOX
-	weaken = 5
-
-/obj/item/projectile/energy/phoron
-	name = "phoron bolt"
-	icon_state = "energy"
-	damage = 20
-	damage_type = TOX
-	irradiate = 20
+/obj/item/ammo_casing/energy/plasma/adv
+	projectile_type = /obj/item/projectile/plasma/adv

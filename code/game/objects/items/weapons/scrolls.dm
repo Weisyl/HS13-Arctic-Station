@@ -3,19 +3,27 @@
 	desc = "A scroll for moving around."
 	icon = 'icons/obj/wizard.dmi'
 	icon_state = "scroll"
-	var/uses = 4.0
-	w_class = 1
+	var/uses = 4
+	w_class = 2
 	item_state = "paper"
-	throw_speed = 4
-	throw_range = 20
+	throw_speed = 3
+	throw_range = 7
 	origin_tech = "bluespace=4"
+	burn_state = 0 //Burnable
 
-/obj/item/weapon/teleportation_scroll/attack_self(mob/user as mob)
+/obj/item/weapon/teleportation_scroll/apprentice
+	name = "lesser scroll of teleportation"
+	uses = 1
+	origin_tech = "bluespace=2"
+
+
+
+/obj/item/weapon/teleportation_scroll/attack_self(mob/user)
 	user.set_machine(src)
 	var/dat = "<B>Teleportation Scroll:</B><BR>"
 	dat += "Number of uses: [src.uses]<BR>"
 	dat += "<HR>"
-	dat += "<B>Four uses use them wisely:</B><BR>"
+	dat += "<B>Four uses, use them wisely:</B><BR>"
 	dat += "<A href='byond://?src=\ref[src];spell_teleport=1'>Teleport</A><BR>"
 	dat += "Kind regards,<br>Wizards Federation<br><br>P.S. Don't forget to bring your gear, you'll need it to cast most spells.<HR>"
 	user << browse(dat, "window=scroll")
@@ -34,23 +42,24 @@
 		if (href_list["spell_teleport"])
 			if (src.uses >= 1)
 				teleportscroll(H)
-	attack_self(H)
+	if(H)
+		attack_self(H)
 	return
 
-/obj/item/weapon/teleportation_scroll/proc/teleportscroll(var/mob/user)
+/obj/item/weapon/teleportation_scroll/proc/teleportscroll(mob/user)
 
 	var/A
 
 	A = input(user, "Area to jump to", "BOOYEA", A) in teleportlocs
 	var/area/thearea = teleportlocs[A]
 
-	if (user.stat || user.restrained())
+	if (!user || user.stat || user.restrained() || uses <= 0)
 		return
 	if(!((user == loc || (in_range(src, user) && istype(src.loc, /turf)))))
 		return
 
-	var/datum/effect/effect/system/smoke_spread/smoke = new /datum/effect/effect/system/smoke_spread()
-	smoke.set_up(5, 0, user.loc)
+	var/datum/effect/effect/system/smoke_spread/smoke = new
+	smoke.set_up(2, user.loc)
 	smoke.attach(user)
 	smoke.start()
 	var/list/L = list()
@@ -71,16 +80,17 @@
 	if(user && user.buckled)
 		user.buckled.unbuckle_mob()
 
-	var/list/tempL = L
+	var/list/tempL = L.Copy()
 	var/attempt = null
 	var/success = 0
 	while(tempL.len)
 		attempt = pick(tempL)
-		success = user.Move(attempt)
-		if(!success)
-			tempL.Remove(attempt)
-		else
+		user.Move(attempt)
+		if(get_turf(user) == attempt)
+			success = 1
 			break
+		else
+			tempL.Remove(attempt)
 
 	if(!success)
 		user.loc = pick(L)

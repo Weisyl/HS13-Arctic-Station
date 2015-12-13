@@ -5,25 +5,13 @@
 	item_state = "balaclava"
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
-	body_parts_covered = FACE|HEAD
+	visor_flags_inv = HIDEFACE
 	w_class = 2
-	sprite_sheets = list(
-		"Tajara" = 'icons/mob/species/tajaran/mask.dmi',
-		"Unathi" = 'icons/mob/species/unathi/mask.dmi',
-		)
+	action_button_name = "Adjust Balaclava"
+	ignore_maskadjust = 0
 
-/obj/item/clothing/mask/balaclava/tactical
-	name = "green balaclava"
-	desc = "Designed to both hide identities and keep your face comfy and warm."
-	icon_state = "swatclava"
-	item_state = "balaclava"
-	flags = BLOCKHAIR
-	flags_inv = HIDEFACE
-	w_class = 2
-	sprite_sheets = list(
-		"Tajara" = 'icons/mob/species/tajaran/mask.dmi',
-		"Unathi" = 'icons/mob/species/unathi/mask.dmi',
-		)
+/obj/item/clothing/mask/balaclava/attack_self(mob/user)
+	adjustmask(user)
 
 /obj/item/clothing/mask/luchador
 	name = "Luchador Mask"
@@ -32,9 +20,30 @@
 	item_state = "luchag"
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
-	body_parts_covered = HEAD|FACE
 	w_class = 2
-	siemens_coefficient = 3.0
+
+/obj/item/clothing/mask/luchador/speechModification(message)
+	if(copytext(message, 1, 2) != "*")
+		message = replacetext(message, "captain", "CAPITÁN")
+		message = replacetext(message, "station", "ESTACIÓN")
+		message = replacetext(message, "sir", "SEÑOR")
+		message = replacetext(message, "the ", "el ")
+		message = replacetext(message, "my ", "mi ")
+		message = replacetext(message, "is ", "es ")
+		message = replacetext(message, "it's", "es")
+		message = replacetext(message, "friend", "amigo")
+		message = replacetext(message, "buddy", "amigo")
+		message = replacetext(message, "hello", "hola")
+		message = replacetext(message, " hot", " caliente")
+		message = replacetext(message, " very ", " muy ")
+		message = replacetext(message, "sword", "espada")
+		message = replacetext(message, "library", "biblioteca")
+		message = replacetext(message, "traitor", "traidor")
+		message = replacetext(message, "wizard", "mago")
+		message = uppertext(message)	//Things end up looking better this way (no mixed cases), and it fits the macho wrestler image.
+		if(prob(25))
+			message += " OLE!"
+	return message
 
 /obj/item/clothing/mask/luchador/tecnicos
 	name = "Tecnicos Mask"

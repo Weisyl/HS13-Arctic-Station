@@ -2,243 +2,127 @@
 	name = "medical pack"
 	singular_name = "medical pack"
 	icon = 'icons/obj/items.dmi'
-	amount = 5
-	max_amount = 5
-	w_class = 2
-	throw_speed = 4
-	throw_range = 20
+	amount = 6
+	max_amount = 6
+	w_class = 1
+	throw_speed = 3
+	throw_range = 7
+	burn_state = 0 //Burnable
+	burntime = 5
 	var/heal_brute = 0
 	var/heal_burn = 0
+	var/stop_bleeding = 0
 
-/obj/item/stack/medical/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if (!istype(M))
-		user << "\red \The [src] cannot be applied to [M]!"
+/obj/item/stack/medical/attack(mob/living/M, mob/user)
+
+	if(M.stat == 2)
+		var/t_him = "it"
+		if(M.gender == MALE)
+			t_him = "him"
+		else if(M.gender == FEMALE)
+			t_him = "her"
+		user << "<span class='danger'>\The [M] is dead, you cannot help [t_him]!</span>"
+		return
+
+	if(!istype(M, /mob/living/carbon) && !istype(M, /mob/living/simple_animal))
+		user << "<span class='danger'>You don't know how to apply \the [src] to [M]!</span>"
 		return 1
 
-	if ( ! (istype(user, /mob/living/carbon/human) || \
-			istype(user, /mob/living/silicon)) )
-		user << "\red You don't have the dexterity to do this!"
+	if(!user.IsAdvancedToolUser())
+		user << "<span class='warning'>You don't have the dexterity to do this!</span>"
 		return 1
 
-	if (istype(M, /mob/living/carbon/human))
+	if(ishuman(M))
 		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
+		if(stop_bleeding)
+			if(H.bleedsuppress)
+				user << "<span class='warning'>[H]'s bleeding is already bandaged!</span>"
+				return
+			else if(!H.blood_max)
+				user << "<span class='warning'>[H] isn't bleeding!</span>"
+				return
 
-		if(affecting.name == "head")
-			if(H.head && istype(H.head,/obj/item/clothing/head/helmet/space))
-				user << "\red You can't apply [src] through [H.head]!"
-				return 1
+	// if(isliving(M))
+	// 	if(!M.can_inject(user, 1)) //This doesn't make a lick of sense in gameplay prespective and most other medical tools don't do a check for space suits/etc. to heal (patches, gauzes, etc.)
+	// 		return
+
+	if(user)
+		if (M != user)
+			if (istype(M, /mob/living/simple_animal))
+				var/mob/living/simple_animal/critter = M
+				if (!(critter.healable))
+					user << "<span class='notice'> You cannot use [src] on [M]!</span>"
+					return
+				else if (critter.health == critter.maxHealth)
+					user << "<span class='notice'> [M] is at full health.</span>"
+					return
+				else if(src.heal_brute < 1)
+					user << "<span class='notice'> [src] won't help [M] at all.</span>"
+					return
+			user.visible_message("<span class='notice'>[user] applies [src] on [M].</span>", "<span class='notice'>You apply [src] on [M].</span>")
 		else
-			if(H.wear_suit && istype(H.wear_suit,/obj/item/clothing/suit/space))
-				user << "\red You can't apply [src] through [H.wear_suit]!"
-				return 1
+			var/t_himself = "itself"
+			if(user.gender == MALE)
+				t_himself = "himself"
+			else if(user.gender == FEMALE)
+				t_himself = "herself"
+			user.visible_message("<span class='notice'>[user] applies [src] on [t_himself].</span>", "<span class='notice'>You apply [src] on yourself.</span>")
 
-		if(affecting.status & ORGAN_ROBOT)
-			user << "\red This isn't useful at all on a robotic limb.."
-			return 1
 
-		H.UpdateDamageIcon()
+	if(ishuman(M))
+		var/mob/living/carbon/human/H = M
+		var/obj/item/organ/limb/affecting = H.get_organ(check_zone(user.zone_sel.selecting))
+		if(stop_bleeding)
+			if(!H.bleedsuppress) //so you can't stack bleed suppression
+				H.suppress_bloodloss(stop_bleeding)
+		if(affecting.status == ORGAN_ORGANIC) //Limb must be organic to be healed - RR
+			if(affecting.heal_damage(src.heal_brute, src.heal_burn, 0))
+				H.update_damage_overlays(0)
 
+			M.updatehealth()
+		else
+			user << "<span class='notice'>Medicine won't work on a robotic limb!</span>"
 	else
-
 		M.heal_organ_damage((src.heal_brute/2), (src.heal_burn/2))
-		user.visible_message( \
-			"\blue [M] has been applied with [src] by [user].", \
-			"\blue You apply \the [src] to [M]." \
-		)
-		use(1)
 
-	M.updatehealth()
+
+	use(1)
+
+
+
 /obj/item/stack/medical/bruise_pack
-	name = "roll of gauze"
-	singular_name = "gauze length"
-	desc = "Some sterile gauze to wrap around bloody stumps."
+	name = "bruise pack"
+	singular_name = "bruise pack"
+	desc = "A theraputic gel pack and bandages designed to treat blunt-force trauma."
 	icon_state = "brutepack"
+	heal_brute = 40
 	origin_tech = "biotech=1"
 
-/obj/item/stack/medical/bruise_pack/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(..())
-		return 1
+/obj/item/stack/medical/gauze
+	name = "medical gauze"
+	desc = "A roll of elastic cloth that is extremely effective at stopping bleeding, but does not heal wounds."
+	gender = PLURAL
+	singular_name = "medical gauze"
+	icon_state = "gauze"
+	stop_bleeding = 3000 //5 mins
 
-	if (istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
+/obj/item/stack/medical/gauze/improvised
+	name = "improvised gauze"
+	singular_name = "improvised gauze"
+	desc = "A roll of cloth roughly cut from something that can stop bleeding, but does not heal wounds."
+	stop_bleeding = 1500 // 2.5 mins
 
-		if(affecting.open == 0)
-			if(!affecting.bandage())
-				user << "\red The wounds on [M]'s [affecting.name] have already been bandaged."
-				return 1
-			else
-				for (var/datum/wound/W in affecting.wounds)
-					if (W.internal)
-						continue
-					if (W.current_stage <= W.max_bleeding_stage)
-						user.visible_message( 	"\blue [user] bandages [W.desc] on [M]'s [affecting.name].", \
-										"\blue You bandage [W.desc] on [M]'s [affecting.name]." )
-						//H.add_side_effect("Itch")
-					else if (istype(W,/datum/wound/bruise))
-						user.visible_message( 	"\blue [user] places bruise patch over [W.desc] on [M]'s [affecting.name].", \
-										"\blue You place bruise patch over [W.desc] on [M]'s [affecting.name]." )
-					else
-						user.visible_message( 	"\blue [user] places bandaid over [W.desc] on [M]'s [affecting.name].", \
-										"\blue You place bandaid over [W.desc] on [M]'s [affecting.name]." )
-				use(1)
-		else
-			if (can_operate(H))        //Checks if mob is lying down on table for surgery
-				if (do_surgery(H,user,src))
-					return
-			else
-				user << "<span class='notice'>The [affecting.name] is cut open, you'll need more than a bandage!</span>"
+/obj/item/stack/medical/gauze/cyborg/
+	materials = list()
+	is_cyborg = 1
+	cost = 250
 
 /obj/item/stack/medical/ointment
 	name = "ointment"
-	desc = "Used to treat those nasty burns."
+	desc = "Used to treat those nasty burn wounds."
 	gender = PLURAL
 	singular_name = "ointment"
 	icon_state = "ointment"
-	heal_burn = 1
+	heal_burn = 40
 	origin_tech = "biotech=1"
-
-/obj/item/stack/medical/ointment/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(..())
-		return 1
-
-	if (istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
-
-		if(affecting.open == 0)
-			if(!affecting.salve())
-				user << "\red The wounds on [M]'s [affecting.name] have already been salved."
-				return 1
-			else
-				user.visible_message( 	"\blue [user] salves wounds on [M]'s [affecting.name].", \
-										"\blue You salve wounds on [M]'s [affecting.name]." )
-				use(1)
-		else
-			if (can_operate(H))        //Checks if mob is lying down on table for surgery
-				if (do_surgery(H,user,src))
-					return
-			else
-				user << "<span class='notice'>The [affecting.name] is cut open, you'll need more than a bandage!</span>"
-
-/obj/item/stack/medical/advanced/bruise_pack
-	name = "advanced trauma kit"
-	singular_name = "advanced trauma kit"
-	desc = "An advanced trauma kit for severe injuries."
-	icon_state = "traumakit"
-	heal_brute = 12
-	origin_tech = "biotech=1"
-
-/obj/item/stack/medical/advanced/bruise_pack/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(..())
-		return 1
-
-	if (istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
-
-		if(affecting.open == 0)
-			var/bandaged = affecting.bandage()
-			var/disinfected = affecting.disinfect()
-
-			if(!(bandaged || disinfected))
-				user << "\red The wounds on [M]'s [affecting.name] have already been treated."
-				return 1
-			else
-				for (var/datum/wound/W in affecting.wounds)
-					if (W.internal)
-						continue
-					if (W.current_stage <= W.max_bleeding_stage)
-						user.visible_message( 	"\blue [user] cleans [W.desc] on [M]'s [affecting.name] and seals edges with bioglue.", \
-										"\blue You clean and seal [W.desc] on [M]'s [affecting.name]." )
-						//H.add_side_effect("Itch")
-					else if (istype(W,/datum/wound/bruise))
-						user.visible_message( 	"\blue [user] places medicine patch over [W.desc] on [M]'s [affecting.name].", \
-										"\blue You place medicine patch over [W.desc] on [M]'s [affecting.name]." )
-					else
-						user.visible_message( 	"\blue [user] smears some bioglue over [W.desc] on [M]'s [affecting.name].", \
-										"\blue You smear some bioglue over [W.desc] on [M]'s [affecting.name]." )
-				if (bandaged)
-					affecting.heal_damage(heal_brute,0)
-				use(1)
-		else
-			if (can_operate(H))        //Checks if mob is lying down on table for surgery
-				if (do_surgery(H,user,src))
-					return
-			else
-				user << "<span class='notice'>The [affecting.name] is cut open, you'll need more than a bandage!</span>"
-
-/obj/item/stack/medical/advanced/ointment
-	name = "advanced burn kit"
-	singular_name = "advanced burn kit"
-	desc = "An advanced treatment kit for severe burns."
-	icon_state = "burnkit"
-	heal_burn = 12
-	origin_tech = "biotech=1"
-
-
-/obj/item/stack/medical/advanced/ointment/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(..())
-		return 1
-
-	if (istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
-
-		if(affecting.open == 0)
-			if(!affecting.salve())
-				user << "\red The wounds on [M]'s [affecting.name] have already been salved."
-				return 1
-			else
-				user.visible_message( 	"\blue [user] covers wounds on [M]'s [affecting.name] with regenerative membrane.", \
-										"\blue You cover wounds on [M]'s [affecting.name] with regenerative membrane." )
-				affecting.heal_damage(0,heal_burn)
-				use(1)
-		else
-			if (can_operate(H))        //Checks if mob is lying down on table for surgery
-				if (do_surgery(H,user,src))
-					return
-			else
-				user << "<span class='notice'>The [affecting.name] is cut open, you'll need more than a bandage!</span>"
-
-/obj/item/stack/medical/splint
-	name = "medical splints"
-	singular_name = "medical splint"
-	icon_state = "splint"
-	amount = 5
-	max_amount = 5
-
-/obj/item/stack/medical/splint/attack(mob/living/carbon/M as mob, mob/user as mob)
-	if(..())
-		return 1
-
-	if (istype(M, /mob/living/carbon/human))
-		var/mob/living/carbon/human/H = M
-		var/obj/item/organ/external/affecting = H.get_organ(user.zone_sel.selecting)
-		var/limb = affecting.name
-		if(!(affecting.limb_name in list("l_arm","r_arm","l_leg","r_leg")))
-			user << "<span class='danger'>You can't apply a splint there!</span>"
-			return
-		if(affecting.status & ORGAN_SPLINTED)
-			user << "<span class='danger'>[M]'s [limb] is already splinted!</span>"
-			return
-		if (M != user)
-			user.visible_message("<span class='danger'>[user] starts to apply \the [src] to [M]'s [limb].</span>", "<span class='danger'>You start to apply \the [src] to [M]'s [limb].</span>", "<span class='danger'>You hear something being wrapped.</span>")
-		else
-			if((!user.hand && affecting.limb_name == "r_arm") || (user.hand && affecting.limb_name == "l_arm"))
-				user << "<span class='danger'>You can't apply a splint to the arm you're using!</span>"
-				return
-			user.visible_message("<span class='danger'>[user] starts to apply \the [src] to their [limb].</span>", "<span class='danger'>You start to apply \the [src] to your [limb].</span>", "<span class='danger'>You hear something being wrapped.</span>")
-		if(do_after(user, 50))
-			if (M != user)
-				user.visible_message("<span class='danger'>[user] finishes applying \the [src] to [M]'s [limb].</span>", "<span class='danger'>You finish applying \the [src] to [M]'s [limb].</span>", "<span class='danger'>You hear something being wrapped.</span>")
-			else
-				if(prob(25))
-					user.visible_message("<span class='danger'>[user] successfully applies \the [src] to their [limb].</span>", "<span class='danger'>You successfully apply \the [src] to your [limb].</span>", "<span class='danger'>You hear something being wrapped.</span>")
-				else
-					user.visible_message("<span class='danger'>[user] fumbles \the [src].</span>", "<span class='danger'>You fumble \the [src].</span>", "<span class='danger'>You hear something being wrapped.</span>")
-					return
-			affecting.status |= ORGAN_SPLINTED
-			use(1)
-		return
+	burn_state = -1

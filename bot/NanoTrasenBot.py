@@ -25,7 +25,6 @@ import irchat
 #
 # PSYCO
 write_to_a_file = False #Only affects psyco
-write_youtube_to_file = True #True = YTCV4 will load, false = YTCV3 will load
 try:
    import psyco
 except ImportError:
@@ -35,9 +34,10 @@ except ImportError:
       try:
          tiedosto = open("psycodownload.txt","r")
       except:
-         with open("psycodownload.txt","w") as tiedosto:
-            tiedosto.write("http://www.voidspace.org.uk/python/modules.shtml#psyco")
-            tiedosto.write("\nhttp://psyco.sourceforge.net/download.html")
+         tiedosto = open("psycodownload.txt","w")
+         tiedosto.write("http://www.voidspace.org.uk/python/modules.shtml#psyco")
+         tiedosto.write("\nhttp://psyco.sourceforge.net/download.html")
+         tiedosto.close()
          print "Check psycodownload.txt for a link"
       else:
          print "For god's sake, open psycodownload.txt"
@@ -81,16 +81,12 @@ from random import choice as fsample
 from C_rtd import rtd
 from C_heaortai import heaortai
 from C_srtd import srtd
-if write_youtube_to_file:
-   from YTCv4 import YTCV4 as YTCV2
-else:
-   from YTCv3 import YTCV2 #Downgraded version supports Cache disabling, but is slower
 from save_load import save,load
 if psyco_exists:
    def psyco_bond(func):
       psyco.bind(func)
       return func.__name__+" Psycofied"
-   for a in [rtd,srtd,C_heaortai.heaortai,sbna,YTCV2,fsample,C_rot13.rot13,C_eightball.eightball,fsample,
+   for a in [rtd,srtd,C_heaortai.heaortai,sbna,fsample,C_rot13.rot13,C_eightball.eightball,fsample,
              C_eightball.eightball,C_sarcasticball.sarcasticball,Marakov_Chain.form_sentence,Marakov_Chain.give_data]:
       print psyco_bond(a)
 
@@ -189,13 +185,15 @@ tell_list = {}
 if CORE_DATA.DISABLE_ALL_NON_MANDATORY_SOCKET_CONNECTIONS:
    nudgeable = False
 try:
-   with open("replacenames.cache","r") as tiedosto:
-      replacenames = pickle.load(tiedosto)
+   tiedosto = open("replacenames.cache","r")
+   replacenames = pickle.load(tiedosto)
+   tiedosto.close()
    for i in replacenames.values():
       if len(i) > call_me_max_length:
          replacenames[replacenames.keys()[replacenames.values().index(i)]] = i[:call_me_max_length]
-         with open("replacenames.cache","w") as tiedosto:
-            pickle.dump(replacenames,tiedosto)
+         tiedosto = open("replacenames.cache","w")
+         pickle.dump(replacenames,tiedosto)
+         tiedosto.close()
       if "[\0x01]" in i.lower() or "[\\0x01]" in i.lower():
          i = i.replace("[\0x01]","")
          i = i.replace("[\0X01]","")
@@ -208,12 +206,13 @@ except EOFError: #Cache corrupt
    replacenames = {}
    print "replacenames.cache is corrupt and couldn't be loaded."
 try:
-   with open("peopleheknows.cache","r") as tiedosto:
-      peopleheknows = pickle.load(tiedosto)
+   tiedosto = open("peopleheknows.cache","r")
+   peopleheknows = pickle.load(tiedosto)
+   tiedosto.close()
 except IOError:
    peopleheknows = [[],[]]
-   with open("peopleheknows.cache","w") as tiedosto:
-      pass
+   tiedosto = open("peopleheknows.cache","w")
+   tiedosto.close()
 except EOFError:
    peopleheknows = [[],[]]
    print "peopleheknows.cache is corrupt and couldn't be loaded."
@@ -277,7 +276,7 @@ if nudgeable:
                client.close() #Throw the bum out!
                truedata = pickle.loads(data)
                if truedata["ip"][0] == "#":
-                  conn.privmsg(truedata["ip"],"PRIVATE ANNOUNCEMENT : "+str(" ".join(truedata["data"])))
+                  conn.privmsg(truedata["ip"],"AUTOMATIC ANNOUNCEMENT : "+str(" ".join(truedata["data"])))
                else:
                   conn.privmsg(channel,"AUTOMATIC ANNOUNCEMENT : "+str(truedata["ip"])+" | "+str(" ".join(truedata["data"])))
          thread.start_new_thread(nudgereceiver,())
@@ -341,14 +340,16 @@ if aggressive_pinging:
       self_time = 0
       global backup,disconnects,conn
       while disconnects < 5:
-         if backup > self_time and time.time()-backup > delay:
-            conn.send("PONG "+pongtarg)
-            print "Ponged"
-            self_time = time.time()
-         elif time.time()-self_time > delay:
-            conn.send("PONG "+pongtarg)
-            print "Ponged"
-            self_time = time.time()
+         if backup > self_time:
+            if time.time()-backup > delay:
+               conn.send("PONG "+pongtarg)
+               print "Ponged"
+               self_time = time.time()
+         else:
+            if time.time()-self_time > delay:
+               conn.send("PONG "+pongtarg)
+               print "Ponged"
+               self_time = time.time()
          time.sleep(refresh)
    thread.start_new_thread(aggressive_ping,(aggressive_pinging_delay,aggressive_pinging_refresh,))
 def stop(sender,debug=1):
@@ -364,15 +365,16 @@ def stop(sender,debug=1):
          access_granted = True
       else:
          access_granted = False
-   if access_granted and debug:
-      print sender+":"+prefix+"stop"
-      if random.randint(0,100) == 50:
-         conn.privmsg(channel,"Hammertime!")
-      else:
-         conn.privmsg(channel,"Shutting down.")
-      disconnects = 99999
-      conn.quit()
-      return True
+   if access_granted:
+      if debug:
+         print sender+":"+prefix+"stop"
+         if random.randint(0,100) == 50:
+            conn.privmsg(channel,"Hammertime!")
+         else:
+            conn.privmsg(channel,"Shutting down.")
+         disconnects = 99999
+         conn.quit()
+         return True
    else:
       conn.privmsg(channel,"You cannot command me")
       return False
@@ -394,12 +396,13 @@ def target(who,how_long):
       if debug:
          print "Banned",who,"For",how_long,"seconds"
       if logbans:
-         with open(targetdirectory+"banlog/"+str(int(start))+"-"+str(int(end))+".txt","w") as tiedosto:
-            tiedosto.write("Start of ban on "+who+":"+str(int(start)))
-            tiedosto.write("\n")
-            tiedosto.write("End of ban on "+who+":"+str(int(end)))
-            tiedosto.write("\n")
-            tiedosto.write("In total:"+str(int(end-start))+"Seconds")
+         tiedosto = open(targetdirectory+"banlog/"+str(int(start))+"-"+str(int(end))+".txt","w")
+         tiedosto.write("Start of ban on "+who+":"+str(int(start)))
+         tiedosto.write("\n")
+         tiedosto.write("End of ban on "+who+":"+str(int(end)))
+         tiedosto.write("\n")
+         tiedosto.write("In total:"+str(int(end-start))+"Seconds")
+         tiedosto.close()
    else:
       CALL_OFF = False
       pass
@@ -568,12 +571,13 @@ while True:
                time.sleep(6)
                Name = origname
                conn.nick(Name)
-            if origname in truesender and influx == prefix+"stop":
-               time.sleep(0.5) #A small delay
-               conn.privmsg(channel,"Shutting down.")
-               conn.quit()
-               disconnects = 99999
-               break
+            if origname in truesender:
+               if influx == prefix+"stop":
+                  time.sleep(0.5) #A small delay
+                  conn.privmsg(channel,"Shutting down.")
+                  conn.quit()
+                  disconnects = 99999
+                  break
             if len(translateable) > 0 and enabled == True:
                people = "-5|5|1-".join(users).lower()
                if truesender.lower() in translateable:
@@ -624,8 +628,9 @@ while True:
                      arg = influx.lower()[8+len(prefix):]
                      if debug:
                         print truesender+":"+prefix+"suggest "+arg
-                     with open(targetdirectory+"suggestions/suggestions_"+str(int(time.time()))+".txt","a") as tiedosto:
-                        tiedosto.write(arg)
+                     tiedosto = open(targetdirectory+"suggestions/suggestions_"+str(int(time.time()))+".txt","a")
+                     tiedosto.write(arg)
+                     tiedosto.close()
                      conn.privmsg(targetchannel,"Suggestion received")
             elif cocheck( prefix+"help "): #Space in front of the ( to make sure that my command finder does not pick this up.
                arg = " ".join(influx.split(" ")[1:]).lower()
@@ -833,151 +838,6 @@ while True:
             elif influx.split(" ")[0].lower().replace(",","").replace(":","") in SName+[Name.lower()] and "who created you" in influx.lower():
                conn.privmsg(targetchannel, "I was created by Skibiliano.")
    # The part ends here >
-            elif parse_xkcd and "xkcd.com/" in influx.lower():
-               if influx.lower()[0:3] == "www":
-                  data = "http://"+influx
-               elif influx.lower()[0:3] == "xkc":
-                  data = "http://"+influx
-               else:
-                  data = influx
-               data = data.split(" ")
-               for i in data:
-                  if "http://" in i and "xkcd" in i:
-                     churn = xkcdparser.xkcd(i)
-                     if churn == "NOTHING":
-                        pass
-                     else:
-                        conn.privmsg(targetchannel,sender+" : XKCD - "+churn)
-                     break
-                  else:
-                     pass
-            elif automatic_youtube_reveal and "youtube.com/watch?v=" in influx.lower():
-               temporal_list2 = []
-               temporal_data = influx.split(" ")
-               temporal_list = []
-               for block in temporal_data:
-                  if "youtube.com/watch?v=" in block:
-                     temporal_list.append(block)
-               for temdata in temporal_list:
-                  
-                  if temdata[0:3] == "you":
-                     temdata = "http://www."+temdata
-                  elif temdata[0:3] == "www":
-                     temdata = "http://"+temdata
-                  elif temdata[0:4] == "http":
-                     pass
-                  #Obscure ones
-                  elif temdata[0:3] == "ww.":
-                     temdata = "http://w"+temdata
-                  elif temdata[0:3] == "w.y":
-                     temdata = "http://ww"+temdata
-                  elif temdata[0:3] == ".yo":
-                     temdata = "http://www"+temdata
-                  elif temdata[0:3] == "ttp":
-                     temdata = "h"+temdata
-                  elif temdata[0:3] == "tp:":
-                     temdata = "ht"+temdata
-                  elif temdata[0:3] == "p:/" or temdata[0:3] == "p:\\":
-                     temdata = "htt"+temdata
-                  elif temdata[0:3] == "://" or temdata[0:3] == ":\\\\":
-                     temdata = "http"+temdata
-                  elif temdata[0:2] == "//" or temdata[0:2] == "\\\\":
-                     if temdata[2] == "y":
-                        temdata = "http://www."+temdata[2:]
-                     elif temdata[2] == "w":
-                        temdata = "http:"+temdata
-                     else:
-                        pass
-                  if debug:
-                     print truesender+":"+temdata
-                  arg = temdata
-                  check = temdata.lower()
-                  if check[0:5] == "https":
-                     if len(temporal_list) == 1:
-                        conn.privmsg(targetchannel,sender+" :Secure Youtube does NOT exist")
-                        break
-                     else:
-                        temporal_list2.append("Secure Youtube does NOT exist")
-                     break
-                  else:
-                     if cache_youtube_links == True:
-                        result = YTCV2(arg)
-                     else:
-                        result = YTCV2(arg,0)
-                     if type(result) == str:
-                        ### To remove ="
-                        if result[0:4] == 'nt="':
-                           result = result[4:]
-                           pass
-                        elif result[0:2] == '="':
-                           result = result[2:]
-                           pass
-                        else:
-                           pass
-                        if "&quot;" in result:
-                           result.replace("&quot;",'"')
-                        if len(temporal_list) == 1:
-                           conn.privmsg(targetchannel,sender+" : "+result)
-                           break
-                        else:
-                           temporal_list2.append(result)
-                     else:
-                        if len(temporal_list) == 1:
-                           conn.privmsg(targetchannel,sender+" : The video does not exist")
-                           break
-                        else:
-                           temporal_list2.append("The video does not exist")
-               if len(temporal_list) == 1:
-                  pass
-               else:
-                  conn.privmsg(targetchannel,sender+" : "+str(reduce(lambda x,y: x+" :-And-: "+y,temporal_list2)))
-            elif RegExpCheckerForWebPages("((http://)|(https://))|([a-zA-Z0-9]+[.])|([a-zA-Z0-9](3,)\.+[a-zA-Z](2,))",influx,1):
-               arg2 = RegExpCheckerForWebPages("(http://)|([a-zA-Z0-9]+[.])|([a-zA-Z0-9](3,)\.+[a-zA-Z](2,))",influx,0)
-               if arg2 == 404:
-                  pass
-               else:
-                  if arg2[:7] == "http://":
-                     pass
-                  elif arg2[:4] == "www.":
-                     arg2 = "http://"+arg2
-                  else:
-                     arg2 = "http://"+arg2
-                  try:
-                     arg = Whoopshopchecker.TitleCheck(arg2)
-                     if len(arg2) == 0:
-                        pass
-                     else:
-                        conn.privmsg(targetchannel,sender+" : "+arg)
-                  except:
-                     #conn.privmsg(targetchannel,sender+" : An odd error occurred")
-                     pass
-            elif respond_of_course and "take over the" in influx.lower() or respond_of_course and "conquer the" in influx.lower():
-               if debug:
-                  print truesender+":<RULE>:"+influx
-               conn.privmsg(targetchannel,"Of course!")
-            elif respond_khan and "khan" in influx.lower():
-               if respond_khan:
-                  if debug:
-                     print truesender+":<KHAN>:"+influx
-                  if "khan " in influx.lower():
-                     conn.privmsg(targetchannel,"KHAAAAAAN!")
-                  elif " khan" in influx.lower():
-                     conn.privmsg(targetchannel,"KHAAAAAN!")
-                  elif influx.lower() == "khan":
-                     conn.privmsg(targetchannel,"KHAAAAAAAAAN!")
-                  elif influx.lower() == "khan?":
-                     conn.privmsg(targetchannel,"KHAAAAAAAAAAAAAN!")
-                  elif influx.lower() == "khan!":
-                     conn.privmsg(targetchannel,"KHAAAAAAAAAAAAAAAAAAN!")
-            elif respond_khan and influx.lower().count("k") + influx.lower().count("h") + influx.lower().count("a") + influx.lower().count("n") + influx.lower().count("!") + influx.lower().count("?") == len(influx):
-               if "k" in influx.lower() and "h" in influx.lower() and "a" in influx.lower() and "n" in influx.lower():
-                  if debug:
-                     print truesender+":<KHAN>:"+influx
-                  conn.privmsg(targetchannel,"KHAAAAN!")
-            elif influx.split(" ")[0].lower() in ["thanks","danke","tack"] and len(influx.split(" ")) > 1 and influx.split(" ")[1].lower().replace("!","").replace("?","").replace(".","").replace(",","") in SName+[lowname]:
-               conn.privmsg(targetchannel,"No problem %s" %(sender))
-            elif "happy birthday" in influx.lower() and birthday_announced == time.gmtime(time.time())[0]:
-               conn.privmsg(targetchannel,sender+" : Thanks :)")
             elif influx.split(" ")[0].lower().replace(",","").replace(".","").replace("!","").replace("?","") in SName+[lowname] and "call me" in influx.lower():
                if allow_callnames == True:
                   arg = influx.split(" ")
@@ -1098,6 +958,19 @@ while True:
                   comboer = ""
                   if "evening" in influx.lower() and "all" in influx.lower() and len(influx.lower().split(" ")) > 3:
                      pass
+
+                  talking_about_me = False
+                  if Name.lower() in influx.lower():
+                     talking_about_me = True
+
+                  for bot_name in SName:
+                     if bot_name.lower() in influx.lower():
+                        talking_about_me = True
+                        break
+
+                  if not talking_about_me:
+                     continue #it got annoying REAL FAST when it'd interject any time a greeting was used, regardless of context
+
                   elif truesender not in operators:
                      if debug:
                         print truesender+":<GREET>:"+influx
@@ -1173,20 +1046,6 @@ while True:
                      else:
                         conn.privmsg(targetchannel,"Hiya "+sender)
                      secdice = random.randint(0,10)
-                     if time.gmtime(time.time())[1] == 12 and time.gmtime(time.time())[2] == 15 and birthday_announced < time.gmtime(time.time())[0]:
-                        birthday_announced = time.gmtime(time.time())[0]
-                        conn.privmsg(channel,"Hey everybody! I just noticed it's my birthday!")
-                        time.sleep(0.5)
-                        tag = random.choice(["birthday","robot+birthday","happy+birthday+robot"])
-                        arg1 = urllib2.urlopen("http://www.youtube.com/results?search_query=%s&page=&utm_source=opensearch"%tag)
-                        arg1 = arg1.read().split("\n")
-                        arg2 = []
-                        for i in arg1:
-                           if "watch?v=" in i:
-                              arg2.append(i)
-                        arg3 = random.choice(arg2)
-                        
-                        conn.privmsg(channel,"Here's a video of '%s' which I found! %s (%s)"%(tag.replace("+"," "),"http://www.youtube.com"+arg3[arg3.find('/watch?v='):arg3.find('/watch?v=')+20],YTCV2("http://www.youtube.com"+arg3[arg3.find('/watch?v='):arg3.find('/watch?v=')+20])))
                      if truesender.lower() in tell_list.keys():
                         try:
                            conn.privmsg(channel, "Also, "+truesender+" : "+tell_list[truesender.lower()][0])
@@ -1297,17 +1156,7 @@ while True:
             print sender+" Has now joined"
             users.append(sender)
             #####
-            if ".fi" in data[0] and sender.lower() == "skibiliano":
-               operators.append(sender)
             if sender.lower() not in peopleheknows[0]:
-               if data[0].split("!")[1] in peopleheknows[1]:
-                  appendion = "...you do seem familiar however"
-               else:
-                  appendion = ""
-               if data[1][1].lower() == channel or data[1][1].lower() == channel[1:]:
-                   conn.privmsg(data[1][1],CORE_DATA.greeting.replace("USER",sender)+" "+appendion)
-               else:
-                  conn.privmsg(data[1][1],"Hello! Haven't seen you here before! Happy to meet you! %s" %(appendion))
                peopleheknows[0].append(sender.lower())
                peopleheknows[1].append(data[0].split("!")[1])
                with open("peopleheknows.cache","w") as peoplehecache:

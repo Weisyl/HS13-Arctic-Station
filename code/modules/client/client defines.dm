@@ -1,9 +1,9 @@
+
 /client
 		////////////////
 		//ADMIN THINGS//
 		////////////////
 	var/datum/admins/holder = null
-	var/datum/admins/deadmin_holder = null
 	var/buildmode		= 0
 
 	var/last_message	= "" //Contains the last message sent by this client - used to protect against copy-paste spamming.
@@ -17,9 +17,6 @@
 	var/moving			= null
 	var/adminobs		= null
 	var/area			= null
-	var/time_died_as_mouse = null //when the client last died as a mouse
-
-	var/adminhelped = 0
 
 		///////////////
 		//SOUND STUFF//
@@ -30,14 +27,8 @@
 		////////////
 		//SECURITY//
 		////////////
-	var/next_allowed_topic_time = 10
 	// comment out the line below when debugging locally to enable the options & messages menu
-	//control_freak = 1
-
-	var/received_irc_pm = -99999
-	var/irc_admin			//IRC admin that spoke with them last.
-	var/mute_irc = 0
-
+	control_freak = 1
 
 		////////////////////////////////////
 		//things that require the database//
@@ -46,4 +37,14 @@
 	var/related_accounts_ip = "Requires database"	//So admins know why it isn't working - Used to determine what other accounts previously logged in from this ip
 	var/related_accounts_cid = "Requires database"	//So admins know why it isn't working - Used to determine what other accounts previously logged in from this computer id
 
-	preload_rsc = 0 // This is 0 so we can set it to an URL once the player logs in and have them download the resources from a different server.
+	preload_rsc = PRELOAD_RSC
+
+	var/global/obj/screen/click_catcher/void
+
+	// Used by html_interface module.
+	var/hi_last_pos
+
+
+	//datum that controls the displaying and hiding of tooltips
+	var/datum/tooltip/tooltips
+

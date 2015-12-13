@@ -7,24 +7,28 @@
 	var/event = ""
 	var/screen = 1
 	var/confirmed = 0 //This variable is set by the device that confirms the request.
-	var/confirm_delay = 20 //(2 seconds)
+	var/confirm_delay = 40 //(4 seconds)
 	var/busy = 0 //Busy when waiting for authentication or an event request has been sent from this device.
 	var/obj/machinery/keycard_auth/event_source
 	var/mob/event_triggered_by
 	var/mob/event_confirmed_by
 	//1 = select event
 	//2 = authenticate
-	anchored = 1.0
+	anchored = 1
 	use_power = 1
 	idle_power_usage = 2
 	active_power_usage = 6
 	power_channel = ENVIRON
 
-/obj/machinery/keycard_auth/attack_ai(mob/user as mob)
+/obj/machinery/keycard_auth/attack_ai(mob/user)
 	user << "The station AI is not to interact with these devices."
 	return
 
-/obj/machinery/keycard_auth/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/machinery/keycard_auth/attack_paw(mob/user)
+	user << "<span class='warning'>You are too primitive to use this device!</span>"
+	return
+
+/obj/machinery/keycard_auth/attackby(obj/item/weapon/W, mob/user, params)
 	if(stat & (NOPOWER|BROKEN))
 		user << "This device is not powered."
 		return
@@ -41,18 +45,18 @@
 				broadcast_request() //This is the device making the initial event request. It needs to broadcast to other devices
 
 /obj/machinery/keycard_auth/power_change()
-	..()
-	if(stat &NOPOWER)
+	if(powered(ENVIRON))
+		stat &= ~NOPOWER
 		icon_state = "auth_off"
+	else
+		stat |= NOPOWER
 
-/obj/machinery/keycard_auth/attack_hand(mob/user as mob)
+/obj/machinery/keycard_auth/attack_hand(mob/user)
 	if(user.stat || stat & (NOPOWER|BROKEN))
-		user << "This device is not powered."
+		user << "<span class='warning'>This device is not powered!</span>"
 		return
-	if(!user.IsAdvancedToolUser())
-		return 0
 	if(busy)
-		user << "This device is busy."
+		user << "<span class='warning'>This device is busy!</span>"
 		return
 
 	user.set_machine(src)
@@ -65,11 +69,7 @@
 	if(screen == 1)
 		dat += "Select an event to trigger:<ul>"
 		dat += "<li><A href='?src=\ref[src];triggerevent=Red alert'>Red alert</A></li>"
-		if(!config.ert_admin_call_only)
-			dat += "<li><A href='?src=\ref[src];triggerevent=Emergency Response Team'>Emergency Response Team</A></li>"
-
-		dat += "<li><A href='?src=\ref[src];triggerevent=Grant Emergency Maintenance Access'>Grant Emergency Maintenance Access</A></li>"
-		dat += "<li><A href='?src=\ref[src];triggerevent=Revoke Emergency Maintenance Access'>Revoke Emergency Maintenance Access</A></li>"
+		dat += "<li><A href='?src=\ref[src];triggerevent=Emergency Maintenance Access'>Emergency Maintenance Access</A></li>"
 		dat += "</ul>"
 		user << browse(dat, "window=keycard_auth;size=500x250")
 	if(screen == 2)
@@ -80,12 +80,10 @@
 
 
 /obj/machinery/keycard_auth/Topic(href, href_list)
-	..()
+	if(..())
+		return
 	if(busy)
 		usr << "This device is busy."
-		return
-	if(usr.stat || stat & (BROKEN|NOPOWER))
-		usr << "This device is without power."
 		return
 	if(href_list["triggerevent"])
 		event = href_list["triggerevent"]
@@ -94,7 +92,6 @@
 		reset()
 
 	updateUsrDialog()
-	add_fingerprint(usr)
 	return
 
 /obj/machinery/keycard_auth/proc/reset()
@@ -120,10 +117,10 @@
 		confirmed = 0
 		trigger_event(event)
 		log_game("[key_name(event_triggered_by)] triggered and [key_name(event_confirmed_by)] confirmed event [event]")
-		message_admins("[key_name(event_triggered_by)] triggered and [key_name(event_confirmed_by)] confirmed event [event]", 1)
+		message_admins("[key_name(event_triggered_by)] triggered and [key_name(event_confirmed_by)] confirmed event [event]")
 	reset()
 
-/obj/machinery/keycard_auth/proc/receive_request(var/obj/machinery/keycard_auth/source)
+/obj/machinery/keycard_auth/proc/receive_request(obj/machinery/keycard_auth/source)
 	if(stat & (BROKEN|NOPOWER))
 		return
 	event_source = source
@@ -143,37 +140,26 @@
 		if("Red alert")
 			set_security_level(SEC_LEVEL_RED)
 			feedback_inc("alert_keycard_auth_red",1)
-		if("Grant Emergency Maintenance Access")
+		if("Emergency Maintenance Access")
 			make_maint_all_access()
-			feedback_inc("alert_keycard_auth_maintGrant",1)
-		if("Revoke Emergency Maintenance Access")
-			revoke_maint_all_access()
-			feedback_inc("alert_keycard_auth_maintRevoke",1)
-		if("Emergency Response Team")
-			if(is_ert_blocked())
-				usr << "\red All emergency response teams are dispatched and can not be called at this time."
-				return
+			feedback_inc("alert_keycard_auth_maint",1)
 
-			trigger_armed_response_team(1)
-			feedback_inc("alert_keycard_auth_ert",1)
 
-/obj/machinery/keycard_auth/proc/is_ert_blocked()
-	if(config.ert_admin_call_only) return 1
-	return ticker.mode && ticker.mode.ert_disabled
 
-var/global/maint_all_access = 0
-
+/var/emergency_access = 0
 /proc/make_maint_all_access()
-	maint_all_access = 1
-	world << "<font size=4 color='red'>Attention!</font>"
-	world << "<font color='red'>The maintenance access requirement has been revoked on all airlocks.</font>"
+	for(var/area/maintenance/A in world)
+		for(var/obj/machinery/door/airlock/D in A)
+			D.emergency = 1
+			D.update_icon(0)
+	minor_announce("Access restrictions on maintenance and external airlocks have been lifted.", "Attention! Station-wide emergency declared!",1)
+	emergency_access = 1
 
 /proc/revoke_maint_all_access()
-	maint_all_access = 0
-	world << "<font size=4 color='red'>Attention!</font>"
-	world << "<font color='red'>The maintenance access requirement has been readded on all maintenance airlocks.</font>"
+	for(var/area/maintenance/A in world)
+		for(var/obj/machinery/door/airlock/D in A)
+			D.emergency = 0
+			D.update_icon(0)
+	minor_announce("Access restrictions in maintenance areas have been restored.", "Attention! Station-wide emergency rescinded:")
+	emergency_access = 0
 
-/obj/machinery/door/airlock/allowed(mob/M)
-	if(maint_all_access && src.check_access_list(list(access_maint_tunnels)))
-		return 1
-	return ..(M)

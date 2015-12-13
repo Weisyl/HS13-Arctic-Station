@@ -1,79 +1,111 @@
-proc/random_hair_style(gender, species = "Human")
-	var/h_style = "Bald"
+/proc/random_blood_type()
+	return pick(4;"O-", 36;"O+", 3;"A-", 28;"A+", 1;"B-", 20;"B+", 1;"AB-", 5;"AB+")
 
-	var/list/valid_hairstyles = list()
-	for(var/hairstyle in hair_styles_list)
-		var/datum/sprite_accessory/S = hair_styles_list[hairstyle]
-		if(gender == MALE && S.gender == FEMALE)
-			continue
-		if(gender == FEMALE && S.gender == MALE)
-			continue
-		if( !(species in S.species_allowed))
-			continue
-		valid_hairstyles[hairstyle] = hair_styles_list[hairstyle]
+/proc/random_eye_color()
+	switch(pick(20;"brown",20;"hazel",20;"grey",15;"blue",15;"green",1;"amber",1;"albino"))
+		if("brown")		return "630"
+		if("hazel")		return "542"
+		if("grey")		return pick("666","777","888","999","aaa","bbb","ccc")
+		if("blue")		return "36c"
+		if("green")		return "060"
+		if("amber")		return "fc0"
+		if("albino")	return pick("c","d","e","f") + pick("0","1","2","3","4","5","6","7","8","9") + pick("0","1","2","3","4","5","6","7","8","9")
+		else			return "000"
 
-	if(valid_hairstyles.len)
-		h_style = pick(valid_hairstyles)
+/proc/random_underwear(gender)
+	if(!underwear_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/underwear, underwear_list, underwear_m, underwear_f)
+	switch(gender)
+		if(MALE)	return pick(underwear_m)
+		if(FEMALE)	return pick(underwear_f)
+		else		return pick(underwear_list)
 
-	return h_style
+/proc/random_undershirt(gender)
+	if(!undershirt_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/undershirt, undershirt_list, undershirt_m, undershirt_f)
+	switch(gender)
+		if(MALE)	return pick(undershirt_m)
+		if(FEMALE)	return pick(undershirt_f)
+		else		return pick(undershirt_list)
 
-proc/random_facial_hair_style(gender, species = "Human")
-	var/f_style = "Shaved"
+/proc/random_socks(gender)
+	if(!socks_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/socks, socks_list, socks_m, socks_f)
+	switch(gender)
+		if(MALE)	return pick(socks_m)
+		if(FEMALE)	return pick(socks_f)
+		else		return pick(socks_list)
 
-	var/list/valid_facialhairstyles = list()
-	for(var/facialhairstyle in facial_hair_styles_list)
-		var/datum/sprite_accessory/S = facial_hair_styles_list[facialhairstyle]
-		if(gender == MALE && S.gender == FEMALE)
-			continue
-		if(gender == FEMALE && S.gender == MALE)
-			continue
-		if( !(species in S.species_allowed))
-			continue
+/proc/random_features()
+	if(!tails_list_human.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/human, tails_list_human)
+	if(!tails_list_lizard.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/tails/lizard, tails_list_lizard)
+	if(!snouts_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/snouts, snouts_list)
+	if(!horns_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/horns, horns_list)
+	if(!ears_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/ears, horns_list)
+	if(!frills_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/frills, frills_list)
+	if(!spines_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/spines, spines_list)
+	if(!body_markings_list.len)
+		init_sprite_accessory_subtypes(/datum/sprite_accessory/body_markings, body_markings_list)
 
-		valid_facialhairstyles[facialhairstyle] = facial_hair_styles_list[facialhairstyle]
+	//For now we will always return none for tail_human and ears.
+	return(list("mcolor" = pick("FFFFFF","7F7F7F", "7FFF7F", "7F7FFF", "FF7F7F", "7FFFFF", "FF7FFF", "FFFF7F"), "tail_lizard" = pick(tails_list_lizard), "tail_human" = "None", "snout" = pick(snouts_list), "horns" = pick(horns_list), "ears" = "None", "frills" = pick(frills_list), "spines" = pick(spines_list), "body_markings" = pick(body_markings_list)))
 
-	if(valid_facialhairstyles.len)
-		f_style = pick(valid_facialhairstyles)
+/proc/random_hair_style(gender)
+	switch(gender)
+		if(MALE)	return pick(hair_styles_male_list)
+		if(FEMALE)	return pick(hair_styles_female_list)
+		else		return pick(hair_styles_list)
 
-		return f_style
+/proc/random_facial_hair_style(gender)
+	switch(gender)
+		if(MALE)	return pick(facial_hair_styles_male_list)
+		if(FEMALE)	return pick(facial_hair_styles_female_list)
+		else		return pick(facial_hair_styles_list)
 
-proc/random_name(gender, species = "Human")
+/proc/random_unique_name(gender, attempts_to_find_unique_name=10)
+	for(var/i=1, i<=attempts_to_find_unique_name, i++)
+		if(gender==FEMALE)	. = capitalize(pick(first_names_female)) + " " + capitalize(pick(last_names))
+		else				. = capitalize(pick(first_names_male)) + " " + capitalize(pick(last_names))
 
-	var/datum/species/current_species
-	if(species)
-		current_species = all_species[species]
+		if(i != attempts_to_find_unique_name && !findname(.))
+			break
 
-	if(!current_species || current_species.name == "Human")
-		if(gender==FEMALE)
-			return capitalize(pick(first_names_female)) + " " + capitalize(pick(last_names))
-		else
-			return capitalize(pick(first_names_male)) + " " + capitalize(pick(last_names))
-	else
-		return current_species.get_random_name(gender)
+/proc/random_unique_lizard_name(gender, attempts_to_find_unique_name=10)
+	for(var/i=1, i<=attempts_to_find_unique_name, i++)
+		. = capitalize(lizard_name(gender))
 
-proc/random_skin_tone()
-	switch(pick(60;"caucasian", 15;"afroamerican", 10;"african", 10;"latino", 5;"albino"))
-		if("caucasian")		. = -10
-		if("afroamerican")	. = -115
-		if("african")		. = -165
-		if("latino")		. = -55
-		if("albino")		. = 34
-		else				. = rand(-185,34)
-	return min(max( .+rand(-25, 25), -185),34)
+		if(i != attempts_to_find_unique_name && !findname(.))
+			break
 
-proc/skintone2racedescription(tone)
-	switch (tone)
-		if(30 to INFINITY)		return "albino"
-		if(20 to 30)			return "pale"
-		if(5 to 15)				return "light skinned"
-		if(-10 to 5)			return "white"
-		if(-25 to -10)			return "tan"
-		if(-45 to -25)			return "darker skinned"
-		if(-65 to -45)			return "brown"
-		if(-INFINITY to -65)	return "black"
-		else					return "unknown"
+/proc/random_skin_tone()
+	return pick(skin_tones)
 
-proc/age2agedescription(age)
+var/list/skin_tones = list(
+	"albino",
+	"caucasian1",
+	"caucasian2",
+	"caucasian3",
+	"latino",
+	"mediterranean",
+	"asian1",
+	"asian2",
+	"arab",
+	"indian",
+	"african1",
+	"african2"
+	)
+
+var/global/list/species_list[0]
+var/global/list/roundstart_species[0]
+
+/proc/age2agedescription(age)
 	switch(age)
 		if(0 to 1)			return "infant"
 		if(1 to 3)			return "toddler"
@@ -86,49 +118,26 @@ proc/age2agedescription(age)
 		if(70 to INFINITY)	return "elderly"
 		else				return "unknown"
 
-proc/RoundHealth(health)
-	switch(health)
-		if(100 to INFINITY)
-			return "health100"
-		if(70 to 100)
-			return "health80"
-		if(50 to 70)
-			return "health60"
-		if(30 to 50)
-			return "health40"
-		if(18 to 30)
-			return "health25"
-		if(5 to 18)
-			return "health10"
-		if(1 to 5)
-			return "health1"
-		if(-99 to 0)
-			return "health0"
-		else
-			return "health-100"
-	return "0"
-
 /*
 Proc for attack log creation, because really why not
 1 argument is the actor
 2 argument is the target of action
 3 is the description of action(like punched, throwed, or any other verb)
-4 should it make adminlog note or not
-5 is the tool with which the action was made(usually item)					5 and 6 are very similar(5 have "by " before it, that it) and are separated just to keep things in a bit more in order
-6 is additional information, anything that needs to be added
+4 is the tool with which the action was made(usually item)					4 and 5 are very similar(4 have "by " before it, that it) and are separated just to keep things in a bit more in order
+5 is additional information, anything that needs to be added
 */
 
-/proc/add_logs(mob/user, mob/target, what_done, var/admin=1, var/object=null, var/addition=null)
+/proc/add_logs(mob/user, mob/target, what_done, object=null, addition=null)
+	var/newhealthtxt = ""
+	var/turf/attack_location = get_turf(target)
+	var/coordinates = "([attack_location.x],[attack_location.y],[attack_location.z])"
+	if (target)
+		coordinates = "([target.x],[target.y],[target.z])"
+		if(isliving(target))
+			var/mob/living/L = target
+			newhealthtxt = " (NEWHP: [L.health])"
 	if(user && ismob(user))
-		user.attack_log += text("\[[time_stamp()]\] <font color='red'>Has [what_done] [target ? "[target.name][(ismob(target) && target.ckey) ? "([target.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition]</font>")
+		user.attack_log += text("\[[time_stamp()]\] <font color='red'>Has [what_done] [target ? "[target.name][(ismob(target) && target.ckey) ? "([target.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition][newhealthtxt][coordinates]</font>")
 	if(target && ismob(target))
-		target.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been [what_done] by [user ? "[user.name][(ismob(user) && user.ckey) ? "([user.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition]</font>")
-	if(admin)
-		log_attack("<font color='red'>[user ? "[user.name][(ismob(user) && user.ckey) ? "([user.ckey])" : ""]" : "NON-EXISTANT SUBJECT"] [what_done] [target ? "[target.name][(ismob(target) && target.ckey)? "([target.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition]</font>")
-
-//checks whether this item is a module of the robot it is located in.
-/proc/is_robot_module(var/obj/item/thing)
-	if (!thing || !istype(thing.loc, /mob/living/silicon/robot))
-		return 0
-	var/mob/living/silicon/robot/R = thing.loc
-	return (thing in R.module.modules)
+		target.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been [what_done] by [user ? "[user.name][(ismob(user) && user.ckey) ? "([user.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition][newhealthtxt][coordinates]</font>")
+	log_attack("[user ? "[user.name][(ismob(user) && user.ckey) ? "([user.ckey])" : ""]" : "NON-EXISTANT SUBJECT"] [what_done] [target ? "[target.name][(ismob(target) && target.ckey)? "([target.ckey])" : ""]" : "NON-EXISTANT SUBJECT"][object ? " with [object]" : " "][addition][newhealthtxt][coordinates]")

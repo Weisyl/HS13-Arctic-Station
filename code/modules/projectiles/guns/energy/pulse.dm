@@ -1,41 +1,65 @@
-/obj/item/weapon/gun/energy/pulse_rifle
+/obj/item/weapon/gun/energy/pulse
 	name = "pulse rifle"
-	desc = "A weapon that uses advanced pulse-based beam generation technology to emit powerful laser blasts. Because of its complexity and cost, it is rarely seen in use except by specialists."
+	desc = "A heavy-duty, multifaceted energy rifle with three modes. Preferred by front-line combat personnel."
 	icon_state = "pulse"
-	item_state = null	//so the human update icon uses the icon_state instead.
-	slot_flags = SLOT_BELT|SLOT_BACK
+	item_state = "pulse"
+	w_class = 4
 	force = 10
-	fire_sound='sound/weapons/Laser.ogg'
-	projectile_type = /obj/item/projectile/beam
-	sel_mode = 2
-	max_shots = 10
-	
-	firemodes = list(
-		list(name="stun", projectile_type=/obj/item/projectile/beam/stun, fire_sound='sound/weapons/Taser.ogg'),
-		list(name="lethal", projectile_type=/obj/item/projectile/beam, fire_sound='sound/weapons/Laser.ogg'),
-		list(name="DESTROY", projectile_type=/obj/item/projectile/beam/pulse, fire_sound='sound/weapons/pulse.ogg', fire_delay=25, charge_cost=400),
-		)
+	flags =  CONDUCT
+	slot_flags = SLOT_BACK
+	ammo_type = list(/obj/item/ammo_casing/energy/laser/pulse, /obj/item/ammo_casing/energy/electrode, /obj/item/ammo_casing/energy/laser)
+	cell_type = "/obj/item/weapon/stock_parts/cell/pulse"
 
-/obj/item/weapon/gun/energy/pulse_rifle/mounted
-	self_recharge = 1
-	use_external_power = 1
+/obj/item/weapon/gun/energy/pulse/attack_self(mob/living/user)
+	select_fire(user)
 
-/obj/item/weapon/gun/energy/pulse_rifle/destroyer
+/obj/item/weapon/gun/energy/pulse/emp_act(severity)
+	return
+
+/obj/item/weapon/gun/energy/pulse/loyalpin
+
+/obj/item/weapon/gun/energy/pulse/carbine
+	name = "pulse carbine"
+	desc = "A compact variant of the pulse rifle with less firepower but easier storage."
+	w_class = 3
+	slot_flags = SLOT_BELT
+	icon_state = "pulse_carbine"
+	item_state = "pulse"
+	cell_type = "/obj/item/weapon/stock_parts/cell/pulse/carbine"
+	can_flashlight = 1
+	flight_x_offset = 18
+	flight_y_offset = 12
+	can_knife = 1
+	knife_x_offset = 18
+	knife_y_offset = 12
+
+/obj/item/weapon/gun/energy/pulse/carbine/loyalpin
+
+/obj/item/weapon/gun/energy/pulse/pistol
+	name = "pulse pistol"
+	desc = "A pulse rifle in an easily concealed handgun package with low capacity."
+	w_class = 2
+	slot_flags = SLOT_BELT
+	icon_state = "pulse_pistol"
+	item_state = "gun"
+	cell_type = "/obj/item/weapon/stock_parts/cell/pulse/pistol"
+	can_charge = 0
+
+/obj/item/weapon/gun/energy/pulse/pistol/loyalpin
+
+
+/obj/item/weapon/gun/energy/pulse/destroyer
 	name = "pulse destroyer"
-	desc = "A heavy-duty, pulse-based energy weapon. Because of its complexity and cost, it is rarely seen in use except by specialists."
-	cell_type = /obj/item/weapon/cell/super
-	fire_delay = 25
-	fire_sound='sound/weapons/pulse.ogg'
-	projectile_type=/obj/item/projectile/beam/pulse
-	charge_cost=400
+	desc = "A heavy-duty energy rifle built for pure destruction."
+	cell_type = "/obj/item/weapon/stock_parts/cell/infinite"
+	ammo_type = list(/obj/item/ammo_casing/energy/laser/pulse)
 
-/obj/item/weapon/gun/energy/pulse_rifle/destroyer/attack_self(mob/living/user as mob)
-	user << "<span class='warning'>[src.name] has three settings, and they are all DESTROY.</span>"
+/obj/item/weapon/gun/energy/pulse/destroyer/attack_self(mob/living/user)
+	user << "<span class='danger'>[src.name] has three settings, and they are all DESTROY.</span>"
 
-//WHY?
-/obj/item/weapon/gun/energy/pulse_rifle/M1911
+/obj/item/weapon/gun/energy/pulse/pistol/m1911
 	name = "\improper M1911-P"
-	desc = "It's not the size of the gun, it's the size of the hole it puts through people."
-	slot_flags = SLOT_BELT|SLOT_HOLSTER
-	icon_state = "m1911-p"
-	max_shots = 5
+	desc = "A compact pulse core in a classic handgun frame for Nanotrasen officers. It's not the size of the gun, it's the size of the hole it puts through people."
+	icon_state = "m1911"
+	item_state = "gun"
+	cell_type = "/obj/item/weapon/stock_parts/cell/infinite"

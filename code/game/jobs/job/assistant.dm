@@ -1,7 +1,9 @@
+/*
+Assistant
+*/
 /datum/job/assistant
 	title = "Assistant"
 	flag = ASSISTANT
-	department = "Civilian"
 	department_flag = CIVILIAN
 	faction = "Station"
 	total_positions = -1
@@ -10,20 +12,29 @@
 	selection_color = "#dddddd"
 	access = list()			//See /datum/job/assistant/get_access()
 	minimal_access = list()	//See /datum/job/assistant/get_access()
-	alt_titles = list("Technical Assistant","Medical Intern","Research Assistant","Visitor")
-
-/datum/job/assistant/equip(var/mob/living/carbon/human/H)
-	if(!H)	return 0
-	switch(H.backbag)
-		if(2) H.equip_to_slot_or_del(new /obj/item/weapon/storage/backpack(H), slot_back)
-		if(3) H.equip_to_slot_or_del(new /obj/item/weapon/storage/backpack/satchel_norm(H), slot_back)
-		if(4) H.equip_to_slot_or_del(new /obj/item/weapon/storage/backpack/satchel(H), slot_back)
-	H.equip_to_slot_or_del(new /obj/item/clothing/under/color/grey(H), slot_w_uniform)
-	H.equip_to_slot_or_del(new /obj/item/clothing/shoes/black(H), slot_shoes)
-	return 1
+	outfit = /datum/outfit/job/assistant
 
 /datum/job/assistant/get_access()
-	if(config.assistant_maint)
-		return list(access_maint_tunnels)
+	if((config.jobs_have_maint_access & ASSISTANTS_HAVE_MAINT_ACCESS) || !config.jobs_have_minimal_access) //Config has assistant maint access set
+		. = ..()
+		. |= list(access_maint_tunnels)
 	else
-		return list()
+		return ..()
+
+/datum/job/assistant/config_check()
+	if(config && !(config.assistant_cap == 0))
+		total_positions = config.assistant_cap
+		spawn_positions = config.assistant_cap
+		return 1
+	return 0
+
+
+/datum/outfit/job/assistant
+	name = "Assistant"
+
+/datum/outfit/job/assistant/pre_equip(mob/living/carbon/human/H)
+	..()
+	if (config.grey_assistants)
+		uniform = /obj/item/clothing/under/color/grey
+	else
+		uniform = /obj/item/clothing/under/color/random

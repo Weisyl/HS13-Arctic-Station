@@ -1,51 +1,34 @@
-/obj/structure/bed/chair/e_chair
+/obj/structure/stool/bed/chair/e_chair
 	name = "electric chair"
-	desc = "Looks absolutely SHOCKING!"
+	desc = "Looks absolutely SHOCKING!\n<span class='notice'>Alt-click to rotate it clockwise.</span>"
 	icon_state = "echair0"
-	var/on = 0
 	var/obj/item/assembly/shock_kit/part = null
-	var/last_time = 1.0
+	var/last_time = 1
 
-/obj/structure/bed/chair/e_chair/New()
+/obj/structure/stool/bed/chair/e_chair/New()
 	..()
 	overlays += image('icons/obj/objects.dmi', src, "echair_over", MOB_LAYER + 1, dir)
 	return
 
-/obj/structure/bed/chair/e_chair/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/structure/stool/bed/chair/e_chair/attackby(obj/item/weapon/W, mob/user, params)
 	if(istype(W, /obj/item/weapon/wrench))
-		var/obj/structure/bed/chair/C = new /obj/structure/bed/chair(loc)
+		var/obj/structure/stool/bed/chair/C = new /obj/structure/stool/bed/chair(loc)
 		playsound(loc, 'sound/items/Ratchet.ogg', 50, 1)
-		C.set_dir(dir)
-		part.loc = loc
+		C.dir = dir
+		part.loc = src.loc
 		part.master = null
 		part = null
 		qdel(src)
 		return
 	return
 
-/obj/structure/bed/chair/e_chair/verb/toggle()
-	set name = "Toggle Electric Chair"
-	set category = "Object"
-	set src in oview(1)
-
-	if(on)
-		on = 0
-		icon_state = "echair0"
-	else
-		on = 1
-		icon_state = "echair1"
-	usr << "<span class='notice'>You switch [on ? "on" : "off"] [src].</span>"
-	return
-
-/obj/structure/bed/chair/e_chair/rotate()
+/obj/structure/stool/bed/chair/e_chair/rotate()
 	..()
 	overlays.Cut()
 	overlays += image('icons/obj/objects.dmi', src, "echair_over", MOB_LAYER + 1, dir)	//there's probably a better way of handling this, but eh. -Pete
 	return
 
-/obj/structure/bed/chair/e_chair/proc/shock()
-	if(!on)
-		return
+/obj/structure/stool/bed/chair/e_chair/proc/shock()
 	if(last_time + 50 > world.time)
 		return
 	last_time = world.time
@@ -66,11 +49,10 @@
 	s.start()
 	if(buckled_mob)
 		buckled_mob.burn_skin(85)
-		buckled_mob << "<span class='danger'>You feel a deep shock course through your body!</span>"
+		buckled_mob << "<span class='userdanger'>You feel a deep shock course through your body!</span>"
 		sleep(1)
 		buckled_mob.burn_skin(85)
-		buckled_mob.Stun(600)
-	visible_message("<span class='danger'>The electric chair went off!</span>", "<span class='danger'>You hear a deep sharp shock!</span>")
+	visible_message("<span class='danger'>The electric chair went off!</span>", "<span class='italics'>You hear a deep sharp shock!</span>")
 
 	A.power_light = light
 	A.updateicon()

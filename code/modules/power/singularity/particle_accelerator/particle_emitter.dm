@@ -3,7 +3,7 @@
 /obj/structure/particle_accelerator/particle_emitter
 	name = "EM Containment Grid"
 	desc_holder = "This launchs the Alpha particles, might not want to stand near this end."
-	icon = 'icons/obj/machines/particle_accelerator2.dmi'
+	icon = 'icons/obj/machines/particle_accelerator.dmi'
 	icon_state = "none"
 	var/fire_delay = 50
 	var/last_shot = 0
@@ -24,14 +24,14 @@
 	..()
 	return
 
-/obj/structure/particle_accelerator/particle_emitter/proc/set_delay(var/delay)
+/obj/structure/particle_accelerator/particle_emitter/proc/set_delay(delay)
 	if(delay && delay >= 0)
 		src.fire_delay = delay
 		return 1
 	return 0
 
 
-/obj/structure/particle_accelerator/particle_emitter/proc/emit_particle(var/strength = 0)
+/obj/structure/particle_accelerator/particle_emitter/proc/emit_particle(strength = 0)
 	if((src.last_shot + src.fire_delay) <= world.time)
 		src.last_shot = world.time
 		var/obj/effect/accelerated_particle/A = null
@@ -43,7 +43,9 @@
 				A = new/obj/effect/accelerated_particle(T, dir)
 			if(2)
 				A = new/obj/effect/accelerated_particle/strong(T, dir)
+			if(3)
+				A = new/obj/effect/accelerated_particle/powerful(T, dir)
 		if(A)
-			A.set_dir(src.dir)
+			A.dir = src.dir
 			return 1
 	return 0

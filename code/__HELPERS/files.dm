@@ -2,12 +2,12 @@
 //returns text as a string if these conditions are met
 /proc/return_file_text(filename)
 	if(fexists(filename) == 0)
-		error("File not found ([filename])")
+		throw EXCEPTION("return_file_text(): File not found")
 		return
 
 	var/text = file2text(filename)
 	if(!text)
-		error("File empty ([filename])")
+		throw EXCEPTION("return_file_text(): File empty")
 		return
 
 	return text
@@ -21,7 +21,7 @@
 	var/path = root
 
 	for(var/i=0, i<max_iterations, i++)
-		var/list/choices = sortList(flist(path))
+		var/list/choices = flist(path)
 		if(path != root)
 			choices.Insert(1,"/")
 

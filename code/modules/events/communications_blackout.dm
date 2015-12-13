@@ -1,4 +1,12 @@
-/datum/event/communications_blackout/announce()
+/datum/round_event_control/communications_blackout
+	name = "Communications Blackout"
+	typepath = /datum/round_event/communications_blackout
+	weight = 30
+
+/datum/round_event/communications_blackout
+	announceWhen	= 1
+
+/datum/round_event/communications_blackout/announce()
 	var/alert = pick(	"Ionospheric anomalies detected. Temporary telecommunication failure imminent. Please contact you*%fj00)`5vc-BZZT", \
 						"Ionospheric anomalies detected. Temporary telecommunication failu*3mga;b4;'1v¬-BZZZT", \
 						"Ionospheric anomalies detected. Temporary telec#MCi46:5.;@63-BZZZZT", \
@@ -12,9 +20,9 @@
 		A << "<br>"
 
 	if(prob(30))	//most of the time, we don't want an announcement, so as to allow AIs to fake blackouts.
-		command_announcement.Announce(alert, new_sound = sound('sound/misc/interference.ogg', volume=25))
+		priority_announce(alert)
 
 
-/datum/event/communications_blackout/start()
+/datum/round_event/communications_blackout/start()
 	for(var/obj/machinery/telecomms/T in telecomms_list)
 		T.emp_act(1)

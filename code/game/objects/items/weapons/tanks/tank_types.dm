@@ -3,37 +3,32 @@
  *		Oxygen
  *		Anesthetic
  *		Air
- *		Phoron
+ *		Plasma
  *		Emergency Oxygen
  */
 
 /*
  * Oxygen
  */
-/obj/item/weapon/tank/oxygen
+/obj/item/weapon/tank/internals/oxygen
 	name = "oxygen tank"
 	desc = "A tank of oxygen."
 	icon_state = "oxygen"
 	distribute_pressure = ONE_ATMOSPHERE*O2STANDARD
+	force = 10
+	materials = list(MAT_METAL = 5000)
+
+/obj/item/weapon/tank/internals/oxygen/New()
+	..()
+	src.air_contents.oxygen = (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
 
 
-	New()
-		..()
-		air_contents.adjust_gas("oxygen", (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
-		return
-
-
-	examine(mob/user)
-		if(..(user, 0) && air_contents.gas["oxygen"] < 10)
-			user << text("\red <B>The meter on the [src.name] indicates you are almost out of oxygen!</B>")
-			//playsound(usr, 'sound/effects/alert.ogg', 50, 1)
-
-
-/obj/item/weapon/tank/oxygen/yellow
+/obj/item/weapon/tank/internals/oxygen/yellow
 	desc = "A tank of oxygen, this one is yellow."
 	icon_state = "oxygen_f"
 
-/obj/item/weapon/tank/oxygen/red
+/obj/item/weapon/tank/internals/oxygen/red
 	desc = "A tank of oxygen, this one is red."
 	icon_state = "oxygen_fr"
 
@@ -41,61 +36,61 @@
 /*
  * Anesthetic
  */
-/obj/item/weapon/tank/anesthetic
+/obj/item/weapon/tank/internals/anesthetic
 	name = "anesthetic tank"
 	desc = "A tank with an N2O/O2 gas mix."
 	icon_state = "anesthetic"
 	item_state = "an_tank"
+	force = 10
+	materials = list(MAT_METAL = 5000)
 
-/obj/item/weapon/tank/anesthetic/New()
+/obj/item/weapon/tank/internals/anesthetic/New()
 	..()
 
-	air_contents.gas["oxygen"] = (3*ONE_ATMOSPHERE)*70/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD
-	air_contents.gas["sleeping_agent"] = (3*ONE_ATMOSPHERE)*70/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD
-	air_contents.update_values()
+	src.air_contents.oxygen = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD
 
+	var/datum/gas/sleeping_agent/trace_gas = new()
+	trace_gas.moles = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD
+
+	src.air_contents.trace_gases += trace_gas
 	return
 
 /*
  * Air
  */
-/obj/item/weapon/tank/air
+/obj/item/weapon/tank/internals/air
 	name = "air tank"
 	desc = "Mixed anyone?"
 	icon_state = "oxygen"
+	force = 10
 
-
-	examine(mob/user)
-		if(..(user, 0) && air_contents.gas["oxygen"] < 1 && loc==user)
-			user << "\red <B>The meter on the [src.name] indicates you are almost out of air!</B>"
-			user << sound('sound/effects/alert.ogg')
-
-/obj/item/weapon/tank/air/New()
+/obj/item/weapon/tank/internals/air/New()
 	..()
 
-	src.air_contents.adjust_multi("oxygen", (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD, "nitrogen", (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD)
-
+	src.air_contents.oxygen = (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * O2STANDARD
+	src.air_contents.nitrogen = (6*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C) * N2STANDARD
 	return
 
 
 /*
- * Phoron
+ * Plasma
  */
-/obj/item/weapon/tank/phoron
-	name = "phoron tank"
-	desc = "Contains dangerous phoron. Do not inhale. Warning: extremely flammable."
-	icon_state = "phoron"
+/obj/item/weapon/tank/internals/plasma
+	name = "plasma tank"
+	desc = "Contains dangerous plasma. Do not inhale. Warning: extremely flammable."
+	icon_state = "plasma"
 	flags = CONDUCT
 	slot_flags = null	//they have no straps!
+	force = 8
+	materials = list(MAT_METAL = 5000)
 
-
-/obj/item/weapon/tank/phoron/New()
+/obj/item/weapon/tank/internals/plasma/New()
 	..()
 
-	src.air_contents.adjust_gas("phoron", (3*ONE_ATMOSPHERE)*70/(R_IDEAL_GAS_EQUATION*T20C))
+	src.air_contents.toxins = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
 	return
 
-/obj/item/weapon/tank/phoron/attackby(obj/item/weapon/W as obj, mob/user as mob)
+/obj/item/weapon/tank/internals/plasma/attackby(obj/item/weapon/W, mob/user, params)
 	..()
 
 	if (istype(W, /obj/item/weapon/flamethrower))
@@ -103,87 +98,82 @@
 		if ((!F.status)||(F.ptank))	return
 		src.master = F
 		F.ptank = src
-		user.remove_from_mob(src)
+		user.unEquip(src)
 		src.loc = F
+		F.update_icon()
 	return
+
+/obj/item/weapon/tank/internals/plasma/full/New()
+	..()
+	src.air_contents.toxins = (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
+
+
+/*
+ * Plasmaman Plasma Tank
+ */
+
+/obj/item/weapon/tank/internals/plasmaman
+	icon_state = "plasmaman_tank"
+	item_state = "plasmaman_tank"
+	force = 10
+
+/obj/item/weapon/tank/internals/plasmaman/New()
+	..()
+
+	src.air_contents.toxins = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
+
+/obj/item/weapon/tank/internals/plasmaman/full/New()
+	..()
+
+	src.air_contents.toxins = (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
+
+
+/obj/item/weapon/tank/internals/plasmaman/belt
+	icon_state = "plasmaman_tank_belt"
+	item_state = "plasmaman_tank_belt"
+	slot_flags = SLOT_BELT
+	force = 5
+
+/obj/item/weapon/tank/internals/plasmaman/belt/full/New()
+	..()
+
+	src.air_contents.toxins = (10*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
+
+
 
 /*
  * Emergency Oxygen
  */
-/obj/item/weapon/tank/emergency_oxygen
+/obj/item/weapon/tank/internals/emergency_oxygen
 	name = "emergency oxygen tank"
 	desc = "Used for emergencies. Contains very little oxygen, so try to conserve it until you actually need it."
 	icon_state = "emergency"
 	flags = CONDUCT
 	slot_flags = SLOT_BELT
-	w_class = 2.0
-	force = 4.0
+	w_class = 2
+	force = 4
 	distribute_pressure = ONE_ATMOSPHERE*O2STANDARD
-	volume = 2 //Tiny. Real life equivalents only have 21 breaths of oxygen in them. They're EMERGENCY tanks anyway -errorage (dangercon 2011)
+	volume = 3 //Tiny. Real life equivalents only have 21 breaths of oxygen in them. They're EMERGENCY tanks anyway -errorage (dangercon 2011)
+	materials = list(MAT_METAL=1000)
 
 
-	New()
-		..()
-		src.air_contents.adjust_gas("oxygen", (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
+/obj/item/weapon/tank/internals/emergency_oxygen/New()
+	..()
+	src.air_contents.oxygen = (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C)
+	return
 
-		return
-
-
-	examine(mob/user)
-		if(..(user, 0) && air_contents.gas["oxygen"] < 0.2 && loc==user)
-			user << text("\red <B>The meter on the [src.name] indicates you are almost out of air!</B>")
-			user << sound('sound/effects/alert.ogg')
-
-/obj/item/weapon/tank/emergency_oxygen/engi
+/obj/item/weapon/tank/internals/emergency_oxygen/engi
 	name = "extended-capacity emergency oxygen tank"
 	icon_state = "emergency_engi"
 	volume = 6
+	materials = list(MAT_METAL=2000)
 
-/obj/item/weapon/tank/emergency_oxygen/double
+/obj/item/weapon/tank/internals/emergency_oxygen/double
 	name = "double emergency oxygen tank"
-	icon_state = "emergency_double"
+	icon_state = "emergency_engi"
 	volume = 10
-
-/obj/item/weapon/tank/emergency_nitrogen
-	name = "emergency nitrogen tank"
-	desc = "An emergency air tank hastily painted red and issued to Vox crewmembers."
-	icon_state = "emergency_nitro"
-	flags = CONDUCT
-	slot_flags = SLOT_BELT
-	w_class = 2.0
-	force = 4.0
-	distribute_pressure = ONE_ATMOSPHERE*O2STANDARD
-	volume = 2
-	
-	New()
-		..()
-		src.air_contents.adjust_gas("nitrogen", (3*ONE_ATMOSPHERE)*volume/(R_IDEAL_GAS_EQUATION*T20C))
-
-		return
-
-
-	examine(mob/user)
-		if(..(user, 0) && air_contents.gas["nitrogen"] < 0.2 && loc==user)
-			user << text("\red <B>The meter on the [src.name] indicates you are almost out of air!</B>")
-			user << sound('sound/effects/alert.ogg')
-
-/*
- * Nitrogen
- */
-/obj/item/weapon/tank/nitrogen
-	name = "nitrogen tank"
-	desc = "A tank of nitrogen."
-	icon_state = "oxygen_fr"
-	distribute_pressure = ONE_ATMOSPHERE*O2STANDARD
-
-
-/obj/item/weapon/tank/nitrogen/New()
-	..()
-
-	src.air_contents.adjust_gas("nitrogen", (3*ONE_ATMOSPHERE)*70/(R_IDEAL_GAS_EQUATION*T20C))
-	return
-
-/obj/item/weapon/tank/nitrogen/examine(mob/user)
-	if(..(user, 0) && air_contents.gas["nitrogen"] < 10)
-		user << text("\red <B>The meter on the [src.name] indicates you are almost out of nitrogen!</B>")
-		//playsound(user, 'sound/effects/alert.ogg', 50, 1)
+	materials = list(MAT_METAL=4000)

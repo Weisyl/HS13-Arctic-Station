@@ -1,263 +1,218 @@
-////////////////////////////////////////////////////////////////////////////////
-/// Pills.
-////////////////////////////////////////////////////////////////////////////////
 /obj/item/weapon/reagent_containers/pill
 	name = "pill"
-	desc = "a pill."
+	desc = "A tablet or capsule."
 	icon = 'icons/obj/chemical.dmi'
-	icon_state = null
+	icon_state = "pill"
 	item_state = "pill"
-	possible_transfer_amounts = null
-	w_class = 1
-	slot_flags = SLOT_EARS
-	volume = 60
+	possible_transfer_amounts = list()
+	volume = 50
+	var/apply_type = INGEST
+	var/apply_method = "swallow"
+	var/roundstart = 0
+	var/cooldown_max = 60 // 60 seconds. after those,the pill in the butt starts transferring reagents.
+	var/cooldown = 0 // for ass update, copied from spell cooldown procs
 
-	New()
-		..()
-		if(!icon_state)
-			icon_state = "pill[rand(1, 20)]"
+/obj/item/weapon/reagent_containers/pill/New()
+	..()
+	if(!icon_state)
+		icon_state = "pill[rand(1,20)]"
+	if(reagents.total_volume && roundstart)
+		name += " ([reagents.total_volume]u)"
 
-	attack(mob/M as mob, mob/user as mob, def_zone)
-		if(M == user)
 
-			if(istype(M, /mob/living/carbon/human))
-				var/mob/living/carbon/human/H = M
-				if(H.species.flags & IS_SYNTHETIC)
-					H << "<span class='notice'>You have a monitor for a head, where do you think you're going to put that?</span>"
-					return
+/obj/item/weapon/reagent_containers/pill/attack_self(mob/user)
+	return
 
-				var/obj/item/blocked = H.check_mouth_coverage()
-				if(blocked)
-					user << "<span class='warning'>\The [blocked] is in the way!</span>"
-					return
 
-			M << "<span class='notice'>You swallow \the [src].</span>"
-			M.drop_from_inventory(src) //icon update
-			if(reagents.total_volume)
-				reagents.trans_to_mob(M, reagents.total_volume, CHEM_INGEST)
-			qdel(src)
-			return 1
-
-		else if(istype(M, /mob/living/carbon/human))
-
+/obj/item/weapon/reagent_containers/pill/attack(mob/M, mob/user, def_zone)
+	if(user.zone_sel.selecting =="groin" && user.a_intent == "grab")
+		if(ishuman(M))
 			var/mob/living/carbon/human/H = M
-			if(H.species.flags & IS_SYNTHETIC)
-				H << "<span class='notice'>They have a monitor for a head, where do you think you're going to put that?</span>"
-				return
+			var/obj/item/organ/internal/butt/B = H.getorgan(/obj/item/organ/internal/butt)
+			if(B)
+				if(!H.w_uniform)
+					var/buttspace = B.capacity - B.stored
+					if(!itemstorevalue)
+						switch(w_class)
+							if(1) itemstorevalue += 1 // tiny
+							if(2) itemstorevalue += 2 // small
+							if(3) itemstorevalue += 4 // normal
+							else itemstorevalue = -1 // too big in case we decide to add huge pills(?)
+					if(itemstorevalue != -1)//if the item is not too big
+						if(B.stored < B.capacity && itemstorevalue <= buttspace) // if the butt can still hold an item
+							if(H == user)
+								user.visible_message("<span class='notice'>You stuff \the [src] into your butt.</span>", "<span class='warning'>[user] stuffs \the [src] into his own butt.</span>")
+							else
+								H.visible_message("<span class='warning'>[user] attempts to stuff \the [src] inside [H]'s butt...</span>", "<span class='warning'>You attempt to stuff \the [src] inside [H]'s butt...</span>")
+								if(!do_mob(user, H))
+									if(H == user)
+										user << "<span class='warning'>You fail to stuff \the [src] in your butt.</span>"
+									else
+										user << "<span class='warning'>You fail to stuff \the [src] in [H]'s butt.</span>"
+									return 0
+								H.visible_message("<span class='danger'>[user] stuffs \the [src] inside [H]'s butt.</span>", "<span class='userdanger'>You stuff \the [src] inside [H]'s butt.</span>")
+							user.unEquip(src)
+							add_logs(user, M, "stuffed", object="[reagentlist(src)]")
+							B.contents += src
+							B.stored += itemstorevalue
+							for(var/i = 1 to reagents.total_volume)
+								if(!(src in B.contents))
+									break
+								sleep(50)
+								reagents.trans_to(M, 1)
+								i++
+							qdel(src)
+							return 1
+						else
+							if(H == user)
+								user << "<span class='warning'>Your butt is full!</span>"
+							else
+								user << "<span class='warning'>[H]'s butt is full!</span>"
+							return 0
+					else
+						if(H == user)
+							user << "<span class='warning'>This item is too big to fit in your butt!</span>"
+						else
+							user << "<span class='warning'>This item is too big to fit in [H]'s butt!</span>"
+						return 0
+				else
+					if(H == user)
+						user << "<span class='warning'>You'll need to remove your jumpsuit first.</span>"
+					else
+						user << "<span class='warning'>You'll need to remove [H]'s jumpsuit first.</span>"
+						H << "<span class='warning'>You feel your butt being poked with \the [src]!</span>"
+						user.visible_message("<span class='warning'>[user] pokes [H]'s butt with \the [src]!</span>", "<span class='warning'>You poke [H]'s butt with \the [src]!</span>")
+					return 0
+			else
+				if(H == user)
+					user << "<span class='warning'>You have no butt!</span>"
+				else
+					user << "<span class='warning'>[H] has no butt!</span>"
+				return 0
+		else
+			user << "<span class='warning'>You can only do that to humans.</span>"
+			return 0
 
-			var/obj/item/blocked = H.check_mouth_coverage()
-
-			if(blocked)
-				user << "<span class='warning'>\The [blocked] is in the way!</span>"
-				return
-
-			user.visible_message("<span class='warning'>[user] attempts to force [M] to swallow \the [src].</span>")
-
-			if(!do_mob(user, M))
-				return
-
-			user.drop_from_inventory(src) //icon update
-			user.visible_message("<span class='warning'>[user] forces [M] to swallow \the [src].</span>")
-
-			var/contained = reagentlist()
-			M.attack_log += text("\[[time_stamp()]\] <font color='orange'>Has been fed [name] by [key_name(user)] Reagents: [contained]</font>")
-			user.attack_log += text("\[[time_stamp()]\] <font color='red'>Fed [name] to [key_name(M)] Reagents: [contained]</font>")
-			msg_admin_attack("[key_name_admin(user)] fed [key_name_admin(M)] with [name] Reagents: [contained] (INTENT: [uppertext(user.a_intent)]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
-
-			if(reagents.total_volume)
-				reagents.trans_to_mob(M, reagents.total_volume, CHEM_INGEST)
-			qdel(src)
-
-			return 1
-
+	if(!canconsume(M, user))
 		return 0
 
-	afterattack(obj/target, mob/user, proximity)
-		if(!proximity) return
+	if(M == user)
+		M << "<span class='notice'>You [apply_method] [src].</span>"
 
-		if(target.is_open_container() && target.reagents)
-			if(!target.reagents.total_volume)
-				user << "<span class='notice'>[target] is empty. Can't dissolve \the [src].</span>"
-				return
-			user << "<span class='notice'>You dissolve \the [src] in [target].</span>"
+	else
+		M.visible_message("<span class='danger'>[user] attempts to force [M] to [apply_method] [src].</span>", \
+							"<span class='userdanger'>[user] attempts to force [M] to [apply_method] [src].</span>")
 
-			user.attack_log += text("\[[time_stamp()]\] <font color='red'>Spiked \a [target] with a pill. Reagents: [reagentlist()]</font>")
-			msg_admin_attack("[user.name] ([user.ckey]) spiked \a [target] with a pill. Reagents: [reagentlist()] (INTENT: [uppertext(user.a_intent)]) (<A HREF='?_src_=holder;adminplayerobservecoodjump=1;X=[user.x];Y=[user.y];Z=[user.z]'>JMP</a>)")
+		if(!do_mob(user, M)) return
 
-			reagents.trans_to(target, reagents.total_volume)
-			for(var/mob/O in viewers(2, user))
-				O.show_message("<span class='warning'>[user] puts something in \the [target].</span>", 1)
+		M.visible_message("<span class='danger'>[user] forces [M] to [apply_method] [src].</span>", \
+							"<span class='userdanger'>[user] forces [M] to [apply_method] [src].</span>")
 
+
+	user.unEquip(src) //icon update
+	add_logs(user, M, "fed", reagentlist(src))
+	loc = M //Put the pill inside the mob. This fixes the issue where the pill appears to drop to the ground after someone eats it.
+
+	if(reagents.total_volume)
+		reagents.reaction(M, apply_type)
+		reagents.trans_to(M, reagents.total_volume)
+		qdel(src)
+		return 1
+	else
+		qdel(src)
+		return 1
+	return 0
+
+
+/obj/item/weapon/reagent_containers/pill/afterattack(obj/target, mob/user , proximity)
+	if(!proximity) return
+	if(target.is_open_container() != 0 && target.reagents)
+		if(!target.reagents.total_volume)
+			user << "<span class='warning'>[target] is empty! There's nothing to dissolve [src] in.</span>"
+			return
+		user << "<span class='notice'>You dissolve [src] in [target].</span>"
+		for(var/mob/O in viewers(2, user))	//viewers is necessary here because of the small radius
+			O << "<span class='warning'>[user] slips something into [target]!</span>"
+		reagents.trans_to(target, reagents.total_volume)
+		spawn(5)
 			qdel(src)
 
-		return
-
-////////////////////////////////////////////////////////////////////////////////
-/// Pills. END
-////////////////////////////////////////////////////////////////////////////////
-
-//Pills
-/obj/item/weapon/reagent_containers/pill/antitox
-	name = "Anti-toxins pill"
-	desc = "Neutralizes many common toxins."
-	icon_state = "pill17"
-	New()
-		..()
-		reagents.add_reagent("anti_toxin", 25)
-
 /obj/item/weapon/reagent_containers/pill/tox
-	name = "Toxins pill"
+	name = "toxins pill"
 	desc = "Highly toxic."
 	icon_state = "pill5"
-	New()
-		..()
-		reagents.add_reagent("toxin", 50)
-
+	list_reagents = list("toxin" = 50)
+	roundstart = 1
 /obj/item/weapon/reagent_containers/pill/cyanide
-	name = "Cyanide pill"
+	name = "cyanide pill"
 	desc = "Don't swallow this."
 	icon_state = "pill5"
-	New()
-		..()
-		reagents.add_reagent("cyanide", 50)
-
+	list_reagents = list("cyanide" = 50)
+	roundstart = 1
 /obj/item/weapon/reagent_containers/pill/adminordrazine
-	name = "Adminordrazine pill"
+	name = "adminordrazine pill"
 	desc = "It's magic. We don't have to explain it."
 	icon_state = "pill16"
-	New()
-		..()
-		reagents.add_reagent("adminordrazine", 50)
-
-/obj/item/weapon/reagent_containers/pill/stox
-	name = "Sleeping pill"
+	list_reagents = list("adminordrazine" = 50)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/morphine
+	name = "morphine pill"
 	desc = "Commonly used to treat insomnia."
 	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("stoxin", 15)
-
-/obj/item/weapon/reagent_containers/pill/kelotane
-	name = "Kelotane pill"
-	desc = "Used to treat burns."
-	icon_state = "pill11"
-	New()
-		..()
-		reagents.add_reagent("kelotane", 15)
-
-/obj/item/weapon/reagent_containers/pill/paracetamol
-	name = "Paracetamol pill"
-	desc = "Tylenol! A painkiller for the ages. Chewables!"
-	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("paracetamol", 15)
-
-/obj/item/weapon/reagent_containers/pill/tramadol
-	name = "Tramadol pill"
-	desc = "A simple painkiller."
-	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("tramadol", 15)
-
-
-/obj/item/weapon/reagent_containers/pill/methylphenidate
-	name = "Methylphenidate pill"
-	desc = "Improves the ability to concentrate."
-	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("methylphenidate", 15)
-
-/obj/item/weapon/reagent_containers/pill/citalopram
-	name = "Citalopram pill"
-	desc = "Mild anti-depressant."
-	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("citalopram", 15)
-
-
-/obj/item/weapon/reagent_containers/pill/inaprovaline
-	name = "Inaprovaline pill"
-	desc = "Used to stabilize patients."
-	icon_state = "pill20"
-	New()
-		..()
-		reagents.add_reagent("inaprovaline", 30)
-
-/obj/item/weapon/reagent_containers/pill/dexalin
-	name = "Dexalin pill"
-	desc = "Used to treat oxygen deprivation."
-	icon_state = "pill16"
-	New()
-		..()
-		reagents.add_reagent("dexalin", 15)
-
-/obj/item/weapon/reagent_containers/pill/dexalin_plus
-	name = "Dexalin Plus pill"
-	desc = "Used to treat extreme oxygen deprivation."
-	icon_state = "pill8"
-	New()
-		..()
-		reagents.add_reagent("dexalinp", 15)
-
-/obj/item/weapon/reagent_containers/pill/dermaline
-	name = "Dermaline pill"
-	desc = "Used to treat burn wounds."
-	icon_state = "pill12"
-	New()
-		..()
-		reagents.add_reagent("dermaline", 15)
-
-/obj/item/weapon/reagent_containers/pill/dylovene
-	name = "Dylovene pill"
-	desc = "A broad-spectrum anti-toxin."
-	icon_state = "pill13"
-	New()
-		..()
-		reagents.add_reagent("anti_toxin", 15)
-
-/obj/item/weapon/reagent_containers/pill/inaprovaline
-	name = "Inaprovaline pill"
-	desc = "Used to stabilize patients."
-	icon_state = "pill20"
-	New()
-		..()
-		reagents.add_reagent("inaprovaline", 30)
-
-/obj/item/weapon/reagent_containers/pill/bicaridine
-	name = "Bicaridine pill"
-	desc = "Used to treat physical injuries."
-	icon_state = "pill18"
-	New()
-		..()
-		reagents.add_reagent("bicaridine", 20)
-
-/obj/item/weapon/reagent_containers/pill/happy
-	name = "Happy pill"
-	desc = "Happy happy joy joy!"
-	icon_state = "pill18"
-	New()
-		..()
-		reagents.add_reagent("space_drugs", 15)
-		reagents.add_reagent("sugar", 15)
-
-/obj/item/weapon/reagent_containers/pill/zoom
-	name = "Zoom pill"
-	desc = "Zoooom!"
-	icon_state = "pill18"
-	New()
-		..()
-		reagents.add_reagent("impedrezene", 10)
-		reagents.add_reagent("synaptizine", 5)
-		reagents.add_reagent("hyperzine", 5)
-
-/obj/item/weapon/reagent_containers/pill/spaceacillin
-	name = "Spaceacillin pill"
-	desc = "Contains antiviral agents."
+	list_reagents = list("morphine" = 30)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/stimulant
+	name = "stimulant pill"
+	desc = "Often taken by overworked employees, athletes, and the inebriated. You'll snap to attention immediately!"
 	icon_state = "pill19"
-	New()
-		..()
-		reagents.add_reagent("spaceacillin", 15)
+	list_reagents = list("ephedrine" = 10, "antihol" = 10, "coffee" = 30)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/salbutamol
+	name = "salbutamol pill"
+	desc = "Used to treat oxygen deprivation."
+	icon_state = "pill18"
+	list_reagents = list("salbutamol" = 30)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/charcoal
+	name = "antitoxin pill"
+	desc = "Neutralizes many common toxins."
+	icon_state = "pill17"
+	list_reagents = list("charcoal" = 50)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/epinephrine
+	name = "epinephrine pill"
+	desc = "Used to stabilize patients."
+	icon_state = "pill5"
+	list_reagents = list("epinephrine" = 15)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/mannitol
+	name = "mannitol pill"
+	desc = "Used to treat brain damage."
+	icon_state = "pill17"
+	list_reagents = list("mannitol" = 50)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/mutadone
+	name = "mutadone pill"
+	desc = "Used to treat genetic damage."
+	icon_state = "pill20"
+	list_reagents = list("mutadone" = 50)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/salicyclic
+	name = "salicylic acid pill"
+	desc = "Used to dull pain."
+	icon_state = "pill5"
+	list_reagents = list("sal_acid" = 24)
+	roundstart = 1
+/obj/item/weapon/reagent_containers/pill/oxandrolone
+	name = "oxandrolone pill"
+	desc = "Used to stimulate burn healing."
+	icon_state = "pill5"
+	list_reagents = list("oxandrolone" = 24)
+	roundstart = 1
+
+/obj/item/weapon/reagent_containers/pill/insulin
+	name = "insulin pill"
+	desc = "Handles hyperglycaemic coma."
+	icon_state = "pill5"
+	list_reagents = list("insulin" = 50)
+	roundstart = 1

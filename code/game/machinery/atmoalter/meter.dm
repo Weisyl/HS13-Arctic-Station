@@ -1,26 +1,33 @@
 /obj/machinery/meter
-	name = "meter"
+	name = "gas flow meter"
 	desc = "It measures something."
 	icon = 'icons/obj/meter.dmi'
 	icon_state = "meterX"
 	var/obj/machinery/atmospherics/pipe/target = null
-	anchored = 1.0
+	anchored = 1
 	power_channel = ENVIRON
 	var/frequency = 0
 	var/id
 	use_power = 1
-	idle_power_usage = 15
+	idle_power_usage = 2
+	active_power_usage = 4
 
 /obj/machinery/meter/New()
 	..()
+	SSair.atmos_machinery += src
 	src.target = locate(/obj/machinery/atmospherics/pipe) in loc
 	return 1
+
+/obj/machinery/meter/Destroy()
+	SSair.atmos_machinery -= src
+	src.target = null
+	return ..()
 
 /obj/machinery/meter/initialize()
 	if (!target)
 		src.target = locate(/obj/machinery/atmospherics/pipe) in loc
 
-/obj/machinery/meter/process()
+/obj/machinery/meter/process_atmos()
 	if(!target)
 		icon_state = "meterX"
 		return 0
@@ -28,6 +35,8 @@
 	if(stat & (BROKEN|NOPOWER))
 		icon_state = "meter0"
 		return 0
+
+	use_power(5)
 
 	var/datum/gas_mixture/environment = target.return_air()
 	if(!environment)
@@ -65,48 +74,58 @@
 		)
 		radio_connection.post_signal(src, signal)
 
-/obj/machinery/meter/examine(mob/user)
-	var/t = "A gas flow meter. "
-	
-	if(get_dist(user, src) > 3 && !(istype(user, /mob/living/silicon/ai) || istype(user, /mob/dead)))
-		t += "\blue <B>You are too far away to read it.</B>"
-	
-	else if(stat & (NOPOWER|BROKEN))
-		t += "\red <B>The display is off.</B>"	
-	
-	else if(src.target)
+/obj/machinery/meter/proc/status()
+	var/t = ""
+	if (src.target)
 		var/datum/gas_mixture/environment = target.return_air()
 		if(environment)
-			t += "The pressure gauge reads [round(environment.return_pressure(), 0.01)] kPa; [round(environment.temperature,0.01)]K ([round(environment.temperature-T0C,0.01)]&deg;C)"
+			t += "The pressure gauge reads [round(environment.return_pressure(), 0.01)] kPa; [round(environment.temperature,0.01)] K ([round(environment.temperature-T0C,0.01)]&deg;C)"
 		else
 			t += "The sensor error light is blinking."
 	else
 		t += "The connect error light is blinking."
-	
-	user << t
+	return t
 
-/obj/machinery/meter/Click()
+/obj/machinery/meter/examine(mob/user)
+	..()
+	user << status()
 
-	if(istype(usr, /mob/living/silicon/ai)) // ghosts can call ..() for examine
-		usr.examinate(src)
+
+/obj/machinery/meter/attackby(obj/item/weapon/W, mob/user, params)
+	if (istype(W, /obj/item/weapon/wrench))
+		playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
+		user << "<span class='notice'>You begin to unfasten \the [src]...</span>"
+		if (do_after(user, 40/W.toolspeed, target = src))
+			user.visible_message( \
+				"[user] unfastens \the [src].", \
+				"<span class='notice'>You unfasten \the [src].</span>", \
+				"<span class='italics'>You hear ratchet.</span>")
+			new /obj/item/pipe_meter(src.loc)
+			qdel(src)
+		return
+	..()
+
+/obj/machinery/meter/attack_ai(mob/user)
+	return src.attack_hand(user)
+
+/obj/machinery/meter/attack_paw(mob/user)
+	return src.attack_hand(user)
+
+/obj/machinery/meter/attack_hand(mob/user)
+
+	if(stat & (NOPOWER|BROKEN))
 		return 1
-	
-	return ..()
+	else
+		usr << status()
+		return 1
 
-/obj/machinery/meter/attackby(var/obj/item/weapon/W as obj, var/mob/user as mob)
-	if (!istype(W, /obj/item/weapon/wrench))
-		return ..()
-	playsound(src.loc, 'sound/items/Ratchet.ogg', 50, 1)
-	user << "\blue You begin to unfasten \the [src]..."
-	if (do_after(user, 40))
-		user.visible_message( \
-			"[user] unfastens \the [src].", \
-			"\blue You have unfastened \the [src].", \
-			"You hear ratchet.")
-		new /obj/item/pipe_meter(src.loc)
+/obj/machinery/meter/singularity_pull(S, current_size)
+	if(current_size >= STAGE_FIVE)
+		new /obj/item/pipe_meter(loc)
 		qdel(src)
 
 // TURF METER - REPORTS A TILE'S AIR CONTENTS
+//	why are you yelling?
 
 /obj/machinery/meter/turf/New()
 	..()
@@ -118,5 +137,3 @@
 	if (!target)
 		src.target = loc
 
-/obj/machinery/meter/turf/attackby(var/obj/item/weapon/W as obj, var/mob/user as mob)
-	return

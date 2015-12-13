@@ -3,27 +3,21 @@
 	desc = "Because you really needed another excuse to punch your crewmates."
 	icon_state = "boxing"
 	item_state = "boxing"
-
-/obj/item/clothing/gloves/boxing/attackby(obj/item/weapon/W, mob/user)
-	if(istype(W, /obj/item/weapon/wirecutters) || istype(W, /obj/item/weapon/scalpel))
-		user << "<span class='notice'>That won't work.</span>"	//Nope
-		return
-	..()
+	item_color = ""
+	put_on_delay = 60
+	species_exception = list(/datum/species/golem, /datum/species/golem/adamantine) // now you too can be a golem boxing champion
 
 /obj/item/clothing/gloves/boxing/green
 	icon_state = "boxinggreen"
 	item_state = "boxinggreen"
+	item_color = "green"
 
 /obj/item/clothing/gloves/boxing/blue
 	icon_state = "boxingblue"
 	item_state = "boxingblue"
+	item_color = "blue"
 
 /obj/item/clothing/gloves/boxing/yellow
 	icon_state = "boxingyellow"
 	item_state = "boxingyellow"
-
-/obj/item/clothing/gloves/white
-	name = "white gloves"
-	desc = "These look pretty fancy."
-	icon_state = "latex"
-	item_state = "lgloves"
+	item_color = "yellow"

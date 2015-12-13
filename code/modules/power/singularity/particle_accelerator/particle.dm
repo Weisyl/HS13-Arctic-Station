@@ -3,20 +3,12 @@
 /obj/effect/accelerated_particle
 	name = "Accelerated Particles"
 	desc = "Small things moving very fast."
-	icon = 'icons/obj/machines/particle_accelerator2.dmi'
+	icon = 'icons/obj/machines/particle_accelerator.dmi'
 	icon_state = "particle"//Need a new icon for this
 	anchored = 1
 	density = 1
 	var/movement_range = 10
-	var/energy = 10		//energy in eV
-	var/mega_energy = 0	//energy in MeV
-	var/frequency = 1
-	var/ionizing = 0
-	var/particle_type
-	var/additional_particles = 0
-	var/turf/target
-	var/turf/source
-	var/movetotarget = 1
+	var/energy = 10
 
 /obj/effect/accelerated_particle/weak
 	movement_range = 8
@@ -26,10 +18,15 @@
 	movement_range = 15
 	energy = 15
 
+/obj/effect/accelerated_particle/powerful
+	movement_range = 20
+	energy = 50
+
 
 /obj/effect/accelerated_particle/New(loc, dir = 2)
 	src.loc = loc
-	src.set_dir(dir)
+	src.dir = dir
+
 	if(movement_range > 20)
 		movement_range = 20
 	spawn(0)
@@ -52,36 +49,26 @@
 	return
 
 
-/obj/effect/accelerated_particle/ex_act(severity)
-	qdel(src)
+/obj/effect/accelerated_particle/ex_act(severity, target)
+	loc = null
 	return
 
 
 
-/obj/effect/accelerated_particle/proc/toxmob(var/mob/living/M)
-	var/radiation = (energy*2)
-	M.apply_effect((radiation*3),IRRADIATE,0)
+/obj/effect/accelerated_particle/proc/toxmob(mob/living/M)
+	M.rad_act(energy*6)
 	M.updatehealth()
-	//M << "\red You feel odd."
 	return
 
 
-/obj/effect/accelerated_particle/proc/move(var/lag)
-	if(target)
-		if(movetotarget)
-			if(!step_towards(src,target))
-				src.loc = get_step(src, get_dir(src,target))
-			if(get_dist(src,target) < 1)
-				movetotarget = 0
-		else
-			if(!step(src, get_step_away(src,source)))
-				src.loc = get_step(src, get_step_away(src,source))
-	else
-		if(!step(src,dir))
-			src.loc = get_step(src,dir)
+/obj/effect/accelerated_particle/proc/move(lag)
+	if(loc == null)
+		return
+	if(!step(src,dir))
+		src.loc = get_step(src,dir)
 	movement_range--
 	if(movement_range <= 0)
-		qdel(src)
+		loc = null
 	else
 		sleep(lag)
 		move(lag)

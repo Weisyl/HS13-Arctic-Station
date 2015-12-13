@@ -6,9 +6,9 @@
 	if(!client) return
 	client.inquisitive_ghost = !client.inquisitive_ghost
 	if(client.inquisitive_ghost)
-		src << "\blue You will now examine everything you click on."
+		src << "<span class='notice'>You will now examine everything you click on.</span>"
 	else
-		src << "\blue You will no longer examine things you click on."
+		src << "<span class='notice'>You will no longer examine things you click on.</span>"
 
 /mob/dead/observer/DblClickOn(var/atom/A, var/params)
 	if(client.buildmode)
@@ -24,22 +24,36 @@
 		ManualFollow(A)
 
 	// Otherwise jump
-	else
-		following = null
+	else if(A.loc)
 		loc = get_turf(A)
 
 /mob/dead/observer/ClickOn(var/atom/A, var/params)
 	if(client.buildmode)
 		build_click(src, client.buildmode, params, A)
 		return
-	if(world.time <= next_move) return
-	next_move = world.time + 8
+
+	var/list/modifiers = params2list(params)
+	if(modifiers["middle"])
+		MiddleClickOn(A)
+		return
+	if(modifiers["shift"])
+		ShiftClickOn(A)
+		return
+	if(modifiers["alt"])
+		AltClickOn(A)
+		return
+	if(modifiers["ctrl"])
+		CtrlClickOn(A)
+		return
+
+	if(world.time <= next_move)
+		return
 	// You are responsible for checking config.ghost_interaction when you override this function
 	// Not all of them require checking, see below
 	A.attack_ghost(src)
 
 // Oh by the way this didn't work with old click code which is why clicking shit didn't spam you
-/atom/proc/attack_ghost(mob/dead/observer/user as mob)
+/atom/proc/attack_ghost(mob/dead/observer/user)
 	if(user.client && user.client.inquisitive_ghost)
 		user.examinate(src)
 	return
@@ -48,27 +62,31 @@
 // And here are some good things for free:
 // Now you can click through portals, wormholes, gateways, and teleporters while observing. -Sayu
 
-/obj/machinery/teleport/hub/attack_ghost(mob/user as mob)
+/obj/machinery/teleport/hub/attack_ghost(mob/user)
 	var/atom/l = loc
 	var/obj/machinery/computer/teleporter/com = locate(/obj/machinery/computer/teleporter, locate(l.x - 2, l.y, l.z))
-	if(com.locked)
+	if(com && com.locked)
 		user.loc = get_turf(com.locked)
 
-/obj/effect/portal/attack_ghost(mob/user as mob)
+/obj/effect/portal/attack_ghost(mob/user)
 	if(target)
 		user.loc = get_turf(target)
 
-/obj/machinery/gateway/centerstation/attack_ghost(mob/user as mob)
+/obj/machinery/gateway/centerstation/attack_ghost(mob/user)
 	if(awaygate)
 		user.loc = awaygate.loc
 	else
 		user << "[src] has no destination."
 
-/obj/machinery/gateway/centeraway/attack_ghost(mob/user as mob)
+/obj/machinery/gateway/centeraway/attack_ghost(mob/user)
 	if(stationgate)
 		user.loc = stationgate.loc
 	else
 		user << "[src] has no destination."
+
+/obj/item/weapon/storage/attack_ghost(mob/user)
+	orient2hud(user)
+	show_to(user)
 
 // -------------------------------------------
 // This was supposed to be used by adminghosts

@@ -1,5 +1,5 @@
 /obj/effect/expl_particles
-	name = "explosive particles"
+	name = "fire"
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "explosion_particle"
 	opacity = 1
@@ -37,7 +37,7 @@
 				step(expl,direct)
 
 /obj/effect/explosion
-	name = "explosive particles"
+	name = "fire"
 	icon = 'icons/effects/96x96.dmi'
 	icon_state = "explosion"
 	opacity = 1
@@ -65,6 +65,6 @@
 	P.set_up(10,location)
 	P.start()
 	spawn(5)
-		var/datum/effect/effect/system/smoke_spread/S = new/datum/effect/effect/system/smoke_spread()
-		S.set_up(5,0,location,null)
+		var/datum/effect/effect/system/smoke_spread/S = new
+		S.set_up(2,location)
 		S.start()

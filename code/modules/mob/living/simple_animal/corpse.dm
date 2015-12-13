@@ -25,7 +25,7 @@
 	var/corpseid = 0     //Just set to 1 if you want them to have an ID
 	var/corpseidjob = null // Needs to be in quotes, such as "Clown" or "Chef." This just determines what the ID reads as, not their access
 	var/corpseidaccess = null //This is for access. See access.dm for which jobs give what access. Again, put in quotes. Use "Captain" if you want it to be all access.
-	var/corpseidicon = null //For setting it to be a gold, silver, centcomm etc ID
+	var/corpseidicon = null //For setting it to be a gold, silver, centcom etc ID
 
 /obj/effect/landmark/mobcorpse/New()
 	createCorpse()
@@ -43,7 +43,7 @@
 	if(src.corpsegloves)
 		M.equip_to_slot_or_del(new src.corpsegloves(M), slot_gloves)
 	if(src.corpseradio)
-		M.equip_to_slot_or_del(new src.corpseradio(M), slot_l_ear)
+		M.equip_to_slot_or_del(new src.corpseradio(M), slot_ears)
 	if(src.corpseglasses)
 		M.equip_to_slot_or_del(new src.corpseglasses(M), slot_glasses)
 	if(src.corpsemask)
@@ -60,7 +60,6 @@
 		M.equip_to_slot_or_del(new src.corpseback(M), slot_back)
 	if(src.corpseid == 1)
 		var/obj/item/weapon/card/id/W = new(M)
-		W.name = "[M.real_name]'s ID Card"
 		var/datum/job/jobdatum
 		for(var/jobtype in typesof(/datum/job))
 			var/datum/job/J = new jobtype
@@ -77,6 +76,7 @@
 		if(corpseidjob)
 			W.assignment = corpseidjob
 		W.registered_name = M.real_name
+		W.update_label()
 		M.equip_to_slot_or_del(W, slot_wear_id)
 	qdel(src)
 
@@ -88,8 +88,8 @@
 	name = "Syndicate Operative"
 	corpseuniform = /obj/item/clothing/under/syndicate
 	corpsesuit = /obj/item/clothing/suit/armor/vest
-	corpseshoes = /obj/item/clothing/shoes/swat
-	corpsegloves = /obj/item/clothing/gloves/swat
+	corpseshoes = /obj/item/clothing/shoes/combat
+	corpsegloves = /obj/item/clothing/gloves/combat
 	corpseradio = /obj/item/device/radio/headset
 	corpsemask = /obj/item/clothing/mask/gas
 	corpsehelmet = /obj/item/clothing/head/helmet/swat
@@ -103,14 +103,14 @@
 /obj/effect/landmark/mobcorpse/syndicatecommando
 	name = "Syndicate Commando"
 	corpseuniform = /obj/item/clothing/under/syndicate
-	corpsesuit = /obj/item/clothing/suit/space/void/merc
-	corpseshoes = /obj/item/clothing/shoes/swat
-	corpsegloves = /obj/item/clothing/gloves/swat
+	corpsesuit = /obj/item/clothing/suit/space/hardsuit/syndi
+	corpseshoes = /obj/item/clothing/shoes/combat
+	corpsegloves = /obj/item/clothing/gloves/combat
 	corpseradio = /obj/item/device/radio/headset
 	corpsemask = /obj/item/clothing/mask/gas/syndicate
-	corpsehelmet = /obj/item/clothing/head/helmet/space/void/merc
+	corpsehelmet = /obj/item/clothing/head/helmet/space/hardsuit/syndi
 	corpseback = /obj/item/weapon/tank/jetpack/oxygen
-	corpsepocket1 = /obj/item/weapon/tank/emergency_oxygen
+	corpsepocket1 = /obj/item/weapon/tank/internals/emergency_oxygen
 	corpseid = 1
 	corpseidjob = "Operative"
 	corpseidaccess = "Syndicate"
@@ -155,3 +155,10 @@
 
 /obj/effect/landmark/mobcorpse/russian/ranged
 	corpsehelmet = /obj/item/clothing/head/ushanka
+
+/obj/effect/landmark/mobcorpse/wizard
+	name = "Space Wizard"
+	corpseuniform = /obj/item/clothing/under/color/lightpurple
+	corpsesuit = /obj/item/clothing/suit/wizrobe
+	corpseshoes = /obj/item/clothing/shoes/sandal
+	corpsehelmet = /obj/item/clothing/head/wizard

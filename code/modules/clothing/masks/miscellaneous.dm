@@ -2,16 +2,18 @@
 	name = "muzzle"
 	desc = "To stop that awful noise."
 	icon_state = "muzzle"
-	item_state = "muzzle"
-	flags = MASKCOVERSMOUTH
-	body_parts_covered = 0
+	item_state = "blindfold"
+	flags_cover = MASKCOVERSMOUTH
 	w_class = 2
 	gas_transfer_coefficient = 0.90
+	put_on_delay = 20
 
-// Clumsy folks can't take the mask off themselves.
-/obj/item/clothing/mask/muzzle/attack_hand(mob/user as mob)
-	if(user.wear_mask == src && !user.IsAdvancedToolUser())
-		return 0
+/obj/item/clothing/mask/muzzle/attack_paw(mob/user)
+	if(iscarbon(user))
+		var/mob/living/carbon/C = user
+		if(src == C.wear_mask)
+			user << "<span class='warning'>You need help taking this off!</span>"
+			return
 	..()
 
 /obj/item/clothing/mask/surgical
@@ -19,65 +21,24 @@
 	desc = "A sterile mask designed to help prevent the spread of diseases."
 	icon_state = "sterile"
 	item_state = "sterile"
-	w_class = 2
-	flags = MASKCOVERSMOUTH
-	body_parts_covered = 0
+	w_class = 1
+	flags_cover = MASKCOVERSMOUTH
+	flags_inv = HIDEFACE
+	visor_flags_inv = HIDEFACE
 	gas_transfer_coefficient = 0.90
 	permeability_coefficient = 0.01
-	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 60, rad = 0)
+	armor = list(melee = 0, bullet = 0, laser = 0,energy = 0, bomb = 0, bio = 25, rad = 0)
+	action_button_name = "Adjust Sterile Mask"
+	ignore_maskadjust = 0
+
+/obj/item/clothing/mask/surgical/attack_self(mob/user)
+	adjustmask(user)
 
 /obj/item/clothing/mask/fakemoustache
 	name = "fake moustache"
 	desc = "Warning: moustache is fake."
 	icon_state = "fake-moustache"
 	flags_inv = HIDEFACE
-	body_parts_covered = 0
-
-/obj/item/clothing/mask/snorkel
-	name = "Snorkel"
-	desc = "For the Swimming Savant."
-	icon_state = "snorkel"
-	flags_inv = HIDEFACE
-	body_parts_covered = 0
-
-//scarves (fit in in mask slot)
-
-/obj/item/clothing/mask/bluescarf
-	name = "blue neck scarf"
-	desc = "A blue neck scarf."
-	icon_state = "blueneckscarf"
-	item_state = "blueneckscarf"
-	flags = MASKCOVERSMOUTH
-	w_class = 2
-	gas_transfer_coefficient = 0.90
-
-/obj/item/clothing/mask/redscarf
-	name = "red scarf"
-	desc = "A red and white checkered neck scarf."
-	icon_state = "redwhite_scarf"
-	item_state = "redwhite_scarf"
-	flags = MASKCOVERSMOUTH
-	w_class = 2
-	gas_transfer_coefficient = 0.90
-
-/obj/item/clothing/mask/greenscarf
-	name = "green scarf"
-	desc = "A green neck scarf."
-	icon_state = "green_scarf"
-	item_state = "green_scarf"
-	flags = MASKCOVERSMOUTH
-	w_class = 2
-	gas_transfer_coefficient = 0.90
-
-/obj/item/clothing/mask/ninjascarf
-	name = "ninja scarf"
-	desc = "A stealthy, dark scarf."
-	icon_state = "ninja_scarf"
-	item_state = "ninja_scarf"
-	flags = MASKCOVERSMOUTH
-	w_class = 2
-	gas_transfer_coefficient = 0.90
-	siemens_coefficient = 0
 
 /obj/item/clothing/mask/pig
 	name = "pig mask"
@@ -87,8 +48,48 @@
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
 	w_class = 2
-	siemens_coefficient = 0.9
-	body_parts_covered = HEAD|FACE|EYES
+	action_button_name = "Toggle Voice Box"
+	var/voicechange = 0
+
+/obj/item/clothing/mask/pig/attack_self(mob/user)
+	voicechange = !voicechange
+	user << "<span class='notice'>You turn the voice box [voicechange ? "on" : "off"]!</span>"
+
+/obj/item/clothing/mask/pig/speechModification(message)
+	if(voicechange)
+		message = pick("Oink!","Squeeeeeeee!","Oink Oink!")
+	return message
+
+/obj/item/clothing/mask/spig //needs to be different otherwise you could turn the speedmodification off and on
+	name = "Pig face"
+	desc = "It looks like a mask, but closer inspection reveals it's melded onto this persons face!" //It's only ever going to be attached to your face.
+	icon_state = "pig"
+	item_state = "pig"
+	flags = BLOCKHAIR
+	flags_inv = HIDEFACE
+	w_class = 2
+	var/voicechange = 1
+
+/obj/item/clothing/mask/spig/speechModification(message)
+	if(voicechange)
+		message = pick("Oink!","Squeeeeeeee!","Oink Oink!")
+	return message
+
+/obj/item/clothing/mask/cowmask
+	name = "Cowface"
+	desc = "It looks like a mask, but closer inspection reveals it's melded onto this persons face!"
+	icon = 'icons/mob/mask.dmi'
+	icon_state = "cowmask"
+	item_state = "cowmask"
+	flags = BLOCKHAIR
+	flags_inv = HIDEFACE
+	w_class = 2
+	var/voicechange = 1
+
+/obj/item/clothing/mask/cowmask/speechModification(message)
+	if(voicechange)
+		message = pick("Moooooooo!","Moo!","Moooo!")
+	return message
 
 /obj/item/clothing/mask/horsehead
 	name = "horse head mask"
@@ -97,38 +98,55 @@
 	item_state = "horsehead"
 	flags = BLOCKHAIR
 	flags_inv = HIDEFACE
-	body_parts_covered = HEAD|FACE|EYES
 	w_class = 2
-	var/voicechange = 0
-	siemens_coefficient = 0.9
+	var/voicechange = 1
 
-/obj/item/clothing/mask/ai
-	name = "camera MIU"
-	desc = "Allows for direct mental connection to accessible camera networks."
-	icon_state = "s-ninja"
-	item_state = "s-ninja"
+/obj/item/clothing/mask/horsehead/speechModification(message)
+	if(voicechange)
+		message = pick("NEEIIGGGHHHH!", "NEEEIIIIGHH!", "NEIIIGGHH!", "HAAWWWWW!", "HAAAWWW!")
+	return message
+
+/obj/item/clothing/mask/bandana
+	name = "botany bandana"
+	desc = "A fine bandana with nanotech lining and a hydroponics pattern."
+	w_class = 1
+	flags_cover = MASKCOVERSMOUTH
 	flags_inv = HIDEFACE
-	body_parts_covered = 0
-	var/mob/eye/aiEye/eye
+	visor_flags_inv = HIDEFACE
+	slot_flags = SLOT_MASK
+	ignore_maskadjust = 0
+	adjusted_flags = SLOT_HEAD
+	icon_state = "bandbotany"
 
-/obj/item/clothing/mask/ai/New()
-	eye = new(src)
+/obj/item/clothing/mask/bandana/attack_self(mob/user)
+	adjustmask(user)
 
-/obj/item/clothing/mask/ai/equipped(var/mob/user, var/slot)
-	..(user, slot)
-	if(slot == slot_wear_mask)
-		eye.owner = user
-		user.eyeobj = eye
+/obj/item/clothing/mask/bandana/red
+	name = "red bandana"
+	desc = "A fine red bandana with nanotech lining."
+	icon_state = "bandred"
 
-		for(var/datum/chunk/c in eye.visibleChunks)
-			c.remove(eye)
-		eye.setLoc(user)
+/obj/item/clothing/mask/bandana/blue
+	name = "blue bandana"
+	desc = "A fine blue bandana with nanotech lining."
+	icon_state = "bandblue"
 
-/obj/item/clothing/mask/ai/dropped(var/mob/user)
-	..()
-	if(eye.owner == user)
-		for(var/datum/chunk/c in eye.visibleChunks)
-			c.remove(eye)
+/obj/item/clothing/mask/bandana/green
+	name = "green bandana"
+	desc = "A fine green bandana with nanotech lining."
+	icon_state = "bandgreen"
 
-		eye.owner.eyeobj = null
-		eye.owner = null
+/obj/item/clothing/mask/bandana/gold
+	name = "gold bandana"
+	desc = "A fine gold bandana with nanotech lining."
+	icon_state = "bandgold"
+
+/obj/item/clothing/mask/bandana/black
+	name = "black bandana"
+	desc = "A fine black bandana with nanotech lining."
+	icon_state = "bandblack"
+
+/obj/item/clothing/mask/bandana/skull
+	name = "skull bandana"
+	desc = "A fine black bandana with nanotech lining and a skull emblem."
+	icon_state = "bandskull"

@@ -1,28 +1,22 @@
-/mob/living/carbon/alien/say(var/message)
-	var/verb = "says"
-	var/message_range = world.view
+/mob/living/carbon/alien/say(message)
+	. = ..(message, "A")
+	if(.)
+		playsound(loc, "hiss", 25, 1, 1) //erp just isn't the same without sound feedback
 
-	if(client)
-		if(client.prefs.muted & MUTE_IC)
-			src << "\red You cannot speak in IC (Muted)."
-			return
-
-	message = sanitize(message)
-
-	if(stat == 2)
-		return say_dead(message)
-
-	if(copytext(message,1,2) == "*")
-		return emote(copytext(message,2))
-
-	var/datum/language/speaking = parse_language(message)
-
-	if(speaking)
-		message = copytext(message, 2+length(speaking.key))
-
+/mob/living/proc/alien_talk(message, shown_name = name)
+	log_say("[key_name(src)] : [message]")
 	message = trim(message)
+	if(!message) return
 
-	if(!message || stat)
-		return
+	var/message_a = say_quote(message, get_spans())
+	var/rendered = "<i><span class='alien'>Hivemind, <span class='name'>[shown_name]</span> <span class='message'>[message_a]</span></span></i>"
+	for(var/mob/S in player_list)
+		if((!S.stat && S.hivecheck()) || (S in dead_mob_list))
+			S << rendered
 
-	..(message, speaking, verb, null, null, message_range, null)
+/mob/living/carbon/alien/humanoid/queen/alien_talk(message, shown_name = name)
+	shown_name = "<FONT size = 3>[shown_name]</FONT>"
+	..(message, shown_name)
+
+/mob/living/carbon/hivecheck()
+	return getorgan(/obj/item/organ/internal/alien/hivenode)

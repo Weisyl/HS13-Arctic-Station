@@ -1,32 +1,7 @@
+/proc/keywords_lookup(msg)
 
-//This is a list of words which are ignored by the parser when comparing message contents for names. MUST BE IN LOWER CASE!
-var/list/adminhelp_ignored_words = list("unknown","the","a","an","of","monkey","alien","as")
-
-/client/verb/adminhelp(msg as text)
-	set category = "Admin"
-	set name = "Adminhelp"
-
-	if(say_disabled)	//This is here to try to identify lag problems
-		usr << "\red Speech is currently admin-disabled."
-		return
-
-	//handle muting and automuting
-	if(prefs.muted & MUTE_ADMINHELP)
-		src << "<font color='red'>Error: Admin-PM: You cannot send adminhelps (Muted).</font>"
-		return
-
-	adminhelped = 1 //Determines if they get the message to reply by clicking the name.
-
-	if(src.handle_spam_prevention(msg,MUTE_ADMINHELP))
-		return
-
-	//clean the input msg
-	if(!msg)
-		return
-	msg = sanitize(msg)
-	if(!msg)
-		return
-	var/original_msg = msg
+	//This is a list of words which are ignored by the parser when comparing message contents for names. MUST BE IN LOWER CASE!
+	var/list/adminhelp_ignored_words = list("unknown","the","a","an","of","monkey","alien","as", "i")
 
 	//explode the input msg into a list
 	var/list/msglist = text2list(msg, " ")
@@ -77,45 +52,95 @@ var/list/adminhelp_ignored_words = list("unknown","the","a","an","of","monkey","
 							mobs_found += found
 							if(!ai_found && isAI(found))
 								ai_found = 1
-							msg += "<b><font color='black'>[original_word] (<A HREF='?_src_=holder;adminmoreinfo=\ref[found]'>?</A>)</font></b> "
+							msg += "[original_word]<font size='1' color='black'>(<A HREF='?_src_=holder;adminmoreinfo=\ref[found]'>?</A>|<A HREF='?_src_=holder;adminplayerobservefollow=\ref[found]'>F</A>)</font> "
 							continue
-			msg += "[original_word] "
+		msg += "[original_word] "
+	return msg
 
-	if(!mob) //this doesn't happen
+
+/client/var/adminhelptimerid = 0
+
+/client/proc/giveadminhelpverb()
+	src.verbs |= /client/verb/adminhelp
+	adminhelptimerid = 0
+
+/client/verb/adminhelp(msg as text)
+	set category = "Admin"
+	set name = "Adminhelp"
+
+	if(say_disabled)	//This is here to try to identify lag problems
+		usr << "<span class='danger'>Speech is currently admin-disabled.</span>"
 		return
 
-	var/ai_cl
-	if(ai_found)
-		ai_cl = " (<A HREF='?_src_=holder;adminchecklaws=\ref[mob]'>CL</A>)"
+	//handle muting and automuting
+	if(prefs.muted & MUTE_ADMINHELP)
+		src << "<span class='danger'>Error: Admin-PM: You cannot send adminhelps (Muted).</span>"
+		return
+	if(src.handle_spam_prevention(msg,MUTE_ADMINHELP))
+		return
 
-			//Options bar:  mob, details ( admin = 2, dev = 3, mentor = 4, character name (0 = just ckey, 1 = ckey and character name), link? (0 no don't make it a link, 1 do so),
-			//		highlight special roles (0 = everyone has same looking name, 1 = antags / special roles get a golden name)
+	//clean the input msg
+	if(!msg)	return
+	msg = sanitize(copytext(msg,1,MAX_MESSAGE_LEN))
+	if(!msg)	return
+	var/original_msg = msg
 
-	var/mentor_msg = "\blue <b><font color=red>Request for Help: </font>[get_options_bar(mob, 4, 1, 1, 0)][ai_cl]:</b> [msg]"
-	msg = "\blue <b><font color=red>Request for Help:: </font>[get_options_bar(mob, 2, 1, 1)][ai_cl]:</b> [msg]"
+	//remove our adminhelp verb temporarily to prevent spamming of admins.
+	src.verbs -= /client/verb/adminhelp
+	adminhelptimerid = addtimer(src,"giveadminhelpverb",1200) //2 minute cooldown of admin helps
 
-	var/admin_number_afk = 0
+	msg = keywords_lookup(msg)
+
+	if(!mob)	return						//this doesn't happen
+
+	var/ref_mob = "\ref[mob]"
+	msg = "<span class='adminnotice'><b><font color=red>ADMINHELP: </font><A HREF='?priv_msg=[ckey];ahelp_reply=1'>[key_name(src)]</A> (<A HREF='?_src_=holder;adminmoreinfo=[ref_mob]'>?</A>) (<A HREF='?_src_=holder;adminplayeropts=[ref_mob]'>PP</A>) (<A HREF='?_src_=vars;Vars=[ref_mob]'>VV</A>) (<A HREF='?_src_=holder;subtlemessage=[ref_mob]'>SM</A>) (<A HREF='?_src_=holder;traitor=[ref_mob]'>TP</A>) (<A HREF='?_src_=holder;adminplayerobservefollow=[ref_mob]'>FLW</A>):</b> [msg]</span>"
+
+	//send this msg to all admins
 
 	for(var/client/X in admins)
-		if((R_ADMIN|R_MOD|R_MENTOR) & X.holder.rights)
-			if(X.is_afk())
-				admin_number_afk++
-			if(X.prefs.toggles & SOUND_ADMINHELP)
-				X << 'sound/effects/adminhelp.ogg'
-			if(X.holder.rights == R_MENTOR)
-				X << mentor_msg		// Mentors won't see coloring of names on people with special_roles (Antags, etc.)
-			else
-				X << msg
+		if(X.prefs.toggles & SOUND_ADMINHELP)
+			X << 'sound/effects/adminhelp.ogg'
+		X << msg
+
 
 	//show it to the person adminhelping too
-	src << "<font color='blue'>PM to-<b>Staff </b>: [original_msg]</font>"
+	src << "<span class='adminnotice'>PM to-<b>Admins</b>: [original_msg]</span>"
 
-	var/admin_number_present = admins.len - admin_number_afk
-	log_admin("HELP: [key_name(src)]: [original_msg] - heard by [admin_number_present] non-AFK admins.")
-	if(admin_number_present <= 0)
-		send2adminirc("Request for Help from [key_name(src)]: [html_decode(original_msg)] - !![admin_number_afk ? "All admins AFK ([admin_number_afk])" : "No admins online"]!!")
-	else
-		send2adminirc("Request for Help from [key_name(src)]: [html_decode(original_msg)]")
+	//send it to irc if nobody is on and tell us how many were on
+	var/admin_number_present = send2irc_adminless_only(ckey,original_msg)
+	log_admin("ADMINHELP: [key_name(src)]: [original_msg] - heard by [admin_number_present] non-AFK admins who have +BAN.")
 	feedback_add_details("admin_verb","AH") //If you are copy-pasting this, ensure the 2nd parameter is unique to the new proc!
 	return
 
+/proc/send2irc_adminless_only(source, msg, requiredflags = R_BAN)
+	var/admin_number_total = 0		//Total number of admins
+	var/admin_number_afk = 0		//Holds the number of admins who are afk
+	var/admin_number_ignored = 0	//Holds the number of admins without +BAN (so admins who are not really admins)
+	var/admin_number_decrease = 0	//Holds the number of admins with are afk, ignored or both
+	for(var/client/X in admins)
+		admin_number_total++;
+		var/invalid = 0
+		if(requiredflags != 0 && !check_rights_for(X, requiredflags))
+			admin_number_ignored++
+			invalid = 1
+		if(X.is_afk())
+			admin_number_afk++
+			invalid = 1
+		if(X.holder.fakekey)
+			admin_number_ignored++
+			invalid = 1
+		if(invalid)
+			admin_number_decrease++
+	var/admin_number_present = admin_number_total - admin_number_decrease	//Number of admins who are neither afk nor invalid
+	if(admin_number_present <= 0)
+		if(!admin_number_afk && !admin_number_ignored)
+			send2irc(source, "[msg] - No admins online")
+		else
+			send2irc(source, "[msg] - All admins AFK ([admin_number_afk]/[admin_number_total]) or skipped ([admin_number_ignored]/[admin_number_total])")
+	return admin_number_present
+
+/proc/send2irc(msg,msg2)
+	if(config.useircbot)
+		shell("python nudge.py [msg] [msg2]")
+	return

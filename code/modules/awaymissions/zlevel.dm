@@ -1,10 +1,10 @@
-proc/createRandomZlevel()
+/proc/createRandomZlevel()
 	if(awaydestinations.len)	//crude, but it saves another var!
 		return
 
 	var/list/potentialRandomZlevels = list()
-	admin_notice("\red \b Searching for away missions...", R_DEBUG)
-	var/list/Lines = file2list("maps/RandomZLevels/fileList.txt")
+	world << "<span class='boldannounce'>Searching for away missions...</span>"
+	var/list/Lines = file2list("config/awaymissionconfig.txt")
 	if(!Lines.len)	return
 	for (var/t in Lines)
 		if (!t)
@@ -21,21 +21,19 @@ proc/createRandomZlevel()
 	//	var/value = null
 
 		if (pos)
-            // No, don't do lowertext here, that breaks paths on linux
-			name = copytext(t, 1, pos)
+			name = lowertext(copytext(t, 1, pos))
 		//	value = copytext(t, pos + 1)
 		else
-            // No, don't do lowertext here, that breaks paths on linux
-			name = t
+			name = lowertext(t)
 
 		if (!name)
 			continue
 
-		potentialRandomZlevels.Add(name)
+		potentialRandomZlevels.Add(t)
 
 
 	if(potentialRandomZlevels.len)
-		admin_notice("\red \b Loading away mission...", R_DEBUG)
+		world << "<span class='boldannounce'>Loading away mission...</span>"
 
 		var/map = pick(potentialRandomZlevels)
 		var/file = file(map)
@@ -43,13 +41,15 @@ proc/createRandomZlevel()
 			maploader.load_map(file)
 			world.log << "away mission loaded: [map]"
 
+		map_transition_config.Add(AWAY_MISSION_LIST)
+
 		for(var/obj/effect/landmark/L in landmarks_list)
 			if (L.name != "awaystart")
 				continue
 			awaydestinations.Add(L)
 
-		admin_notice("\red \b Away mission loaded.", R_DEBUG)
+		world << "<span class='boldannounce'>Away mission loaded.</span>"
 
 	else
-		admin_notice("\red \b No away missions found.", R_DEBUG)
+		world << "<span class='boldannounce'>No away missions found.</span>"
 		return

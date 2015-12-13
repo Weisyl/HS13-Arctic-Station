@@ -16,29 +16,21 @@
 	icon_state = "ash"
 	anchored = 1
 
-/obj/effect/decal/cleanable/ash/attack_hand(mob/user as mob)
-	user << "<span class='notice'>[src] sifts through your fingers.</span>"
-	var/turf/simulated/floor/F = get_turf(src)
-	if (istype(F))
-		F.dirt += 4
-	qdel(src)
-
-/obj/effect/decal/cleanable/greenglow
-
-	New()
-		..()
-		spawn(1200)// 2 minutes
-			qdel(src)
+/obj/effect/decal/cleanable/ash/New()
+	..()
+	reagents.add_reagent("ash", 30)
+	pixel_x = rand(-5, 5)
+	pixel_y = rand(-5, 5)
 
 /obj/effect/decal/cleanable/dirt
 	name = "dirt"
 	desc = "Someone should clean that up."
+	icon = 'icons/effects/effects.dmi'
+	icon_state = "dirt"
 	gender = PLURAL
 	density = 0
 	anchored = 1
 	layer = 2
-	icon = 'icons/effects/effects.dmi'
-	icon_state = "dirt"
 	mouse_opacity = 0
 
 /obj/effect/decal/cleanable/flour
@@ -58,9 +50,12 @@
 	density = 0
 	anchored = 1
 	layer = 2
-	light_range = 1
+	luminosity = 1
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "greenglow"
+
+/obj/effect/decal/cleanable/greenglow/ex_act()
+	return
 
 /obj/effect/decal/cleanable/cobweb
 	name = "cobweb"
@@ -70,6 +65,10 @@
 	layer = 3
 	icon = 'icons/effects/effects.dmi'
 	icon_state = "cobweb1"
+	burntime = 1
+
+/obj/effect/decal/cleanable/cobweb/fire_act()
+	qdel(src)
 
 /obj/effect/decal/cleanable/molten_item
 	name = "gooey grey mass"
@@ -102,10 +101,11 @@
 	random_icon_states = list("vomit_1", "vomit_2", "vomit_3", "vomit_4")
 	var/list/viruses = list()
 
-	Destroy()
-		for(var/datum/disease/D in viruses)
-			D.cure(0)
-		..()
+/obj/effect/decal/cleanable/vomit/Destroy()
+	for(var/datum/disease/D in viruses)
+		D.cure(0)
+	viruses = null
+	return ..()
 
 /obj/effect/decal/cleanable/tomato_smudge
 	name = "tomato smudge"
@@ -134,12 +134,25 @@
 	icon = 'icons/effects/tomatodecal.dmi'
 	random_icon_states = list("smashed_pie")
 
-/obj/effect/decal/cleanable/fruit_smudge
-	name = "smudge"
-	desc = "Some kind of fruit smear."
+/obj/effect/decal/cleanable/chem_pile
+	name = "chemical pile"
+	desc = "A pile of chemicals. You can't quite tell what's inside it."
+	gender = PLURAL
+	icon = 'icons/obj/objects.dmi'
+	icon_state = "ash"
+	anchored = 1
+
+/obj/effect/decal/cleanable/shreds
+	name = "shreds"
+	desc = "The shredded remains of what appears to be clothing."
+	icon = 'icons/effects/effects.dmi'
+	icon_state = "shreds"
+	gender = PLURAL
 	density = 0
 	anchored = 1
 	layer = 2
-	icon = 'icons/effects/blood.dmi'
-	icon_state = "mfloor1"
-	random_icon_states = list("mfloor1", "mfloor2", "mfloor3", "mfloor4", "mfloor5", "mfloor6", "mfloor7")
+
+/obj/effect/decal/cleanable/shreds/New()
+	pixel_x = rand(-5, 5)
+	pixel_y = rand(-5, 5)
+	..()

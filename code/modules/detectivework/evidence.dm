@@ -1,4 +1,4 @@
-//CONTAINS: Evidence bags and fingerprint cards
+//CONTAINS: Evidence bags
 
 /obj/item/weapon/evidencebag
 	name = "evidence bag"
@@ -6,28 +6,35 @@
 	icon = 'icons/obj/storage.dmi'
 	icon_state = "evidenceobj"
 	item_state = ""
-	w_class = 2
-	var/obj/item/stored_item = null
+	w_class = 1
 
-/obj/item/weapon/evidencebag/MouseDrop(var/obj/item/I as obj)
-	if (!ishuman(usr))
+/obj/item/weapon/evidencebag/afterattack(obj/item/I, mob/user,proximity)
+	if(!proximity || loc == I)
+		return
+	evidencebagEquip(I, user)
+
+/obj/item/weapon/evidencebag/attackby(obj/item/I, mob/user, params)
+	if(evidencebagEquip(I, user))
+		return 1
+
+/obj/item/weapon/evidencebag/proc/evidencebagEquip(obj/item/I, mob/user)
+	if(!istype(I) || I.anchored == 1)
 		return
 
-	var/mob/living/carbon/human/user = usr
+	if(istype(I, /obj/item/weapon/evidencebag))
+		user << "<span class='notice'>You find putting an evidence bag in another evidence bag to be slightly absurd.</span>"
+		return 1 //now this is podracing
 
-	if (!(user.l_hand == src || user.r_hand == src))
-		return //bag must be in your hands to use
+	if(I.w_class > 3)
+		user << "<span class='notice'>[I] won't fit in [src].</span>"
+		return
 
-	if (isturf(I.loc))
-		if (!user.Adjacent(I))
-			return
-	else
-		//If it isn't on the floor. Do some checks to see if it's in our hands or a box. Otherwise give up.
+	if(contents.len)
+		user << "<span class='notice'>[src] already has something inside it.</span>"
+		return
+
+	if(!isturf(I.loc)) //If it isn't on the floor. Do some checks to see if it's in our hands or a box. Otherwise give up.
 		if(istype(I.loc,/obj/item/weapon/storage))	//in a container.
-			var/sdepth = I.storage_depth(user)
-			if (sdepth == -1 || sdepth > 1)
-				return	//too deeply nested to access
-
 			var/obj/item/weapon/storage/U = I.loc
 			user.client.screen -= I
 			U.contents.Remove(I)
@@ -38,23 +45,8 @@
 		else
 			return
 
-	if(!istype(I) || I.anchored)
-		return
-
-	if(istype(I, /obj/item/weapon/evidencebag))
-		user << "<span class='notice'>You find putting an evidence bag in another evidence bag to be slightly absurd.</span>"
-		return
-
-	if(I.w_class > 3)
-		user << "<span class='notice'>[I] won't fit in [src].</span>"
-		return
-
-	if(contents.len)
-		user << "<span class='notice'>[src] already has something inside it.</span>"
-		return
-
-	user.visible_message("[user] puts [I] into [src]", "You put [I] inside [src].",\
-	"You hear a rustle as someone puts something into a plastic bag.")
+	user.visible_message("[user] puts [I] into [src].", "<span class='notice'>You put [I] inside [src].</span>",\
+	"<span class='italics'>You hear a rustle as someone puts something into a plastic bag.</span>")
 
 	icon_state = "evidence"
 
@@ -68,34 +60,26 @@
 	overlays += img
 	overlays += "evidence"	//should look nicer for transparent stuff. not really that important, but hey.
 
-	desc = "An evidence bag containing [I]."
+	desc = "An evidence bag containing [I]. [I.desc]"
 	I.loc = src
-	stored_item = I
 	w_class = I.w_class
-	return
+	return 1
 
-
-/obj/item/weapon/evidencebag/attack_self(mob/user as mob)
+/obj/item/weapon/evidencebag/attack_self(mob/user)
 	if(contents.len)
 		var/obj/item/I = contents[1]
-		user.visible_message("[user] takes [I] out of [src]", "You take [I] out of [src].",\
-		"You hear someone rustle around in a plastic bag, and remove something.")
+		user.visible_message("[user] takes [I] out of [src].", "<span class='notice'>You take [I] out of [src].</span>",\
+		"<span class='italics'>You hear someone rustle around in a plastic bag, and remove something.</span>")
 		overlays.Cut()	//remove the overlays
-
 		user.put_in_hands(I)
-		stored_item = null
-
-		w_class = initial(w_class)
+		w_class = 1
 		icon_state = "evidenceobj"
 		desc = "An empty evidence bag."
+
 	else
 		user << "[src] is empty."
 		icon_state = "evidenceobj"
 	return
-
-/obj/item/weapon/evidencebag/examine(mob/user)
-	..(user)
-	if (stored_item) user.examinate(stored_item)
 
 /obj/item/weapon/storage/box/evidence
 	name = "evidence bag box"
@@ -109,36 +93,3 @@
 		new /obj/item/weapon/evidencebag(src)
 		..()
 		return
-
-/obj/item/weapon/f_card
-	name = "finger print card"
-	desc = "Used to take fingerprints."
-	icon = 'icons/obj/card.dmi'
-	icon_state = "fingerprint0"
-	var/amount = 10.0
-	item_state = "paper"
-	throwforce = 1
-	w_class = 1.0
-	slot_flags = SLOT_EARS
-	throw_speed = 3
-	throw_range = 5
-
-/obj/item/weapon/f_card/add_fingerprint(mob/living/M as mob, ignoregloves = 0)
-	if(..())
-		var/mob/living/carbon/human/H = M
-		var/full_print = md5(H.dna.uni_identity)
-		fingerprints[full_print] = full_print
-
-/obj/item/weapon/f_card/examine(mob/user)
-	..()
-	if(fingerprints.len)
-		user << "<span class='notice'>Fingerprints on this card:</span>"
-		for(var/print in fingerprints)
-			user << "<span class='notice'>\t[fingerprints[print]]</span>"
-
-/obj/item/weapon/fcardholder
-	name = "fingerprint card case"
-	desc = "Apply finger print card."
-	icon = 'icons/obj/items.dmi'
-	icon_state = "fcardholder0"
-	item_state = "clipboard"

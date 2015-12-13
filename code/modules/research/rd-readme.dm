@@ -34,7 +34,7 @@ When thinking about new stuff, check here to see if there are any slots unfilled
 
 //MATERIALS
 1	|	Metal
-2	|	Solid Phoron
+2	|	Solid Plasma
 3	|	Silver
 4	|	Gold, Super Capacitor
 5	|	Uranium, Nuclear Gun, SUPERPACMAN
@@ -54,9 +54,9 @@ When thinking about new stuff, check here to see if there are any slots unfilled
 19	|
 20	|
 
-//PHORON TECH
+//PLASMA TECH
 1	|
-2	|	Solid Phoron
+2	|	Solid Plasma
 3	|	Pacman Generator
 4	|
 5	|
@@ -121,7 +121,7 @@ When thinking about new stuff, check here to see if there are any slots unfilled
 20	|
 
 //BIOTECH
-1	|	Bruise Pack, Scalpel
+1	|	Bruise Pack, Scalple
 2	|	PANDEMIC Board, Mass Spectrometer
 3	|	AI Core, Brains (MMI)
 4	|	MMI+Radio
@@ -189,7 +189,7 @@ When thinking about new stuff, check here to see if there are any slots unfilled
 //SYNDICATE
 1	|	Sleepypen
 2	|	TYRANT Module, Emag
-3	|	Cloaking Device, Power Sink
+3	|	Power Sink
 4	|
 5	|
 6	|

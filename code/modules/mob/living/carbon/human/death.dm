@@ -1,102 +1,82 @@
-/mob/living/carbon/human/gib()
+/mob/living/carbon/human/gib_animation(animate)
+	..(animate, "gibbed-h")
 
-	for(var/obj/item/organ/I in internal_organs)
-		I.removed()
-		if(istype(loc,/turf))
-			I.throw_at(get_edge_target_turf(src,pick(alldirs)),rand(1,3),30)
+/mob/living/carbon/human/dust_animation(animate)
+	..(animate, "dust-h")
 
-	for(var/obj/item/organ/external/E in src.organs)
-		E.droplimb(0,DROPLIMB_EDGE,1)
+/mob/living/carbon/human/dust(animation = 1)
+	..()
 
-	sleep(1)
+/mob/living/carbon/human/spawn_gibs()
+	hgibs(loc, viruses, dna)
 
-	for(var/obj/item/I in src)
-		drop_from_inventory(I)
-		I.throw_at(get_edge_target_turf(src,pick(alldirs)), rand(1,3), round(30/I.w_class))
-
-	..(species.gibbed_anim)
-	gibs(loc, viruses, dna, null, species.flesh_color, species.blood_color)
-
-/mob/living/carbon/human/dust()
-	if(species)
-		..(species.dusted_anim, species.remains_type)
-	else
-		..()
+/mob/living/carbon/human/spawn_dust()
+	new /obj/effect/decal/remains/human(loc)
 
 /mob/living/carbon/human/death(gibbed)
+	if(stat == DEAD)
+		return
+	if(is_vampire(src))
+		var/datum/vampire/V = get_vampire()
+		var/rekt = 0
+		if(getFireLoss() > 200) //If they have 200 burn, they die as normal
+			src << "<span class='userdanger'>Your life slips away as the burns on your body take their toll...</span>"
+			rekt = 1 //Makes it ignore the proc below
+		if(!rekt && !reagents.has_reagent("holywater") && V.use_blood(1, 1)) //Vampires are incapable of death if they have clean blood (but can still die if they have holy water in their body)
+			adjustBruteLoss(-5)
+			adjustFireLoss(-5)
+			adjustToxLoss(-5)
+			adjustOxyLoss(-5)
+			adjustCloneLoss(-5)
+			adjustStaminaLoss(-5)
+			src << "<span class='warning'>The clean blood in your body protects you from death.</span>"
+			return 0
+	if(healths)
+		healths.icon_state = "health5"
+	stat = DEAD
+	dizziness = 0
+	jitteriness = 0
+	heart_attack = 0
 
-	if(stat == DEAD) return
+	if(istype(loc, /obj/mecha))
+		var/obj/mecha/M = loc
+		if(M.occupant == src)
+			M.go_out()
 
-	BITSET(hud_updateflag, HEALTH_HUD)
-	BITSET(hud_updateflag, STATUS_HUD)
-	BITSET(hud_updateflag, LIFE_HUD)
+	if(!gibbed)
+		emote("deathgasp") //let the world KNOW WE ARE DEAD
 
-	handle_hud_list()
+		update_canmove()
+		if(client) blind.layer = 0
 
-	//Handle species-specific deaths.
-	species.handle_death(src)
-	animate_tail_stop()
+	dna.species.spec_death(gibbed,src)
 
-	//Handle brain slugs.
-	var/obj/item/organ/external/head = get_organ("head")
-	var/mob/living/simple_animal/borer/B
-
-	for(var/I in head.implants)
-		if(istype(I,/mob/living/simple_animal/borer))
-			B = I
-	if(B)
-		if(!B.ckey && ckey && B.controlling)
-			B.ckey = ckey
-			B.controlling = 0
-		if(B.host_brain.ckey)
-			ckey = B.host_brain.ckey
-			B.host_brain.ckey = null
-			B.host_brain.name = "host brain"
-			B.host_brain.real_name = "host brain"
-
-		verbs -= /mob/living/carbon/proc/release_control
-
-	callHook("death", list(src, gibbed))
-
-	if(!gibbed && species.death_sound)
-		playsound(loc, species.death_sound, 80, 1, 1)
-
-
+	tod = worldtime2text()		//weasellos time of death patch
+	if(mind)	mind.store_memory("Time of death: [tod]", 0)
 	if(ticker && ticker.mode)
+//		world.log << "k"
 		sql_report_death(src)
-		ticker.mode.check_win()
+		ticker.mode.check_win()		//Calls the rounds wincheck, mainly for wizard, malf, and changeling now
+	return ..(gibbed)
 
-	return ..(gibbed,species.death_message)
-
-/mob/living/carbon/human/proc/ChangeToHusk()
-	if(HUSK in mutations)	return
-
-	if(f_style)
-		f_style = "Shaved"		//we only change the icon_state of the hair datum, so it doesn't mess up their UI/UE
-	if(h_style)
-		h_style = "Bald"
-	update_hair(0)
-
-	mutations.Add(HUSK)
-	status_flags |= DISFIGURED	//makes them unknown without fucking up other stuff like admintools
-	update_body(1)
-	return
-
-/mob/living/carbon/human/proc/Drain()
-	ChangeToHusk()
-	mutations |= HUSK
-	return
-
-/mob/living/carbon/human/proc/ChangeToSkeleton()
-	if(SKELETON in src.mutations)	return
-
-	if(f_style)
-		f_style = "Shaved"
-	if(h_style)
-		h_style = "Bald"
-	update_hair(0)
-
-	mutations.Add(SKELETON)
+/mob/living/carbon/human/proc/makeSkeleton()
 	status_flags |= DISFIGURED
-	update_body(0)
-	return
+	set_species(/datum/species/skeleton)
+	return 1
+
+/mob/living/carbon/proc/ChangeToHusk()
+	if(disabilities & HUSK)	return
+	disabilities |= HUSK
+	status_flags |= DISFIGURED	//makes them unknown without fucking up other stuff like admintools
+	return 1
+
+/mob/living/carbon/human/ChangeToHusk()
+	. = ..()
+	if(.)
+		update_hair()
+		update_body()
+
+/mob/living/carbon/proc/Drain()
+	ChangeToHusk()
+	disabilities |= NOCLONE
+	return 1

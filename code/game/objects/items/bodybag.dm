@@ -5,68 +5,67 @@
 	desc = "A folded bag designed for the storage and transportation of cadavers."
 	icon = 'icons/obj/bodybag.dmi'
 	icon_state = "bodybag_folded"
-	w_class = 2.0
+	var/unfoldedbag_path = /obj/structure/closet/body_bag
+	w_class = 2
 
-	attack_self(mob/user)
-		var/obj/structure/closet/body_bag/R = new /obj/structure/closet/body_bag(user.loc)
+/obj/item/bodybag/attack_self(mob/user)
+		var/obj/structure/closet/body_bag/R = new unfoldedbag_path(user.loc)
 		R.add_fingerprint(user)
 		qdel(src)
 
 
 /obj/item/weapon/storage/box/bodybags
 	name = "body bags"
-	desc = "This box contains body bags."
+	desc = "The label indicates that it contains body bags."
 	icon_state = "bodybags"
-	New()
-		..()
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
-		new /obj/item/bodybag(src)
+
+/obj/item/weapon/storage/box/bodybags/New()
+	..()
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
+	new /obj/item/bodybag(src)
 
 
 /obj/structure/closet/body_bag
 	name = "body bag"
 	desc = "A plastic bag designed for the storage and transportation of cadavers."
 	icon = 'icons/obj/bodybag.dmi'
-	icon_state = "bodybag_closed"
-	icon_closed = "bodybag_closed"
-	icon_opened = "bodybag_open"
-	open_sound = 'sound/items/zip.ogg'
-	close_sound = 'sound/items/zip.ogg'
-	var/item_path = /obj/item/bodybag
+	icon_state = "bodybag"
+	var/foldedbag_path = /obj/item/bodybag
+	var/tagged = 0 // so closet code knows to put the tag overlay back
 	density = 0
-	storage_capacity = (default_mob_size * 2) - 1
-	var/contains_body = 0
+	mob_storage_capacity = 2
+	open_sound = 'sound/items/zip.ogg'
+	mouse_drag_pointer = MOUSE_ACTIVE_POINTER //Drag&Drop pointer indicating it's possible
 
-/obj/structure/closet/body_bag/attackby(W as obj, mob/user as mob)
-	if (istype(W, /obj/item/weapon/pen))
-		var/t = input(user, "What would you like the label to be?", text("[]", src.name), null)  as text
-		if (user.get_active_hand() != W)
+/obj/structure/closet/body_bag/attackby(obj/item/I, mob/user, params)
+	if (istype(I, /obj/item/weapon/pen) || istype(I, /obj/item/toy/crayon))
+		var/t = stripped_input(user, "What would you like the label to be?", name, null, 53)
+		if(user.get_active_hand() != I)
 			return
-		if (!in_range(src, user) && src.loc != user)
+		if(!in_range(src, user) && loc != user)
 			return
-		t = sanitizeSafe(t, MAX_NAME_LEN)
-		if (t)
-			src.name = "body bag - "
-			src.name += t
-			src.overlays += image(src.icon, "bodybag_label")
+		if(t)
+			name = "body bag - [t]"
+			tagged = 1
+			update_icon()
 		else
-			src.name = "body bag"
-	//..() //Doesn't need to run the parent. Since when can fucking bodybags be welded shut? -Agouri
+			name = "body bag"
 		return
-	else if(istype(W, /obj/item/weapon/wirecutters))
-		user << "You cut the tag off the bodybag"
-		src.name = "body bag"
-		src.overlays.Cut()
-		return
+	else if(istype(I, /obj/item/weapon/wirecutters))
+		user << "<span class='notice'>You cut the tag off [src].</span>"
+		name = "body bag"
+		tagged = 0
+		update_icon()
 
-/obj/structure/closet/body_bag/store_mobs(var/stored_units)
-	contains_body = ..()
-	return contains_body
+/obj/structure/closet/body_bag/update_icon()
+	..()
+	if (tagged)
+		overlays += "bodybag_label"
 
 /obj/structure/closet/body_bag/close()
 	if(..())
@@ -74,62 +73,38 @@
 		return 1
 	return 0
 
+
 /obj/structure/closet/body_bag/MouseDrop(over_object, src_location, over_location)
 	..()
-	if((over_object == usr && (in_range(src, usr) || usr.contents.Find(src))))
-		if(!ishuman(usr))	return
-		if(opened)	return 0
-		if(contents.len)	return 0
-		visible_message("[usr] folds up the [src.name]")
-		new item_path(get_turf(src))
-		spawn(0)
-			qdel(src)
-		return
-
-/obj/structure/closet/body_bag/update_icon()
-	if(opened)
-		icon_state = icon_opened
-	else
-		if(contains_body > 0)
-			icon_state = "bodybag_closed1"
-		else
-			icon_state = icon_closed
-
-
-/obj/item/bodybag/cryobag
-	name = "stasis bag"
-	desc = "A folded, non-reusable bag designed to prevent additional damage to an occupant at the cost of genetic damage."
-	icon = 'icons/obj/cryobag.dmi'
-	icon_state = "bodybag_folded"
-
-	attack_self(mob/user)
-		var/obj/structure/closet/body_bag/cryobag/R = new /obj/structure/closet/body_bag/cryobag(user.loc)
-		R.add_fingerprint(user)
+	if(over_object == usr && Adjacent(usr) && (in_range(src, usr) || usr.contents.Find(src)))
+		if(!ishuman(usr))
+			return 0
+		if(opened)
+			return 0
+		if(contents.len)
+			return 0
+		visible_message("<span class='notice'>[usr] folds up [src].</span>")
+		var/obj/item/bodybag/B = new foldedbag_path(get_turf(src))
+		usr.put_in_hands(B)
 		qdel(src)
 
 
+// Bluespace bodybag
 
-/obj/structure/closet/body_bag/cryobag
-	name = "stasis bag"
-	desc = "A non-reusable plastic bag designed to prevent additional damage to an occupant at the cost of genetic damage."
-	icon = 'icons/obj/cryobag.dmi'
-	item_path = /obj/item/bodybag/cryobag
-	store_misc = 0
-	store_items = 0
-	var/used = 0
+/obj/item/bodybag/bluespace
+	name = "bluespace body bag"
+	desc = "A folded bluespace body bag designed for the storage and transportation of cadavers."
+	icon = 'icons/obj/bodybag.dmi'
+	icon_state = "bluebodybag_folded"
+	unfoldedbag_path = /obj/structure/closet/body_bag/bluespace
+	w_class = 2
 
-/obj/structure/closet/body_bag/cryobag/open()
-	. = ..()
-	if(used)
-		var/obj/item/O = new/obj/item(src.loc)
-		O.name = "used stasis bag"
-		O.icon = src.icon
-		O.icon_state = "bodybag_used"
-		O.desc = "Pretty useless now.."
-		qdel(src)
-
-/obj/structure/closet/body_bag/cryobag/MouseDrop(over_object, src_location, over_location)
-	if((over_object == usr && (in_range(src, usr) || usr.contents.Find(src))))
-		if(!ishuman(usr))	return
-		usr << "\red You can't fold that up anymore.."
-	..()
+/obj/structure/closet/body_bag/bluespace
+	name = "bluespace body bag"
+	desc = "A bluespace body bag designed for the storage and transportation of cadavers."
+	icon = 'icons/obj/bodybag.dmi'
+	icon_state = "bluebodybag"
+	foldedbag_path = /obj/item/bodybag/bluespace
+	density = 0
+	mob_storage_capacity = 15
+	max_mob_size = MOB_SIZE_LARGE

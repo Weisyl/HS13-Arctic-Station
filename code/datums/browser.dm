@@ -13,7 +13,6 @@
 	var/body_elements
 	var/head_content = ""
 	var/content = ""
-	var/title_buttons = ""
 
 
 /datum/browser/New(nuser, nwindow_id, ntitle = 0, nwidth = 0, nheight = 0, var/atom/nref = null)
@@ -30,14 +29,8 @@
 		ref = nref
 	add_stylesheet("common", 'html/browser/common.css') // this CSS sheet is common to all UIs
 
-/datum/browser/proc/set_title(ntitle)
-	title = format_text(ntitle)
-
 /datum/browser/proc/add_head_content(nhead_content)
 	head_content = nhead_content
-
-/datum/browser/proc/set_title_buttons(ntitle_buttons)
-	title_buttons = ntitle_buttons
 
 /datum/browser/proc/set_window_options(nwindow_options)
 	window_options = nwindow_options
@@ -77,15 +70,16 @@
 	return {"<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 	<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<head>
 		[head_content]
 	</head>
 	<body scroll=auto>
 		<div class='uiWrapper'>
-			[title ? "<div class='uiTitleWrapper'><div [title_attributes]><tt>[title]</tt></div><div class='uiTitleButtons'>[title_buttons]</div></div>" : ""]
+			[title ? "<div class='uiTitleWrapper'><div [title_attributes]><tt>[title]</tt></div></div>" : ""]
 			<div class='uiContent'>
 	"}
-
+//" This is here because else the rest of the file looks like a string in notepad++.
 /datum/browser/proc/get_footer()
 	return {"
 			</div>
@@ -100,7 +94,7 @@
 	[get_footer()]
 	"}
 
-/datum/browser/proc/open(var/use_onclose = 1)
+/datum/browser/proc/open(use_onclose = 1)
 	var/window_size = ""
 	if (width && height)
 		window_size = "size=[width]x[height];"
@@ -143,8 +137,8 @@
 // to pass a "close=1" parameter to the atom's Topic() proc for special handling.
 // Otherwise, the user mob's machine var will be reset directly.
 //
-/proc/onclose(mob/user, windowid, var/atom/ref=null)
-	if(!user || !user.client) return
+/proc/onclose(mob/user, windowid, atom/ref=null)
+	if(!user.client) return
 	var/param = "null"
 	if(ref)
 		param = "\ref[ref]"
@@ -159,17 +153,18 @@
 // if a valid atom reference is supplied, call the atom's Topic() with "close=1"
 // otherwise, just reset the client mob's machine var.
 //
-/client/verb/windowclose(var/atomref as text)
+/client/verb/windowclose(atomref as text)
 	set hidden = 1						// hide this verb from the user's panel
 	set name = ".windowclose"			// no autocomplete on cmd line
 
 	//world << "windowclose: [atomref]"
 	if(atomref!="null")				// if passed a real atomref
 		var/hsrc = locate(atomref)	// find the reffed atom
+		var/href = "close=1"
 		if(hsrc)
 			//world << "[src] Topic [href] [hsrc]"
 			usr = src.mob
-			src.Topic("close=1", list("close"="1"), hsrc)	// this will direct to the atom's
+			src.Topic(href, params2list(href), hsrc)	// this will direct to the atom's
 			return										// Topic() proc via client.Topic()
 
 	// no atomref specified (or not found)

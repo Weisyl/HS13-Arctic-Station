@@ -3,16 +3,15 @@ var/global/list/rad_collectors = list()
 
 /obj/machinery/power/rad_collector
 	name = "Radiation Collector Array"
-	desc = "A device which uses Hawking Radiation and phoron to produce power."
+	desc = "A device which uses Hawking Radiation and plasma to produce power."
 	icon = 'icons/obj/singularity.dmi'
 	icon_state = "ca"
 	anchored = 0
 	density = 1
 	req_access = list(access_engine_equip)
 //	use_power = 0
-	var/obj/item/weapon/tank/phoron/P = null
+	var/obj/item/weapon/tank/internals/plasma/P = null
 	var/last_power = 0
-	var/last_power_new = 0
 	var/active = 0
 	var/locked = 0
 	var/drainratio = 1
@@ -23,87 +22,92 @@ var/global/list/rad_collectors = list()
 
 /obj/machinery/power/rad_collector/Destroy()
 	rad_collectors -= src
-	..()
+	return ..()
 
 /obj/machinery/power/rad_collector/process()
-	//so that we don't zero out the meter if the SM is processed first.
-	last_power = last_power_new
-	last_power_new = 0
-
-
 	if(P)
-		if(P.air_contents.gas["phoron"] == 0)
+		if(P.air_contents.toxins <= 0)
 			investigate_log("<font color='red'>out of fuel</font>.","singulo")
+			P.air_contents.toxins = 0
 			eject()
 		else
-			P.air_contents.adjust_gas("phoron", -0.001*drainratio)
+			P.air_contents.toxins -= 0.001*drainratio
 	return
 
 
-/obj/machinery/power/rad_collector/attack_hand(mob/user as mob)
+/obj/machinery/power/rad_collector/attack_hand(mob/user)
+	if(..())
+		return
 	if(anchored)
 		if(!src.locked)
 			toggle_power()
 			user.visible_message("[user.name] turns the [src.name] [active? "on":"off"].", \
-			"You turn the [src.name] [active? "on":"off"].")
-			investigate_log("turned [active?"<font color='green'>on</font>":"<font color='red'>off</font>"] by [user.key]. [P?"Fuel: [round(P.air_contents.gas["phoron"]/0.29)]%":"<font color='red'>It is empty</font>"].","singulo")
+			"<span class='notice'>You turn the [src.name] [active? "on":"off"].</span>")
+			investigate_log("turned [active?"<font color='green'>on</font>":"<font color='red'>off</font>"] by [user.key]. [P?"Fuel: [round(P.air_contents.toxins/0.29)]%":"<font color='red'>It is empty</font>"].","singulo")
 			return
 		else
-			user << "\red The controls are locked!"
+			user << "<span class='warning'>The controls are locked!</span>"
 			return
 ..()
 
 
-/obj/machinery/power/rad_collector/attackby(obj/item/W, mob/user)
-	if(istype(W, /obj/item/weapon/tank/phoron))
+/obj/machinery/power/rad_collector/attackby(obj/item/W, mob/user, params)
+	if(istype(W, /obj/item/device/multitool))
+		user << "<span class='notice'>The [W.name] detects that [last_power]W were recently produced.</span>"
+		return 1
+	else if(istype(W, /obj/item/device/analyzer) && P)
+		atmosanalyzer_scan(P.air_contents, user)
+	else if(istype(W, /obj/item/weapon/tank/internals/plasma))
 		if(!src.anchored)
-			user << "\red The [src] needs to be secured to the floor first."
+			user << "<span class='warning'>The [src] needs to be secured to the floor first!</span>"
 			return 1
 		if(src.P)
-			user << "\red There's already a phoron tank loaded."
+			user << "<span class='warning'>There's already a plasma tank loaded!</span>"
 			return 1
-		user.drop_item()
+		if(!user.drop_item())
+			return 1
 		src.P = W
 		W.loc = src
 		update_icons()
-		return 1
 	else if(istype(W, /obj/item/weapon/crowbar))
 		if(P && !src.locked)
 			eject()
 			return 1
 	else if(istype(W, /obj/item/weapon/wrench))
 		if(P)
-			user << "\blue Remove the phoron tank first."
+			user << "<span class='warning'>Remove the plasma tank first!</span>"
 			return 1
-		playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
-		src.anchored = !src.anchored
-		user.visible_message("[user.name] [anchored? "secures":"unsecures"] the [src.name].", \
-			"You [anchored? "secure":"undo"] the external bolts.", \
-			"You hear a ratchet")
-		if(anchored)
+		if(!anchored && !isinspace())
+			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			anchored = 1
+			user.visible_message("[user.name] secures the [src.name].", \
+				"<span class='notice'>You secure the external bolts.</span>", \
+				"<span class='italics'>You hear a ratchet.</span>")
 			connect_to_network()
-		else
+		else if(anchored)
+			playsound(src.loc, 'sound/items/Ratchet.ogg', 75, 1)
+			anchored = 0
+			user.visible_message("[user.name] unsecures the [src.name].", \
+				"<span class='notice'>You unsecure the external bolts.</span>", \
+				"<span class='italics'>You hear a ratchet.</span>")
 			disconnect_from_network()
-		return 1
 	else if(istype(W, /obj/item/weapon/card/id)||istype(W, /obj/item/device/pda))
 		if (src.allowed(user))
 			if(active)
 				src.locked = !src.locked
-				user << "The controls are now [src.locked ? "locked." : "unlocked."]"
+				user << "<span class='notice'>You [src.locked ? "lock" : "unlock"] the controls.</span>"
 			else
 				src.locked = 0 //just in case it somehow gets locked
-				user << "\red The controls can only be locked when the [src] is active"
+				user << "<span class='warning'>The controls can only be locked when \the [src] is active!</span>"
 		else
-			user << "\red Access denied!"
-		return 1
-	return ..()
-
-/obj/machinery/power/rad_collector/examine(mob/user)
-	if (..(user, 3))
-		user << "The meter indicates that \the [src] is collecting [last_power] W."
+			user << "<span class='danger'>Access denied.</span>"
+			return 1
+	else
+		..()
 		return 1
 
-/obj/machinery/power/rad_collector/ex_act(severity)
+
+/obj/machinery/power/rad_collector/ex_act(severity, target)
 	switch(severity)
 		if(2, 3)
 			eject()
@@ -112,7 +116,7 @@ var/global/list/rad_collectors = list()
 
 /obj/machinery/power/rad_collector/proc/eject()
 	locked = 0
-	var/obj/item/weapon/tank/phoron/Z = src.P
+	var/obj/item/weapon/tank/internals/plasma/Z = src.P
 	if (!Z)
 		return
 	Z.loc = get_turf(src)
@@ -123,12 +127,12 @@ var/global/list/rad_collectors = list()
 	else
 		update_icons()
 
-/obj/machinery/power/rad_collector/proc/receive_pulse(var/pulse_strength)
+/obj/machinery/power/rad_collector/proc/receive_pulse(pulse_strength)
 	if(P && active)
 		var/power_produced = 0
-		power_produced = P.air_contents.gas["phoron"]*pulse_strength*20
+		power_produced = P.air_contents.toxins*pulse_strength*20
 		add_avail(power_produced)
-		last_power_new = power_produced
+		last_power = power_produced
 		return
 	return
 

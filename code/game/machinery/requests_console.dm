@@ -7,7 +7,7 @@ var/req_console_information = list()
 var/list/obj/machinery/requests_console/allConsoles = list()
 
 /obj/machinery/requests_console
-	name = "Requests Console"
+	name = "requests console"
 	desc = "A console intended to send requests to different departments on the station."
 	anchored = 1
 	icon = 'icons/obj/terminals.dmi'
@@ -15,7 +15,7 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 	var/department = "Unknown" //The list of all departments on the station (Determined from this variable on each unit) Set this to the same thing if you want several consoles in one department
 	var/list/messages = list() //List of all messages
 	var/departmentType = 0
-		// 0 = none (not listed, can only repeplied to)
+		// 0 = none (not listed, can only replied to)
 		// 1 = assistance
 		// 2 = supplies
 		// 3 = info
@@ -41,189 +41,217 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 		// 9 = authentication before sending
 		// 10 = send announcement
 	var/silent = 0 // set to 1 for it not to beep all the time
-//	var/hackState = 0
+	var/hackState = 0
 		// 0 = not hacked
 		// 1 = hacked
 	var/announcementConsole = 0
 		// 0 = This console cannot be used to send department announcements
-		// 1 = This console can send department announcementsf
+		// 1 = This console can send department announcements
 	var/open = 0 // 1 if open
 	var/announceAuth = 0 //Will be set to 1 when you authenticate yourself for announcements
-	var/msgVerified = "" //Will contain the name of the person who varified it
+	var/msgVerified = "" //Will contain the name of the person who verified it
 	var/msgStamped = "" //If a message is stamped, this will contain the stamp name
 	var/message = "";
 	var/dpt = ""; //the department which will be receiving the message
 	var/priority = -1 ; //Priority of the message being sent
-	light_range = 0
-	var/datum/announcement/announcement = new
+	var/obj/item/device/radio/Radio
+	var/emergency //If an emergency has been called by this device. Acts as both a cooldown and lets the responder know where it the emergency was triggered from
+	luminosity = 0
 
 /obj/machinery/requests_console/power_change()
 	..()
 	update_icon()
 
 /obj/machinery/requests_console/update_icon()
-	if(stat & NOPOWER)
+	if(open)
+		if(hackState == 0)
+			icon_state="req_comp_open"
+		else
+			icon_state="req_comp_rewired"
+	else if(stat & NOPOWER)
 		if(icon_state != "req_comp_off")
 			icon_state = "req_comp_off"
 	else
-		if(icon_state == "req_comp_off")
+		if(emergency || (newmessagepriority == 3))
+			icon_state = "req_comp3"
+		else if(newmessagepriority == 2)
+			icon_state = "req_comp2"
+		else if(newmessagepriority == 1)
+			icon_state = "req_comp1"
+		else
 			icon_state = "req_comp0"
 
 /obj/machinery/requests_console/New()
-	..()
-
-	announcement.title = "[department] announcement"
-	announcement.newscast = 1
-
-	name = "[department] Requests Console"
+	name = "\improper [department] requests console"
 	allConsoles += src
 	//req_console_departments += department
 	switch(departmentType)
 		if(1)
-			req_console_assistance |= department
+			if(!("[department]" in req_console_assistance))
+				req_console_assistance += department
 		if(2)
-			req_console_supplies |= department
+			if(!("[department]" in req_console_supplies))
+				req_console_supplies += department
 		if(3)
-			req_console_information |= department
+			if(!("[department]" in req_console_information))
+				req_console_information += department
 		if(4)
-			req_console_assistance |= department
-			req_console_supplies |= department
+			if(!("[department]" in req_console_assistance))
+				req_console_assistance += department
+			if(!("[department]" in req_console_supplies))
+				req_console_supplies += department
 		if(5)
-			req_console_assistance |= department
-			req_console_information |= department
+			if(!("[department]" in req_console_assistance))
+				req_console_assistance += department
+			if(!("[department]" in req_console_information))
+				req_console_information += department
 		if(6)
-			req_console_supplies |= department
-			req_console_information |= department
+			if(!("[department]" in req_console_supplies))
+				req_console_supplies += department
+			if(!("[department]" in req_console_information))
+				req_console_information += department
 		if(7)
-			req_console_assistance |= department
-			req_console_supplies |= department
-			req_console_information |= department
+			if(!("[department]" in req_console_assistance))
+				req_console_assistance += department
+			if(!("[department]" in req_console_supplies))
+				req_console_supplies += department
+			if(!("[department]" in req_console_information))
+				req_console_information += department
 
-/obj/machinery/requests_console/Destroy()
-	allConsoles -= src
-	switch(departmentType)
-		if(1)
-			req_console_assistance -= department
-		if(2)
-			req_console_supplies -= department
-		if(3)
-			req_console_information -= department
-		if(4)
-			req_console_assistance -= department
-			req_console_supplies -= department
-		if(5)
-			req_console_assistance -= department
-			req_console_information -= department
-		if(6)
-			req_console_supplies -= department
-			req_console_information -= department
-		if(7)
-			req_console_assistance -= department
-			req_console_supplies -= department
-			req_console_information -= department
-	..()
+	Radio = new /obj/item/device/radio(src)
+	Radio.listening = 0
 
-/obj/machinery/requests_console/attack_hand(user as mob)
+/obj/machinery/requests_console/attack_hand(mob/user)
 	if(..(user))
 		return
-	var/dat
-	dat = text("<HEAD><TITLE>Requests Console</TITLE></HEAD><H3>[department] Requests Console</H3>")
+	var/dat = ""
 	if(!open)
 		switch(screen)
 			if(1)	//req. assistance
-				dat += text("Which department do you need assistance from?<BR><BR>")
+				dat += "Which department do you need assistance from?<BR><BR>"
+				dat += "<table width='100%'>"
 				for(var/dpt in req_console_assistance)
 					if (dpt != department)
-						dat += text("[dpt] (<A href='?src=\ref[src];write=[ckey(dpt)]'>Message</A> or ")
-						dat += text("<A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High Priority</A>")
-//						if (hackState == 1)
-//							dat += text(" or <A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>)")
-						dat += text(")<BR>")
-				dat += text("<BR><A href='?src=\ref[src];setScreen=0'>Back</A><BR>")
+						dat += "<tr>"
+						dat += "<td width='55%'>[dpt]</td>"
+						dat += "<td width='45%'><A href='?src=\ref[src];write=[ckey(dpt)]'>Normal</A> <A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High</A>"
+						if (hackState == 1)
+							dat += "<A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>"
+						dat += "</td>"
+						dat += "</tr>"
+				dat += "</table>"
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Back</A><BR>"
 
 			if(2)	//req. supplies
-				dat += text("Which department do you need supplies from?<BR><BR>")
+				dat += "Which department do you need supplies from?<BR><BR>"
+				dat += "<table width='100%'>"
 				for(var/dpt in req_console_supplies)
 					if (dpt != department)
-						dat += text("[dpt] (<A href='?src=\ref[src];write=[ckey(dpt)]'>Message</A> or ")
-						dat += text("<A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High Priority</A>")
-//						if (hackState == 1)
-//							dat += text(" or <A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>)")
-						dat += text(")<BR>")
-				dat += text("<BR><A href='?src=\ref[src];setScreen=0'>Back</A><BR>")
+						dat += "<tr>"
+						dat += "<td width='55%'>[dpt]</td>"
+						dat += "<td width='45%'><A href='?src=\ref[src];write=[ckey(dpt)]'>Normal</A> <A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High</A>"
+						if (hackState == 1)
+							dat += "<A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>"
+						dat += "</td>"
+						dat += "</tr>"
+				dat += "</table>"
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Back</A><BR>"
 
 			if(3)	//relay information
-				dat += text("Which department would you like to send information to?<BR><BR>")
+				dat += "Which department would you like to send information to?<BR><BR>"
+				dat += "<table width='100%'>"
 				for(var/dpt in req_console_information)
 					if (dpt != department)
-						dat += text("[dpt] (<A href='?src=\ref[src];write=[ckey(dpt)]'>Message</A> or ")
-						dat += text("<A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High Priority</A>")
-//						if (hackState == 1)
-//							dat += text(" or <A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>)")
-						dat += text(")<BR>")
-				dat += text("<BR><A href='?src=\ref[src];setScreen=0'>Back</A><BR>")
+						dat += "<tr>"
+						dat += "<td width='55%'>[dpt]</td>"
+						dat += "<td width='45%'><A href='?src=\ref[src];write=[ckey(dpt)]'>Normal</A> <A href='?src=\ref[src];write=[ckey(dpt)];priority=2'>High</A>"
+						if (hackState == 1)
+							dat += "<A href='?src=\ref[src];write=[ckey(dpt)];priority=3'>EXTREME</A>"
+						dat += "</td>"
+						dat += "</tr>"
+				dat += "</table>"
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Back</A><BR>"
 
 			if(6)	//sent successfully
-				dat += text("<FONT COLOR='GREEN'>Message sent</FONT><BR><BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=0'>Continue</A><BR>")
+				dat += "<span class='good'>Message sent.</span><BR><BR>"
+				dat += "<A href='?src=\ref[src];setScreen=0'>Continue</A><BR>"
 
 			if(7)	//unsuccessful; not sent
-				dat += text("<FONT COLOR='RED'>An error occurred. </FONT><BR><BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=0'>Continue</A><BR>")
+				dat += "<span class='bad'>An error occurred.</span><BR><BR>"
+				dat += "<A href='?src=\ref[src];setScreen=0'>Continue</A><BR>"
 
 			if(8)	//view messages
 				for (var/obj/machinery/requests_console/Console in allConsoles)
 					if (Console.department == department)
 						Console.newmessagepriority = 0
-						Console.icon_state = "req_comp0"
-						Console.set_light(1)
+						Console.update_icon()
+						Console.SetLuminosity(1)
 				newmessagepriority = 0
-				icon_state = "req_comp0"
-				for(var/msg in messages)
-					dat += text("[msg]<BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=0'>Back to main menu</A><BR>")
+				update_icon()
+				var/messageComposite = ""
+				for(var/msg in messages) // This puts more recent messages at the *top*, where they belong.
+					messageComposite = "<div class='block'>[msg]</div>" + messageComposite
+				dat += messageComposite
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Back to Main Menu</A><BR>"
 
 			if(9)	//authentication before sending
-				dat += text("<B>Message Authentication</B><BR><BR>")
-				dat += text("<b>Message for [dpt]: </b>[message]<BR><BR>")
-				dat += text("You may authenticate your message now by scanning your ID or your stamp<BR><BR>")
-				dat += text("Validated by: [msgVerified]<br>");
-				dat += text("Stamped by: [msgStamped]<br>");
-				dat += text("<A href='?src=\ref[src];department=[dpt]'>Send</A><BR>");
-				dat += text("<BR><A href='?src=\ref[src];setScreen=0'>Back</A><BR>")
+				dat += "<B>Message Authentication</B><BR><BR>"
+				dat += "<b>Message for [dpt]: </b>[message]<BR><BR>"
+				dat += "<div class='notice'>You may authenticate your message now by scanning your ID or your stamp</div><BR>"
+				dat += "<b>Validated by:</b> [msgVerified ? msgVerified : "<i>Not Validated</i>"]<br>"
+				dat += "<b>Stamped by:</b> [msgStamped ? msgStamped : "<i>Not Stamped</i>"]<br><br>"
+				dat += "<A href='?src=\ref[src];department=[dpt]'>Send Message</A><BR>"
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Discard Message</A><BR>"
 
 			if(10)	//send announcement
-				dat += text("<B>Station wide announcement</B><BR><BR>")
+				dat += "<h3>Station-wide Announcement</h3>"
 				if(announceAuth)
-					dat += text("<b>Authentication accepted</b><BR><BR>")
+					dat += "<div class='notice'>Authentication accepted</div><BR>"
 				else
-					dat += text("Swipe your card to authenticate yourself.<BR><BR>")
-				dat += text("<b>Message: </b>[message] <A href='?src=\ref[src];writeAnnouncement=1'>Write</A><BR><BR>")
+					dat += "<div class='notice'>Swipe your card to authenticate yourself</div><BR>"
+				dat += "<b>Message: </b>[message ? message : "<i>No Message</i>"]<BR>"
+				dat += "<A href='?src=\ref[src];writeAnnouncement=1'>[message ? "Edit" : "Write"] Message</A><BR><BR>"
 				if (announceAuth && message)
-					dat += text("<A href='?src=\ref[src];sendAnnouncement=1'>Announce</A><BR>");
-				dat += text("<BR><A href='?src=\ref[src];setScreen=0'>Back</A><BR>")
+					dat += "<A href='?src=\ref[src];sendAnnouncement=1'>Announce Message</A><BR>"
+				else
+					dat += "<span class='linkOff'>Announce Message</span><BR>"
+				dat += "<BR><A href='?src=\ref[src];setScreen=0'><< Back</A><BR>"
 
 			else	//main menu
 				screen = 0
-				reset_announce()
+				announceAuth = 0
 				if (newmessagepriority == 1)
-					dat += text("<FONT COLOR='RED'>There are new messages</FONT><BR>")
+					dat += "<div class='notice'>There are new messages</div><BR>"
 				if (newmessagepriority == 2)
-					dat += text("<FONT COLOR='RED'><B>NEW PRIORITY MESSAGES</B></FONT><BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=8'>View Messages</A><BR><BR>")
+					dat += "<div class='notice'>There are new <b>PRIORITY</b> messages</div><BR>"
+				if (newmessagepriority == 3)
+					dat += "<div class='notice'>There are new <b>EXTREME PRIORITY</b> messages</div><BR>"
+				dat += "<A href='?src=\ref[src];setScreen=8'>View Messages</A><BR><BR>"
 
-				dat += text("<A href='?src=\ref[src];setScreen=1'>Request Assistance</A><BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=2'>Request Supplies</A><BR>")
-				dat += text("<A href='?src=\ref[src];setScreen=3'>Relay Anonymous Information</A><BR><BR>")
-				if(announcementConsole)
-					dat += text("<A href='?src=\ref[src];setScreen=10'>Send station-wide announcement</A><BR><BR>")
-				if (silent)
-					dat += text("Speaker <A href='?src=\ref[src];setSilent=0'>OFF</A>")
+				dat += "<A href='?src=\ref[src];setScreen=1'>Request Assistance</A><BR>"
+				dat += "<A href='?src=\ref[src];setScreen=2'>Request Supplies</A><BR>"
+				dat += "<A href='?src=\ref[src];setScreen=3'>Relay Anonymous Information</A><BR><BR>"
+
+				if(!emergency)
+					dat += "<A href='?src=\ref[src];emergency=1'>Emergency: Security</A><BR>"
+					dat += "<A href='?src=\ref[src];emergency=2'>Emergency: Engineering</A><BR>"
+					dat += "<A href='?src=\ref[src];emergency=3'>Emergency: Medical</A><BR><BR>"
 				else
-					dat += text("Speaker <A href='?src=\ref[src];setSilent=1'>ON</A>")
+					dat += "<B><font color='red'>[emergency] has been dispatched to this location.</font></B><BR><BR>"
 
-		user << browse("[dat]", "window=request_console")
-		onclose(user, "req_console")
+				if(announcementConsole)
+					dat += "<A href='?src=\ref[src];setScreen=10'>Send Station-wide Announcement</A><BR><BR>"
+				if (silent)
+					dat += "Speaker <A href='?src=\ref[src];setSilent=0'>OFF</A>"
+				else
+					dat += "Speaker <A href='?src=\ref[src];setSilent=1'>ON</A>"
+
+		//user << browse("[dat]", "window=request_console")
+		//onclose(user, "req_console")
+		var/datum/browser/popup = new(user, "req_console", "[department] Requests Console", 450, 440)
+		popup.set_content(dat)
+		popup.set_title_image(user.browse_rsc_icon(src.icon, src.icon_state))
+		popup.open()
 	return
 
 /obj/machinery/requests_console/Topic(href, href_list)
@@ -234,13 +262,14 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 	if(reject_bad_text(href_list["write"]))
 		dpt = ckey(href_list["write"]) //write contains the string of the receiving department's name
 
-		var/new_message = sanitize(input("Write your message:", "Awaiting Input", ""))
+		var/new_message = copytext(reject_bad_text(input(usr, "Write your message:", "Awaiting Input", "")),1,MAX_MESSAGE_LEN)
 		if(new_message)
 			message = new_message
 			screen = 9
-			switch(href_list["priority"])
-				if("2")	priority = 2
-				else	priority = -1
+			if (text2num(href_list["priority"]) < 2)
+				priority = -1
+			else
+				priority = text2num(href_list["priority"])
 		else
 			dpt = "";
 			msgVerified = ""
@@ -249,21 +278,48 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 			priority = -1
 
 	if(href_list["writeAnnouncement"])
-		var/new_message = sanitize(input("Write your message:", "Awaiting Input", ""))
+		var/new_message = copytext(reject_bad_text(input(usr, "Write your message:", "Awaiting Input", "")),1,MAX_MESSAGE_LEN)
 		if(new_message)
 			message = new_message
-			switch(href_list["priority"])
-				if("2")	priority = 2
-				else	priority = -1
+			if (text2num(href_list["priority"]) < 2)
+				priority = -1
+			else
+				priority = text2num(href_list["priority"])
 		else
-			reset_announce()
+			message = ""
+			announceAuth = 0
 			screen = 0
 
 	if(href_list["sendAnnouncement"])
 		if(!announcementConsole)	return
-		announcement.Announce(message, msg_sanitized = 1)
-		reset_announce()
+		minor_announce(message, "[department] Announcement:")
+		news_network.SubmitArticle(message, department, "Station Announcements", null)
+		log_say("[key_name(usr)] has made a station announcement: [message]")
+		message_admins("[key_name_admin(usr)] has made a station announcement.")
+		announceAuth = 0
+		message = ""
 		screen = 0
+
+	if(href_list["emergency"])
+		if(!emergency)
+			var/radio_freq
+			switch(text2num(href_list["emergency"]))
+				if(1) //Security
+					radio_freq = SEC_FREQ
+					emergency = "Security"
+				if(2) //Engineering
+					radio_freq = ENG_FREQ
+					emergency = "Engineering"
+				if(3) //Medical
+					radio_freq = MED_FREQ
+					emergency = "Medical"
+			if(radio_freq)
+				Radio.set_frequency(radio_freq)
+				Radio.talk_into(src,"[emergency] emergency in [department]!!",radio_freq)
+				update_icon()
+				spawn(3000)
+					emergency = null
+					update_icon()
 
 	if( href_list["department"] && message )
 		var/log_msg = message
@@ -284,47 +340,51 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 				pass = 1
 
 			if(pass)
+				var/radio_freq = 0
+				switch(href_list["department"])
+					if("bridge")
+						radio_freq = COMM_FREQ
+					if("medbay")
+						radio_freq = MED_FREQ
+					if("science")
+						radio_freq = SCI_FREQ
+					if("engineering")
+						radio_freq = ENG_FREQ
+					if("security")
+						radio_freq = SEC_FREQ
+					if("cargobay" || "mining")
+						radio_freq = SUPP_FREQ
+				Radio.set_frequency(radio_freq)
+				var/authentic
+				if(msgVerified || msgStamped)
+					authentic = " (Authenticated)"
 
+				var/alert = ""
 				for (var/obj/machinery/requests_console/Console in allConsoles)
 					if (ckey(Console.department) == ckey(href_list["department"]))
-
 						switch(priority)
-							if("2")		//High priority
-								if(Console.newmessagepriority < 2)
-									Console.newmessagepriority = 2
-									Console.icon_state = "req_comp2"
-								if(!Console.silent)
-									playsound(Console.loc, 'sound/machines/twobeep.ogg', 50, 1)
-									for (var/mob/O in hearers(5, Console.loc))
-										O.show_message(text("\icon[Console] *The Requests Console beeps: 'PRIORITY Alert in [department]'"))
-								Console.messages += "<B><FONT color='red'>High Priority message from <A href='?src=\ref[Console];write=[ckey(department)]'>[department]</A></FONT></B><BR>[sending]"
-
-		//					if("3")		//Not implemanted, but will be 		//Removed as it doesn't look like anybody intends on implimenting it ~Carn
-		//						if(Console.newmessagepriority < 3)
-		//							Console.newmessagepriority = 3
-		//							Console.icon_state = "req_comp3"
-		//						if(!Console.silent)
-		//							playsound(Console.loc, 'sound/machines/twobeep.ogg', 50, 1)
-		//							for (var/mob/O in hearers(7, Console.loc))
-		//								O.show_message(text("\icon[Console] *The Requests Console yells: 'EXTREME PRIORITY alert in [department]'"))
-		//						Console.messages += "<B><FONT color='red'>Extreme Priority message from [ckey(department)]</FONT></B><BR>[message]"
-
+							if(2)		//High priority
+								alert = "PRIORITY Alert in [department][authentic]"
+								Console.createmessage(src, alert, sending, 2, 1)
+							if(3)		// Extreme Priority
+								alert = "EXTREME PRIORITY Alert from [department][authentic]"
+								Console.createmessage(src, alert , sending, 3, 1)
 							else		// Normal priority
-								if(Console.newmessagepriority < 1)
-									Console.newmessagepriority = 1
-									Console.icon_state = "req_comp1"
-								if(!Console.silent)
-									playsound(Console.loc, 'sound/machines/twobeep.ogg', 50, 1)
-									for (var/mob/O in hearers(4, Console.loc))
-										O.show_message(text("\icon[Console] *The Requests Console beeps: 'Message from [department]'"))
-								Console.messages += "<B>Message from <A href='?src=\ref[Console];write=[ckey(department)]'>[department]</A></FONT></B><BR>[message]"
-
+								alert = "Message from [department][authentic]"
+								Console.createmessage(src, alert , sending, 1, 1)
 						screen = 6
-						Console.set_light(2)
-				messages += "<B>Message sent to [dpt]</B><BR>[message]"
+						Console.SetLuminosity(2)
+
+				if(radio_freq)
+					Radio.talk_into(src,"[alert]: <i>[message]</i>",radio_freq)
+
+				switch(priority)
+					if(2)
+						messages += "<span class='bad'>High Priority</span><BR><b>To:</b> [dpt]<BR>[sending]"
+					else
+						messages += "<b>To: [dpt]</b><BR>[sending]"
 			else
-				for (var/mob/O in hearers(4, src.loc))
-					O.show_message(text("\icon[src] *The Requests Console beeps: 'NOTICE: No server detected!'"))
+				say("NOTICE: No server detected!")
 
 
 	//Handle screen switching
@@ -368,14 +428,59 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 	updateUsrDialog()
 	return
 
-					//err... hacking code, which has no reason for existing... but anyway... it's supposed to unlock priority 3 messanging on that console (EXTREME priority...) the code for that actually exists.
-/obj/machinery/requests_console/attackby(var/obj/item/weapon/O as obj, var/mob/user as mob)
-	/*
+/obj/machinery/say_quote(input, list/spans)
+	var/ending = copytext(input, length(input) - 2)
+	if (ending == "!!!")
+		return "blares, \"[attach_spans(input, spans)]\""
+
+	return ..()
+
+/obj/machinery/requests_console/proc/createmessage(source, title, message, priority)
+	var/linkedsender
+	if(istype(source, /obj/machinery/requests_console))
+		var/obj/machinery/requests_console/sender = source
+		linkedsender = "<a href='?src=\ref[src];write=[ckey(sender.department)]'>[sender.department]</a>"
+	else
+		capitalize(source)
+		linkedsender = source
+	capitalize(title)
+	switch(priority)
+		if(2)		//High priority
+			if(src.newmessagepriority < 2)
+				src.newmessagepriority = 2
+				src.update_icon()
+			if(!src.silent)
+				playsound(src.loc, 'sound/machines/twobeep.ogg', 50, 1)
+				say(title)
+				src.messages += "<span class='bad'>High Priority</span><BR><b>From:</b> [linkedsender]<BR>[message]"
+
+		if(3)		// Extreme Priority
+			if(src.newmessagepriority < 3)
+				src.newmessagepriority = 3
+				src.update_icon()
+			if(1)
+				playsound(src.loc, 'sound/machines/twobeep.ogg', 50, 1)
+				say(title)
+			src.messages += "<span class='bad'>!!!Extreme Priority!!!</span><BR><b>From:</b> [linkedsender]<BR>[message]"
+
+		else		// Normal priority
+			if(src.newmessagepriority < 1)
+				src.newmessagepriority = 1
+				src.update_icon()
+			if(!src.silent)
+				playsound(src.loc, 'sound/machines/twobeep.ogg', 50, 1)
+				say(title)
+			src.messages += "<b>From:</b> [linkedsender]<BR>[message]"
+	SetLuminosity(2)
+
+/obj/machinery/requests_console/attackby(obj/item/weapon/O, mob/user, params)
 	if (istype(O, /obj/item/weapon/crowbar))
 		if(open)
+			user << "<span class='notice'>You close the maintenance panel.</span>"
 			open = 0
 			icon_state="req_comp0"
 		else
+			user << "<span class='notice'>You open the maintenance panel.</span>"
 			open = 1
 			if(hackState == 0)
 				icon_state="req_comp_open"
@@ -384,36 +489,32 @@ var/list/obj/machinery/requests_console/allConsoles = list()
 	if (istype(O, /obj/item/weapon/screwdriver))
 		if(open)
 			if(hackState == 0)
+				user << "<span class='notice'>You modify the wiring.</span>"
 				hackState = 1
 				icon_state="req_comp_rewired"
 			else if(hackState == 1)
+				user << "<span class='notice'>You reset the wiring.</span>"
 				hackState = 0
 				icon_state="req_comp_open"
 		else
-			user << "You can't do much with that."*/
+			user << "<span class='warning'>You can't do much with that!</span>"
+	update_icon()
 
-	if (istype(O, /obj/item/weapon/card/id))
+	var/obj/item/weapon/card/id/ID = O.GetID()
+	if (ID)
 		if(screen == 9)
-			var/obj/item/weapon/card/id/T = O
-			msgVerified = text("<font color='green'><b>Verified by [T.registered_name] ([T.assignment])</b></font>")
+			msgVerified = "<font color='green'><b>Verified by [ID.registered_name] ([ID.assignment])</b></font>"
 			updateUsrDialog()
 		if(screen == 10)
-			var/obj/item/weapon/card/id/ID = O
-			if (access_RC_announce in ID.GetAccess())
+			if (access_RC_announce in ID.access)
 				announceAuth = 1
-				announcement.announcer = ID.assignment ? "[ID.assignment] [ID.registered_name]" : ID.registered_name
 			else
-				reset_announce()
-				user << "\red You are not authorized to send announcements."
+				announceAuth = 0
+				user << "<span class='warning'>You are not authorized to send announcements!</span>"
 			updateUsrDialog()
 	if (istype(O, /obj/item/weapon/stamp))
 		if(screen == 9)
 			var/obj/item/weapon/stamp/T = O
-			msgStamped = text("<font color='blue'><b>Stamped with the [T.name]</b></font>")
+			msgStamped = "<span class='boldnotice'>Stamped with the [T.name]</span>"
 			updateUsrDialog()
 	return
-
-/obj/machinery/requests_console/proc/reset_announce()
-	announceAuth = 0
-	message = ""
-	announcement.announcer = ""
