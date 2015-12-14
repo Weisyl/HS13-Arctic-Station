@@ -28,9 +28,8 @@
 	broken_states = list("sand")
 
 /turf/simulated/floor/grass/New()
+	icon_state = "grass[rand(1, 4)]"
 	..()
-	spawn(1)
-		update_icon()
 
 /turf/simulated/floor/grass/attackby(obj/item/C, mob/user, params)
 	if(..())
