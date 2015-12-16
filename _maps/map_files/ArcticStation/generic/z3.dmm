@@ -1,17 +1,17 @@
-"a" = (/turf/space,/area/arctic/forest)
-"b" = (/obj/structure/flora/grass/both,/turf/space,/area/arctic/forest)
-"c" = (/obj/structure/flora/tree/pine,/turf/space,/area/arctic/forest)
-"d" = (/obj/structure/flora/grass/brown,/turf/space,/area/arctic/forest)
-"e" = (/obj/structure/flora/tree/dead,/turf/space,/area/arctic/forest)
-"f" = (/obj/structure/flora/bush,/turf/space,/area/arctic/forest)
-"g" = (/turf/space,/area/arctic/cabin)
+"a" = (/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"b" = (/obj/structure/flora/grass/both,/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"c" = (/obj/structure/flora/tree/pine,/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"d" = (/obj/structure/flora/grass/brown,/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"e" = (/obj/structure/flora/tree/dead,/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"f" = (/obj/structure/flora/bush,/turf/simulated/floor/plating/snow/cold,/area/arctic/forest)
+"g" = (/obj/structure/woodenwall,/turf/simulated/floor/plating/snow/cold,/area/arctic/cabin)
 "h" = (/obj/structure/bookcase{name = "bookcase (Tactics)"},/turf/simulated/floor/wood,/area/arctic/cabin)
 "i" = (/turf/simulated/floor/wood,/area/arctic/cabin)
 "j" = (/obj/structure/flora/kirbyplants,/turf/simulated/floor/wood,/area/arctic/cabin)
 "k" = (/obj/structure/table/wood,/obj/item/candle,/turf/simulated/floor/wood,/area/arctic/cabin)
 "l" = (/obj/structure/table/wood,/obj/item/weapon/paper,/turf/simulated/floor/wood,/area/arctic/cabin)
 "m" = (/obj/structure/closet/wardrobe,/turf/simulated/floor/wood,/area/arctic/cabin)
-"n" = (/obj/structure/window/reinforced{dir = 4},/obj/structure/window/reinforced{dir = 8},/obj/structure/grille,/turf/simulated/floor/wood,/area/arctic/cabin)
+"n" = (/obj/structure/barricade/window,/turf/simulated/floor/wood,/area/arctic/cabin)
 "o" = (/obj/structure/table/wood,/obj/item/device/taperecorder,/obj/item/device/flashlight/lamp,/turf/simulated/floor/wood,/area/arctic/cabin)
 "p" = (/obj/structure/table/wood,/obj/item/weapon/paper,/obj/item/weapon/paper_bin,/obj/item/weapon/pen,/turf/simulated/floor/wood,/area/arctic/cabin)
 "q" = (/obj/structure/stool/bed/chair/wood/normal{dir = 8},/turf/simulated/floor/wood,/area/arctic/cabin)
@@ -20,8 +20,7 @@
 "t" = (/obj/structure/rack,/obj/item/weapon/storage/fancy/candle_box,/obj/item/weapon/storage/fancy/candle_box,/turf/simulated/floor/wood,/area/arctic/cabin)
 "u" = (/obj/structure/rack,/obj/item/weapon/storage/box/matches,/obj/item/weapon/storage/box/matches,/turf/simulated/floor/wood,/area/arctic/cabin)
 "v" = (/obj/structure/stool/bed,/obj/item/weapon/bedsheet,/turf/simulated/floor/wood,/area/arctic/cabin)
-"w" = (/obj/structure/mineral_door/wood,/turf/simulated/floor/wood,/area/arctic/cabin)
-"x" = (/obj/structure/window/reinforced{dir = 1; layer = 2.9},/obj/structure/window/reinforced,/obj/structure/grille,/turf/simulated/floor/wood,/area/arctic/cabin)
+"w" = (/obj/structure/mineral_door/wood,/turf/simulated/floor/plating/snow/cold,/area/arctic/cabin)
 
 (1,1,1) = {"
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -86,7 +85,7 @@ aaaaaaaaaaaaaaaaaaaaaaaadaaaaaaaaaaaaaaaacaaaeaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaabaaaaaaaaaaaaaanoiiiiiiiigaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafaaaaaaeaaaaaaaaaaaaaaa
 aaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaadaaaaaaaaaaaaaaaaaaaaaaafaaanpqiiiiiiigaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaacaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagriistuiivgaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaacaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagggwgxgggggaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaacaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaagggwnnnggggaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaabaaaacaaaaaaaaabaaaacaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaafaaaaafaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaacaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafaaaaaaadaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaacaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacaaaaaaaaaaaaaaacaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaafaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

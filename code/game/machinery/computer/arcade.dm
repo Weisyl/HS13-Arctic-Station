@@ -603,7 +603,7 @@
 			if(prob(75))
 				event = ORION_TRAIL_BLACKHOLE
 				event()
-				if(emagged) //has to be here because otherwise it doesn't work
+/*				if(emagged) //has to be here because otherwise it doesn't work
 					playsound(src.loc, 'sound/effects/supermatter.ogg', 100, 1)
 					say("A miniature black hole suddenly appears in front of [src], devouring [usr] alive!")
 					usr.Stun(10) //you can't run :^)
@@ -611,7 +611,7 @@
 					emagged = 0 //immediately removes emagged status so people can't kill themselves by sprinting up and interacting
 					sleep(50)
 					say("[S] winks out, just as suddenly as it appeared.")
-					qdel(S)
+					qdel(S)	*/
 			else
 				event = null
 				turns += 1

@@ -15,13 +15,13 @@ z7 =
 
 #if !defined(MAP_FILE)
 
-        #include "map_files\ArcticStation/arcticstation.dmm"
-        #include "map_files\ArcticStation/generic\z2.dmm"
-        #include "map_files\ArcticStation/generic\z3.dmm"
-        #include "map_files\ArcticStation/generic\z4.dmm"
-        #include "map_files\ArcticStation/generic\z5.dmm"
-        #include "map_files\ArcticStation/generic\z6.dmm"
-        #include "map_files\ArcticStation/generic\z7.dmm"
+        #include "map_files/ArcticStation/arcticstation.dmm"
+        #include "map_files/ArcticStation/generic/z2.dmm"
+        #include "map_files/ArcticStation/generic/z3.dmm"
+        #include "map_files/ArcticStation/generic/z4.dmm"
+        #include "map_files/ArcticStation/generic/z5.dmm"
+        #include "map_files/ArcticStation/generic/z6.dmm"
+        #include "map_files/ArcticStation/generic/z7.dmm"
 
         #define MAP_FILE "arcticstation.dmm"
         #define MAP_NAME "Arctic Station V1"

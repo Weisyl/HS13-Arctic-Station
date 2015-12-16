@@ -46,7 +46,7 @@ NOTE: there are two lists of areas in the end of this file: centcom and station 
 	var/static_light = 0
 	var/static_environ
 
-	var/has_gravity = 0
+	var/has_gravity = 1		//Since we'll be on a planet now, setting this to 1 as the default.
 	var/safe = 0 				//Is the area teleport-safe: no space / radiation / aggresive mobs / other dangers
 
 	var/no_air = null
@@ -1662,7 +1662,7 @@ var/list/teleportlocs = list()
 /area/arctic
 	name = "Arctic"
 	icon_state = "blue2" //placeholder icons for now
-	music = 'sound/ambience/loop/windwinter.ogg'
+	ambloop = 'sound/ambience/loop/windwinter.ogg'
 	ambientsounds = list('sound/ambience/arctic_suspense_1.ogg', 'sound/ambience/arctic_ambience_1.ogg', 'sound/ambience/arctic_ambience_2.ogg')
 
 /area/arctic/north
