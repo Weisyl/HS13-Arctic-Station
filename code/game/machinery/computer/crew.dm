@@ -304,8 +304,8 @@ var/global/datum/crewmonitor/crewmonitor = new
 			temp = "/area/asteroid"
 		else if (istype(tile.loc, /area/mine) && istype(tile, /turf/simulated/floor/plating/asteroid))
 			temp = "/area/mine/explored"
-		else if (tile.loc.type == /area/start || (tile.type == /turf/space && !(locate(/obj/structure/lattice) in tile)) || istype(tile, /turf/space/transit))
-			temp = "/turf/space"
+		else if (tile.loc.type == /area/start || (tile.type == /turf/space && !(locate(/obj/structure/lattice) in tile)) || istype(tile, /turf/space/transit) || (tile.type == /turf/simulated/floor/plating/snow/cold && !(locate(/obj/structure/lattice) in tile)))
+			temp = "/turf/simulated/floor/plating/snow"
 			if (locate(/obj/structure/lattice/catwalk) in tile)
 
 			else
