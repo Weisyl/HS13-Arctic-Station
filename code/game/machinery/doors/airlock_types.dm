@@ -291,6 +291,7 @@
 /obj/machinery/door/airlock/glass_large
 	name = "glass airlock"
 	icon = 'icons/obj/doors/Door2x1glassfull.dmi'
+	icon_state = "closed"
 	opacity = 0
 	doortype = null //(double glass door) there's no door assembly sprites for this one.
 	glass = 1

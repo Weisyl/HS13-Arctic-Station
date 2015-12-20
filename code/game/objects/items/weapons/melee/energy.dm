@@ -36,6 +36,7 @@
 	origin_tech = "combat=3"
 	attack_verb = list("attacked", "chopped", "cleaved", "torn", "cut")
 	attack_verb_on = list()
+	sharpness = IS_SHARP
 
 /obj/item/weapon/melee/energy/axe/suicide_act(mob/user)
 	user.visible_message("<span class='suicide'>[user] swings the [src.name] towards /his head! It looks like \he's trying to commit suicide.</span>")
@@ -73,6 +74,7 @@
 		force = force_on
 		throwforce = throwforce_on
 		hitsound = 'sound/weapons/blade1.ogg'
+		sharpness = IS_SHARP
 		if(attack_verb_on.len)
 			attack_verb = attack_verb_on
 		if(!item_color)
@@ -86,6 +88,7 @@
 		force = initial(force)
 		throwforce = initial(throwforce)
 		hitsound = initial(hitsound)
+		sharpness = IS_BLUNT
 		if(attack_verb_on.len)
 			attack_verb = list()
 		icon_state = initial(icon_state)

@@ -65,6 +65,11 @@
 	/obj/item/weapon/reagent_containers/food/snacks/grown/ambrosia/deus,
 	/obj/item/weapon/reagent_containers/food/snacks/grown/wheat)
 
+/obj/item/weapon/grown/log/tree
+	name = "log"
+	desc = "A very heavy log, a main product of woodcutting. Much heavier than tower-cap logs."
+	force = 10
+	w_class = 4.0
 
 /obj/item/weapon/grown/log/attackby(obj/item/weapon/W, mob/user, params)
 	..()
