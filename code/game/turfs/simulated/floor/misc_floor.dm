@@ -43,6 +43,12 @@
 	name = "Iron Sand"
 	icon_state = "ironsand[rand(1,15)]"
 
+/turf/simulated/floor/plating/iced_over
+	name = "plating"
+	icon = 'icons/turf/snow.dmi'
+	icon_state = "plating"
+	temperature = 220 //Enough to deal cold damage on breathing. TODO : Make these points defines
+
 /turf/simulated/floor/plating/snow
 	name = "snow"
 	icon = 'icons/turf/snow.dmi'

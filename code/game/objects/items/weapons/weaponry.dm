@@ -9,6 +9,7 @@
 	throw_speed = 3
 	throw_range = 7
 	attack_verb = list("banned")
+	var/can_cut_trees
 
 /obj/item/weapon/banhammer/suicide_act(mob/user)
 		user.visible_message("<span class='suicide'>[user] is hitting \himself with the [src.name]! It looks like \he's trying to ban \himself from life.</span>")

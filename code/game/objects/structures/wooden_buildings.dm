@@ -79,7 +79,7 @@
 		else
 			switch(O.damtype)
 				if("burn")
-					src.health -= O.force * 1
+					src.health -= O.force * 2.0
 				if("brute")
 					src.health -= O.force * 0.75
 				else
@@ -126,7 +126,7 @@
 		else
 			switch(W.damtype)
 				if("burn")
-					src.health -= W.force * 1
+					src.health -= W.force * 2.0
 				if("brute")
 					src.health -= W.force * 0.75
 				else
@@ -177,5 +177,6 @@
 				W:use(1)
 				visible_message("\red [user] successfully places the [W] in the [src]!")
 				new /obj/structure/barricade/window(src.loc)
+				del(src)
 		else
 			..()

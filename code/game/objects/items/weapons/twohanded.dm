@@ -259,6 +259,7 @@
 			M << "<span class='warning'>You lack the grace to wield this!</span>"
 			return
 	..()
+	sharpness = IS_SHARP
 	hitsound = 'sound/weapons/blade1.ogg'
 
 /obj/item/weapon/twohanded/dualsaber/unwield() //Specific unwield () to switch hitsounds.
@@ -354,6 +355,7 @@
 /obj/item/weapon/twohanded/chainsaw/attack(mob/target as mob, mob/living/user as mob)
 	if(wielded)
 		//incredibly loud; you ain't goin' for stealth with this thing. Credit goes to where Hotline Miami 2 got the chainsaw sounds from.
+		sharpness = IS_SHARP
 		hitsound = list('sound/weapons/chainsawAttack1.ogg', 'sound/weapons/chainsawAttack2.ogg', 'sound/weapons/chainsawAttack3.ogg')
 		if(isrobot(target))
 			..()
