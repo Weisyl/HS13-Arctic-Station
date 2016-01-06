@@ -48,6 +48,7 @@
 	icon = 'icons/turf/snow.dmi'
 	icon_state = "plating"
 	temperature = 220 //Enough to deal cold damage on breathing. TODO : Make these points defines
+	blocks_air = 1 //Need to figure out a better method
 
 /turf/simulated/floor/plating/snow
 	name = "snow"
@@ -63,6 +64,7 @@
 
 /turf/simulated/floor/plating/snow/cold
 	temperature = 220 //Enough to deal cold damage on breathing. TODO : Make these points defines
+	blocks_air = 1
 
 /turf/simulated/floor/plating/snow/gravsnow
 	icon_state = "gravsnow"

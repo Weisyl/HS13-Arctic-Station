@@ -22,8 +22,11 @@ var/datum/subsystem/objects/SSobj
 		AM.initialize()
 	if (zlevel)
 		return ..()
+	/*
 	for(var/turf/simulated/floor/F in world)
-		F.MakeDirty()
+		F.MakeDirty() //Come back to this later
+
+	*/
 	..()
 
 
